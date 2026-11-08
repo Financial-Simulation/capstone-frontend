@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ValidateSummary } from "./types";
+import type { ValidateSummary } from "@/lib/types";
 import { describeWarning } from "./warnings";
 
 const summary = (values: Partial<ValidateSummary>): ValidateSummary => ({

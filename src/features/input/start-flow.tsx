@@ -17,8 +17,8 @@ import { useCurrentMonth, useHydrated, useSimInput } from "@/lib/hooks";
 import { hasAnyValue } from "@/lib/storage";
 import { STEPS } from "@/lib/steps";
 import { formatYearMonth, isYearMonth } from "@/lib/year-month";
-import { Modal } from "./Modal";
-import { Button } from "./ui";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui";
 
 type Dialog = "resume" | "rebase" | null;
 

@@ -6,13 +6,13 @@
  */
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Modal } from "@/components/Modal";
-import { ResultView } from "@/components/result/ResultView";
-import { Computing, Empty, Failed, NotReady } from "@/components/result/StateViews";
-import { useResult } from "@/components/result/use-result";
+import { Modal } from "@/components/ui/Modal";
+import { ResultView } from "./ResultView";
+import { Computing, Empty, Failed, NotReady } from "./StateViews";
+import { useResult } from "./use-result";
 import { Button, LinkButton } from "@/components/ui";
 import { useHydrated, useSimInput } from "@/lib/hooks";
-import { readiness } from "@/lib/result";
+import { readiness } from "./result";
 import { STEPS, stepByKey } from "@/lib/steps";
 import type { SimulationInput } from "@/lib/types";
 

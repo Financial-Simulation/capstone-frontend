@@ -2,7 +2,7 @@
  * 03 시나리오: 예정된 일 프리셋(/events/presets) ↔ 입력의 events[].
  * 프리셋 하나가 일 여러 개를 만들 수 있다 (자동차 = 차 값 한 번 + 매달 유지비). 같은 프리셋의 일은 시점을 함께 쓴다.
  */
-import type { EventPreset, EventType, PlannedEvent, PresetKey, SimulationInputDraft, Draft, YearMonth } from "./types";
+import type { EventPreset, EventType, PlannedEvent, PresetKey, SimulationInputDraft, Draft, YearMonth } from "@/lib/types";
 
 export type EventAmountKey = "amount" | "monthlyChange" | "incomeChangeRate" | "gapMonths" | "deposit";
 

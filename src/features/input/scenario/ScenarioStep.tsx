@@ -6,15 +6,15 @@
  * 결과 보기 → 켠 일의 칸 확인 → validate (step=EVENTS) → 04 결과
  */
 import { useEffect, useState } from "react";
-import { Field, describedBy } from "@/components/Field";
-import { MoneyInput } from "@/components/MoneyInput";
-import { NumberInput } from "@/components/NumberInput";
-import { StepScreen } from "@/components/StepScreen";
-import { YearMonthPicker } from "@/components/YearMonthPicker";
-import { FormNoticeBox, useStepForm, type StepForm } from "@/components/step-form";
+import { Field, describedBy } from "@/components/ui/Field";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { NumberInput } from "@/components/ui/NumberInput";
+import { StepScreen } from "@/features/input/StepScreen";
+import { YearMonthPicker } from "@/components/ui/YearMonthPicker";
+import { FormNoticeBox, useStepForm, type StepForm } from "@/features/input/step-form";
 import { Badge, Button, FormSection } from "@/components/ui";
 import { api, formErrorMessage, type ApiSource } from "@/lib/api";
-import { eventFields, presetEventIndexes, setEventAmount, setPresetDate, togglePreset } from "@/lib/events";
+import { eventFields, presetEventIndexes, setEventAmount, setPresetDate, togglePreset } from "@/features/input/events";
 import { fieldId } from "@/lib/form";
 import { useCurrentMonth } from "@/lib/hooks";
 import { LIMITS } from "@/lib/rules";

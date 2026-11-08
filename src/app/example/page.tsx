@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ExampleScreen } from "./ExampleScreen";
+import { ExampleScreen } from "@/features/result/ExampleScreen";
 
 export const metadata: Metadata = { title: "예시 결과" };
 

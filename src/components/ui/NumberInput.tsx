@@ -8,7 +8,7 @@
  *   <NumberInput id="rate" value={rate} onChange={setRate} decimals={2} unit="%" />
  */
 import { useLayoutEffect, useRef, useState, type InputHTMLAttributes } from "react";
-import { formatNumberText, normalizeNumberText } from "@/lib/number-input";
+import { formatNumberText, normalizeNumberText } from "./number-input";
 
 export interface NumberInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "defaultValue" | "onChange" | "type" | "inputMode"> {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ResultScreen } from "./ResultScreen";
+import { ResultScreen } from "@/features/result/ResultScreen";
 
 export const metadata: Metadata = { title: "결과 확인" };
 

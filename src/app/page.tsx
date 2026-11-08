@@ -1,4 +1,4 @@
-import { StartActions } from "./StartActions";
+import { StartActions } from "@/features/input/StartActions";
 
 /** 00 시작 화면 */
 export default function StartPage() {

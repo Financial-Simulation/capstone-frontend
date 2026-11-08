@@ -9,8 +9,8 @@
  */
 import Link from "next/link";
 import { useState } from "react";
-import { MoneyInput } from "@/components/MoneyInput";
-import { StepIndicator } from "@/components/StepIndicator";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { StepIndicator } from "@/features/input/StepIndicator";
 import { Badge, Button, Card } from "@/components/ui";
 import { API_MODE_SPEC } from "@/config/env";
 import {

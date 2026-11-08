@@ -110,11 +110,11 @@ try {
 | `/input/assets` | 01-2 현금 · 예적금 · 대출 카드(상환액 미리보기) · 월 저축액 · 매달 남는 돈 · 청년미래적금 안내 · 선택 입력 | 완료 (validate · repayment-preview) |
 | `/input/goal` | 02 이름 · 금액 · 연월(기준 달부터 12~120개월만) · 입력 요약 | 완료 (validate) |
 | `/input/scenario` | 03 기본 상황 + 예정된 일 5종 (켜면 연월 · 금액 칸) | 완료 (presets · validate) |
-| `/result` | 04 결과 확인 · 계산 중 · 계산 실패 · 입력 없음 / 덜 끝남 | 완료 (simulate · reverse는 목업, validate) |
-| `/example` | 04-E 예시 결과 (S1~S3, '예시 데이터로 계산한 결과예요' 배너) | 완료 (examples, simulate는 목업) |
+| `/result` | 04 결과 확인 · 계산 중 · 계산 실패 · 입력 없음 / 덜 끝남 | 완료 (simulate · reverse · validate) |
+| `/example` | 04-E 예시 결과 (S1~S3, '예시 데이터로 계산한 결과예요' 배너) | 완료 (examples · simulate) |
 | `/dev` | 개발 점검 (목업 스위치 · API 점검 · 저장값 · 금액 칸) | 완료 |
 
-### '다음' 버튼 (모든 입력 화면 같음, `components/step-form.tsx`)
+### '다음' 버튼 (모든 입력 화면 같음, `features/input/step-form.tsx`)
 
 1. 그 화면의 필수 칸과 칸별 규칙을 프론트가 먼저 확인 → 빈 칸·잘못된 칸에 빨간 테두리와 문장, 첫 오류 칸으로 이동
 2. `POST /inputs/validate` (그 화면까지의 입력) → 서버 오류는 그 칸·카드에 (고치면 사라져요)
@@ -127,14 +127,14 @@ try {
 ## 결과 화면 (04 · 04-E)
 
 - 입력이 다 차면 한 번에 부른다: `POST /simulate`(본 결과) · `POST /reverse`(목표 확률 70%, '이렇게 바꿔 보세요') · `POST /inputs/validate`(step=ALL, 청년미래적금 비대상 이유만 씀).
-  같은 입력 · 같은 seed면 같은 결과라서 화면에 다시 들어오면 다시 불러도 숫자가 같다 (`components/result/use-result.ts`).
+  같은 입력 · 같은 seed면 같은 결과라서 화면에 다시 들어오면 다시 불러도 숫자가 같다 (`features/result/use-result.ts`).
 - 상태: 입력 없음 → 시작 안내 / 필수 칸이 빠짐 → 그 단계로 가기 / 계산 중('취소' → 03) / 계산 실패('다시 계산', 칸 오류면 '입력 확인하기'가 그 단계로).
-- 본문 순서 (`components/result/ResultView.tsx`): 첫 문장(API의 headline 그대로) → 범위 그래프 → 1·3·5·10년 표 → 위험 카드 5장 → 적금을 처음 깬 이유 4가지(합 100%) → 이렇게 바꿔 보세요 → 내 입력값과 적용 가정(펼치면 `GET /meta`).
-- 서버 값을 화면용으로 고르는 건 `lib/result.ts`(계산하지 않고 고르기 · 문장 · 색 기준만), 눈금과 그래프 위 라벨 자리(선 · 점 · 다른 라벨과 겹치지 않는 곳, 없으면 계산기 라벨은 생략)는 `lib/chart.ts`.
+- 본문 순서 (`features/result/ResultView.tsx`): 첫 문장(API의 headline 그대로) → 범위 그래프 → 1·3·5·10년 표 → 위험 카드 5장 → 적금을 처음 깬 이유 4가지(합 100%) → 이렇게 바꿔 보세요 → 내 입력값과 적용 가정(펼치면 `GET /meta`).
+- 서버 값을 화면용으로 고르는 건 `features/result/result.ts`(계산하지 않고 고르기 · 문장 · 색 기준만), 눈금과 그래프 위 라벨 자리(선 · 점 · 다른 라벨과 겹치지 않는 곳, 없으면 계산기 라벨은 생략)는 `features/result/chart.ts`.
 - 그래프: 범위(아래 10%~위 10%)는 옅은 면, 중간값 · 최악의 경우(하위 5%)는 선, 목표 금액 · 목표 시점은 점선, 계산기 결과는 두 점(목표 시점 · 10년 뒤), 예정된 일은 입력의 occurDate로 ◆.
   마우스 · 손가락 · 화살표 키(Shift는 1년씩, Home/End)로 달을 옮기면 툴팁, '표로 보기'에 해마다 값.
 - 목업이면 결과 위에 보라색 '목업' 안내를 띄운다. 기준 연월이 정답 파일(2026-11)과 다르면 날짜만 옮긴 정답을 쓰고 그렇다고 적는다 (10월에 S1을 넣어도 S1과 같은 숫자).
-- 04-E는 예시 값을 내 입력(`simInput.v1`)에 넣지 않는다. '내 정보로 시작하기'는 00 '시뮬레이션 시작하기'와 같은 흐름(`components/start-flow.tsx`: 저장값이 있으면 '이어서 할까요?')이고, 저장값은 거기서 '새로 시작'을 고를 때만 지운다.
+- 04-E는 예시 값을 내 입력(`simInput.v1`)에 넣지 않는다. '내 정보로 시작하기'는 00 '시뮬레이션 시작하기'와 같은 흐름(`features/input/start-flow.tsx`: 저장값이 있으면 '이어서 할까요?')이고, 저장값은 거기서 '새로 시작'을 고를 때만 지운다.
   `/examples`에 닿지 못하면 프론트에 든 같은 예시 입력(`mocks/data/examples.json`)으로 계산한다.
 
 ## 정해 둔 것 (10/28 회의 '정할 것', 팀 확인 전 임시)
@@ -150,30 +150,46 @@ try {
 
 ## 폴더
 
+기능(화면) 단위로 나눠요. 주소는 `app/`, 화면과 그 기능에서만 쓰는 코드는 `features/`, 여러 기능이 같이 쓰는 건 `components/ui/`와 `lib/`에 둬요.
+테스트(`*.test.ts`)는 시험하는 파일 바로 옆에 있어요.
+
 ```
 src/
-  app/                 화면 (주소 = 폴더)
-    dev/               개발 점검 화면과 API 점검 목록
-  components/          Header · StepIndicator · StepScreen · StepNav · Field · ui · Modal
-                       MoneyInput(쉼표 자동) · NumberInput · YearMonthPicker · Choice
-                       step-form.tsx ('다음' 흐름 · 경고 모달 · 0.3초 디바운스 API)
-                       start-flow.tsx ('시뮬레이션 시작하기' · '내 정보로 시작하기'의 이어서 하기 모달)
-    result/            ResultView(결과 본문) · BandChart(범위 그래프) · StateViews(계산 중 · 실패) · use-result
+  app/                 주소(라우트)만: page.tsx · layout.tsx가 features의 화면을 불러요
+    dev/               개발 점검 화면과 API 점검 목록 (발표 화면이 아니라서 주소 폴더에 같이 둬요)
+  features/
+    input/             00 시작 · 입력 4단계 (01-1 · 01-2 · 02 · 03)
+      basic/ assets/ goal/ scenario/
+                       단계 화면 (BasicStep · ExpenseEditor · AssetsStep · LoanCard · GoalStep · ScenarioStep)
+      StepScreen · StepNav · StepIndicator · input-flow
+                       입력 화면 틀 · '이전/다음' · 단계 표시
+      step-form.tsx    '다음' 흐름 · 경고 모달 · 0.3초 디바운스 API
+      start-flow.tsx · StartActions.tsx
+                       '시뮬레이션 시작하기' · '내 정보로 시작하기'의 이어서 하기 모달
+      draft.ts         입력 고치기 (지출 방식 · 대출 · 기본 항목)
+      events.ts        예정된 일 프리셋 ↔ events[]
+      warnings.ts      서버 경고 → 경고 모달 문구
+    result/            04 결과 · 04-E 예시 결과
+      ResultScreen · ExampleScreen · ResultView(결과 본문) · BandChart(범위 그래프) · StateViews(계산 중 · 실패) · use-result
+      result.ts        결과 화면에 보여 줄 값 고르기 (위험 카드 · 표 · 원인 · 레버 · 입력이 다 찼는지)
+      chart.ts         그래프 눈금 · 축 글자 · 라벨 자리 고르기
+    (tax · plan · report 폴더는 그 기능을 만드는 3~5단계에 생겨요)
+  components/
+    Header.tsx         모든 화면 위 머리글
+    ui/                공용 부품: index.tsx(Button · LinkButton · Card · FormSection · Badge · Notice)
+                       Modal · Field · Choice · MoneyInput(쉼표 자동) · NumberInput · YearMonthPicker
   config/
     env.ts             환경 설정을 읽는 곳 (백엔드 주소 · API 주소 · 목업 스위치, 목록과 기본값은 .env.example)
-  lib/
+  lib/                 여러 기능이 같이 쓰는 것
     types/             SimulationInput · ApiResponse · ValidateResponse · 결과 타입
     api/               fetch 래퍼 · API 함수 · 오류 → 칸 · mock/real 스위치
     rules.ts           입력 규칙과 오류 문장 (백엔드 SimulationInput.java와 같게)
-    form.ts · draft.ts 화면까지의 입력 · 오류 키 / 입력 고치기 (지출 방식 · 대출 · 기본 항목)
-    events.ts          예정된 일 프리셋 ↔ events[]
-    warnings.ts        서버 경고 → 경고 모달 문구
+    form.ts            화면까지의 입력 · 오류 키
+    steps.ts           입력 4단계와 주소
     storage.ts         simInput.v1 · simPlans.v1 · simProgress.v1
     hooks.ts           useSimInput · useProgress · useSavedPlans · useApiModes
     format.ts          금액·확률 표시 ("4,440만 원", "−1,568만 원", "+12.5%p")
-    result.ts          결과 화면에 보여 줄 값 고르기 (위험 카드 · 표 · 원인 · 레버 · 입력이 다 찼는지)
-    chart.ts           그래프 눈금 · 축 글자 · 라벨 자리 고르기
-    steps.ts           입력 4단계와 주소
+    year-month.ts      연월 계산 ("2026-11" + 개월 수)
   mocks/               목업 API와 정답 파일 (목업을 쓸 때만 불러와요)
 ```
 

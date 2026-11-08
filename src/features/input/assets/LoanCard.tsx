@@ -4,12 +4,12 @@
  * 01-2 대출 한 건. 종류를 고르면 평균 금리 · 흔한 갚는 방식을 채우고,
  * 종류 · 남은 원금 · 남은 기간이 차면 입력이 멈추고 0.3초 뒤 첫 달 상환액을 보여 준다 (POST /loans/repayment-preview).
  */
-import { Field, describedBy } from "@/components/Field";
-import { MoneyInput } from "@/components/MoneyInput";
-import { NumberInput } from "@/components/NumberInput";
-import { useDebouncedApi, type DebouncedState, type StepForm } from "@/components/step-form";
+import { Field, describedBy } from "@/components/ui/Field";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { NumberInput } from "@/components/ui/NumberInput";
+import { useDebouncedApi, type DebouncedState, type StepForm } from "@/features/input/step-form";
 import { api, isApiError } from "@/lib/api";
-import { patchLoan, removeLoan, setLoanType } from "@/lib/draft";
+import { patchLoan, removeLoan, setLoanType } from "@/features/input/draft";
 import { formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import {

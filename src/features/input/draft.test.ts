@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkCrossRules, checkRequired } from "./rules";
+import { checkCrossRules, checkRequired } from "@/lib/rules";
 import {
   DEFAULT_EXPENSE_ITEMS,
   addExpenseItem,

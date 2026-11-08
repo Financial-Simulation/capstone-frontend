@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import presetsData from "@/mocks/data/presets.json";
-import type { EventPreset, SimulationInputDraft } from "./types";
-import { checkCrossRules, checkRequired } from "./rules";
+import type { EventPreset, SimulationInputDraft } from "@/lib/types";
+import { checkCrossRules, checkRequired } from "@/lib/rules";
 import { eventFields, eventsFromPreset, presetEventIndexes, setEventAmount, setPresetDate, togglePreset } from "./events";
 
 const presets = (presetsData as { presets: EventPreset[] }).presets;

@@ -19,12 +19,12 @@ import {
   yearlyRows,
   type QuantileRow,
   type RiskCard,
-} from "@/lib/result";
+} from "./result";
 import { resolvedExpenseTotal } from "@/lib/rules";
 import { INPUT_DEFAULTS, LOAN_DEFAULTS, type MetaResult, type ReverseResult, type SimulateResult, type SimulationInputDraft } from "@/lib/types";
 import { formatDuration, formatYearMonth, monthsBetween } from "@/lib/year-month";
 import type { MockMatch } from "@/mocks/handlers";
-import { Badge } from "../ui";
+import { Badge } from "@/components/ui";
 import { BandChart, BandLegend } from "./BandChart";
 
 export interface ResultData {

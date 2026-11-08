@@ -28,9 +28,9 @@ import { useHydrated, useSimInput, type InputUpdater } from "@/lib/hooks";
 import { checkFields, checkRequired } from "@/lib/rules";
 import { nextHref, stepByKey, type StepKey } from "@/lib/steps";
 import type { FieldErrorMap, SimulationInputDraft, ValidateResult } from "@/lib/types";
-import { describeWarning, type WarningView } from "@/lib/warnings";
-import { Button } from "./ui";
-import { Modal } from "./Modal";
+import { describeWarning, type WarningView } from "./warnings";
+import { Button } from "@/components/ui";
+import { Modal } from "@/components/ui/Modal";
 
 export interface FormNotice {
   message: string;

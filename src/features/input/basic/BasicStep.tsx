@@ -4,14 +4,14 @@
  * 01-1 나와 소득/지출.
  * 다음 → 필수 칸 확인 → POST /inputs/validate (step=BASIC) → 지출이 소득 이상이면 경고 모달 (WARN_EXPENSE_OVER_INCOME)
  */
-import { Choice } from "@/components/Choice";
-import { Field, describedBy } from "@/components/Field";
-import { MoneyInput } from "@/components/MoneyInput";
-import { NumberInput } from "@/components/NumberInput";
-import { StepScreen } from "@/components/StepScreen";
-import { FormNoticeBox, StepWarningModal, useStepForm } from "@/components/step-form";
+import { Choice } from "@/components/ui/Choice";
+import { Field, describedBy } from "@/components/ui/Field";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { NumberInput } from "@/components/ui/NumberInput";
+import { StepScreen } from "@/features/input/StepScreen";
+import { FormNoticeBox, StepWarningModal, useStepForm } from "@/features/input/step-form";
 import { FormSection } from "@/components/ui";
-import { fillBlankExpenseItems, patch } from "@/lib/draft";
+import { fillBlankExpenseItems, patch } from "@/features/input/draft";
 import { MINUS, formatKoreanWon, formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import { resolvedExpenseTotal } from "@/lib/rules";

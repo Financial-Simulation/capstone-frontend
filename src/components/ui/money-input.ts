@@ -2,7 +2,7 @@
  * 금액 칸(MoneyInput)의 순수 함수: 숫자만 남기고 천 단위 쉼표를 넣는다.
  * 컴포넌트와 떼어 둬서 테스트할 수 있게 했다.
  */
-import { groupDigits } from "./format";
+import { groupDigits } from "@/lib/format";
 
 /** 9,999조 원 미만. 실제 범위 검사는 서버 규칙(rules.ts)이 한다 */
 export const MAX_MONEY_DIGITS = 13;

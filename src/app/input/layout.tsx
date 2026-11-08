@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { InputFlowProvider } from "@/components/input-flow";
-import { StepIndicator } from "@/components/StepIndicator";
+import { InputFlowProvider } from "@/features/input/input-flow";
+import { StepIndicator } from "@/features/input/StepIndicator";
 
 /** 입력 4단계 공통: 단계 표시 + 화면 */
 export default function InputLayout({ children }: { children: ReactNode }) {

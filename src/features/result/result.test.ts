@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { goldenCaseByKey } from "@/mocks/golden";
-import type { SimulationInputDraft } from "./types";
+import type { SimulationInputDraft } from "@/lib/types";
 import {
   causeRows,
   checkpointRows,

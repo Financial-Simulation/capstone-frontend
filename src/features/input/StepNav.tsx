@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { prevHref, stepByKey, stepIndex, STEPS, type StepKey } from "@/lib/steps";
-import { Button } from "./ui";
+import { Button } from "@/components/ui";
 
 /** 와이어플로의 '다음' 버튼 문구 */
 export function nextLabel(step: StepKey): string {

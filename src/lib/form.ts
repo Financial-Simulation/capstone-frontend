@@ -1,5 +1,5 @@
 /**
- * 입력 화면 공통 규칙 (순수 함수). 화면 쪽은 components/step-form.tsx.
+ * 입력 화면 공통 규칙 (순수 함수). 화면 쪽은 features/input/step-form.tsx.
  *
  *  - 칸 키는 입력 경로: "person.age", "loans.items[0].principal", 카드 전체는 "events[1]"
  *  - '다음'은 그 화면까지의 입력만 보낸다 (뒤 화면에 남은 값 때문에 앞 화면이 막히지 않게)

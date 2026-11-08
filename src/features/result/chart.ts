@@ -1,7 +1,7 @@
 /**
- * 그래프 눈금 · 축 글자 (순수 함수). 그리는 건 components/result/BandChart.tsx.
+ * 그래프 눈금 · 축 글자 (순수 함수). 그리는 건 같은 폴더의 BandChart.tsx.
  */
-import { MINUS, groupDigits } from "./format";
+import { MINUS, groupDigits } from "@/lib/format";
 
 /** 1 · 2 · 5 × 10^k 중에서 target개쯤 나오는 간격 */
 export function niceStep(span: number, target = 5): number {

@@ -2,8 +2,8 @@
  * '다음'을 눌렀을 때 서버가 준 경고 → 와이어플로의 경고 모달 문구.
  * 숫자는 서버의 확정 합계(summary)에서 꺼낸다. 화면에서는 뺄셈으로 차이만 보여 준다.
  */
-import type { ApiWarning, ValidateSummary } from "./types";
-import { formatKoreanWon } from "./format";
+import type { ApiWarning, ValidateSummary } from "@/lib/types";
+import { formatKoreanWon } from "@/lib/format";
 
 export interface WarningView {
   code: string;

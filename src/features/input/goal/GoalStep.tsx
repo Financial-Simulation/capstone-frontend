@@ -5,13 +5,13 @@
  * 다음 → 필수 칸 확인 → validate (step=GOAL) → 이미 목표 이상이면 안내 모달 (WARN_GOAL_ALREADY_MET)
  */
 import Link from "next/link";
-import { Field, describedBy } from "@/components/Field";
-import { MoneyInput } from "@/components/MoneyInput";
-import { StepScreen } from "@/components/StepScreen";
-import { YearMonthPicker } from "@/components/YearMonthPicker";
-import { FormNoticeBox, StepWarningModal, useStepForm } from "@/components/step-form";
+import { Field, describedBy } from "@/components/ui/Field";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { StepScreen } from "@/features/input/StepScreen";
+import { YearMonthPicker } from "@/components/ui/YearMonthPicker";
+import { FormNoticeBox, StepWarningModal, useStepForm } from "@/features/input/step-form";
 import { FormSection, textInputClass } from "@/components/ui";
-import { patch } from "@/lib/draft";
+import { patch } from "@/features/input/draft";
 import { formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import { useCurrentMonth } from "@/lib/hooks";

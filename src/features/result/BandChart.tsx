@@ -8,9 +8,9 @@
  *  - 마우스 · 손가락 · 화살표 키로 달을 옮기면 그달의 값을 보여 준다 (표로 보기에도 같은 값)
  */
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject } from "react";
-import { formatAxisWon, monthTicks, niceTicks, pickLabels, textBox, textWidth, type Anchor, type Box, type Obstacle } from "@/lib/chart";
+import { formatAxisWon, monthTicks, niceTicks, pickLabels, textBox, textWidth, type Anchor, type Box, type Obstacle } from "./chart";
 import { formatManwon } from "@/lib/format";
-import { afterLabel, type EventMark } from "@/lib/result";
+import { afterLabel, type EventMark } from "./result";
 import type { SimulateResult } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
 
@@ -69,7 +69,7 @@ export function BandChart({ result, events = [] }: { result: SimulateResult; eve
   const goalBand = bands[gm];
   const activeBand = active === null ? null : bands[active];
 
-  // ----- 라벨 자리: 데이터 선 · 점 · 다른 라벨과 겹치지 않는 후보를 고른다 (lib/chart.ts pickLabels) -----
+  // ----- 라벨 자리: 데이터 선 · 점 · 다른 라벨과 겹치지 않는 후보를 고른다 (chart.ts pickLabels) -----
   const plotRight = MARGIN.left + plotW;
   const edgeAnchor = (px: number): Anchor => (px > plotRight - 60 ? "end" : px < MARGIN.left + 60 ? "start" : "middle");
   const place = (px: number, baseline: number, anchor: Anchor, w: number): Label => ({ x: px, y: baseline, anchor, box: textBox(px, baseline, w, anchor) });

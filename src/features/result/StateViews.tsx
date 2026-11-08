@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { formErrorMessage, isApiError, toFieldErrors } from "@/lib/api";
 import { stepOfPath } from "@/lib/form";
 import { STEPS, stepByKey } from "@/lib/steps";
-import { Button, LinkButton } from "../ui";
+import { Button, LinkButton } from "@/components/ui";
 
 function Panel({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "danger" }) {
   return (

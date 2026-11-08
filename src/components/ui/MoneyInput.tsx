@@ -13,7 +13,7 @@ import {
   digitsBeforeCaret,
   formatMoneyText,
   normalizeMoneyText,
-} from "@/lib/money-input";
+} from "./money-input";
 
 export interface MoneyInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "defaultValue" | "onChange" | "type" | "inputMode"> {

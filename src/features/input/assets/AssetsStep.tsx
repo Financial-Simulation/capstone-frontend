@@ -6,15 +6,15 @@
  *  - 다음 → 필수 칸 확인 → validate (step=ASSETS) → 매달 모자라면 경고 모달 (WARN_MONTHLY_SHORTFALL)
  */
 import { useState } from "react";
-import { Choice } from "@/components/Choice";
-import { Field, describedBy } from "@/components/Field";
-import { MoneyInput } from "@/components/MoneyInput";
-import { NumberInput } from "@/components/NumberInput";
-import { StepScreen } from "@/components/StepScreen";
-import { FormNoticeBox, StepWarningModal, useDebouncedApi, useStepForm, type DebouncedState } from "@/components/step-form";
+import { Choice } from "@/components/ui/Choice";
+import { Field, describedBy } from "@/components/ui/Field";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { NumberInput } from "@/components/ui/NumberInput";
+import { StepScreen } from "@/features/input/StepScreen";
+import { FormNoticeBox, StepWarningModal, useDebouncedApi, useStepForm, type DebouncedState } from "@/features/input/step-form";
 import { Button, FormSection } from "@/components/ui";
 import { api, isApiError } from "@/lib/api";
-import { addLoan, patch, setHasLoan } from "@/lib/draft";
+import { addLoan, patch, setHasLoan } from "@/features/input/draft";
 import { MINUS, formatKoreanWon, formatWon } from "@/lib/format";
 import { fieldId, scopeInput } from "@/lib/form";
 import { INPUT_DEFAULTS, type Draft, type LoanItem, type ValidateRequest, type ValidateResult } from "@/lib/types";

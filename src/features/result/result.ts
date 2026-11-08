@@ -16,13 +16,13 @@ import type {
   SimulateResult,
   SimulationInputDraft,
   YearMonth,
-} from "./types";
-import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint } from "./format";
-import { normalizeErrors, stepOfPath } from "./form";
-import { checkCrossRules, checkFields, checkRequired } from "./rules";
-import type { StepKey } from "./steps";
-import { hasAnyValue } from "./storage";
-import { formatDuration, formatYearMonth, isYearMonth, monthsBetween } from "./year-month";
+} from "@/lib/types";
+import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint } from "@/lib/format";
+import { normalizeErrors, stepOfPath } from "@/lib/form";
+import { checkCrossRules, checkFields, checkRequired } from "@/lib/rules";
+import type { StepKey } from "@/lib/steps";
+import { hasAnyValue } from "@/lib/storage";
+import { formatDuration, formatYearMonth, isYearMonth, monthsBetween } from "@/lib/year-month";
 
 export const PROBABILITY_GOOD = 70;
 export const PROBABILITY_FAIR = 50;

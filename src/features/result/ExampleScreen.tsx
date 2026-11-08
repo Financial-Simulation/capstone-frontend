@@ -8,10 +8,10 @@
  * 백엔드가 꺼져 있으면 /examples 대신 프론트에 들어 있는 같은 예시 입력을 쓴다 (데모가 멈추지 않게).
  */
 import { useEffect, useState } from "react";
-import { ResultView } from "@/components/result/ResultView";
-import { Computing, Failed } from "@/components/result/StateViews";
-import { useResult } from "@/components/result/use-result";
-import { useStartFlow } from "@/components/start-flow";
+import { ResultView } from "./ResultView";
+import { Computing, Failed } from "./StateViews";
+import { useResult } from "./use-result";
+import { useStartFlow } from "@/features/input/start-flow";
 import { Button } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatManwon, formatWon } from "@/lib/format";

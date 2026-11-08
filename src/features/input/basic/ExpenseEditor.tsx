@@ -1,10 +1,10 @@
 "use client";
 
 /** 01-1 고정지출 · 변동지출 한 묶음: 합계로 입력 / 항목별로 입력 (inputMode TOTAL / DETAIL) */
-import { Choice } from "@/components/Choice";
-import { Field, describedBy } from "@/components/Field";
-import { MoneyInput } from "@/components/MoneyInput";
-import type { StepForm } from "@/components/step-form";
+import { Choice } from "@/components/ui/Choice";
+import { Field, describedBy } from "@/components/ui/Field";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import type { StepForm } from "@/features/input/step-form";
 import { Button, textInputClass } from "@/components/ui";
 import {
   addExpenseItem,
@@ -13,7 +13,7 @@ import {
   removeExpenseItem,
   setExpenseMode,
   type ExpenseKind,
-} from "@/lib/draft";
+} from "@/features/input/draft";
 import { formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import { resolvedExpenseTotal } from "@/lib/rules";

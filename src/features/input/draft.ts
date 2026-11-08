@@ -1,8 +1,8 @@
 /**
  * 입력(Draft)을 고치는 순수 함수. 화면은 update((prev) => patch(prev, "person", { age }))처럼 쓴다.
  */
-import type { Draft, ExpenseGroup, ExpenseItem, LoanItem, LoanType, SimulationInputDraft } from "./types";
-import { LOAN_DEFAULTS } from "./types";
+import type { Draft, ExpenseGroup, ExpenseItem, LoanItem, LoanType, SimulationInputDraft } from "@/lib/types";
+import { LOAN_DEFAULTS } from "@/lib/types";
 
 type Section = "person" | "income" | "assets" | "savingPlan" | "emergency" | "goal" | "loans";
 
