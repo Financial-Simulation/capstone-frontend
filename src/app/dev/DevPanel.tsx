@@ -118,7 +118,7 @@ function ModeSwitch() {
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="relative mt-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs text-muted">

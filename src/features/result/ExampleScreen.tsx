@@ -4,7 +4,7 @@
  * 04-E 예시 결과. GET /examples의 S1~S3 중 하나로 /simulate를 부른다.
  * 내 입력(simInput.v1)은 바꾸지 않는다: 예시 값은 내 입력으로 옮기지 않고, '내 정보로 시작하기'는
  * 00 '시뮬레이션 시작하기'와 같은 흐름(저장값이 있으면 '이어서 할까요?')으로 01-1에 간다.
- * 위쪽에 '예시 데이터로 계산한 결과예요' 배너가 항상 있다.
+ * 위쪽에 '예시 데이터로 계산한 결과예요' 배너가 항상 있다 (파란 안내색. 보라색은 목업 표시에만).
  * 백엔드가 꺼져 있으면 /examples 대신 프론트에 들어 있는 같은 예시 입력을 쓴다 (데모가 멈추지 않게).
  */
 import { useEffect, useState } from "react";
@@ -12,7 +12,7 @@ import { ResultView } from "./ResultView";
 import { Computing, Failed } from "./StateViews";
 import { useResult } from "./use-result";
 import { useStartFlow } from "@/features/input/start-flow";
-import { Button } from "@/components/ui";
+import { Badge, Button } from "@/components/ui";
 import { api, isAbortError } from "@/lib/api";
 import { formatManwon, formatWon } from "@/lib/format";
 import type { ExampleInput, ExamplesResult } from "@/lib/types";
@@ -59,9 +59,10 @@ export function ExampleScreen() {
 
   return (
     <div className="space-y-6">
-      <div role="note" className="rounded-lg bg-mock-soft px-4 py-3 text-sm font-semibold text-mock">
-        예시 데이터로 계산한 결과예요. 내가 입력한 값은 바뀌지 않아요.
-      </div>
+      {/* 보라색은 '목업'(정답 파일 응답) 표시에만 쓴다. 예시 배너는 파란 안내색 */}
+      <p role="note" className="rounded-lg border border-info-line bg-system-soft px-4 py-3 text-sm font-semibold">
+        <Badge tone="primary">예시</Badge> 예시 데이터로 계산한 결과예요. 내가 입력한 값은 바뀌지 않아요.
+      </p>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
