@@ -59,7 +59,8 @@ describe("정답 파일 대조 (백엔드 자리에 가짜 응답)", () => {
     const previewBody = JSON.parse((previewMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
     expect(previewBody.adjustments).toEqual({ monthlyVariableExpense: 850_000 });
 
-    const compareMock = respond(t1.compare);
+    // 백엔드(GitHub main)의 비교 줄에는 보낸 조정값(adjustments)이 없다 → 정답 파일의 그 칸은 보지 않는다
+    const compareMock = respond({ ...t1.compare, plans: t1.compare.plans.map((plan) => ({ ...plan, adjustments: undefined })) });
     vi.stubGlobal("fetch", compareMock);
     expect(await compareWithGolden(t1, "compare", signal())).toMatchObject({ status: "same" });
     const compareBody = JSON.parse((compareMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);

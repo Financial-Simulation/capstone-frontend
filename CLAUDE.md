@@ -7,6 +7,8 @@
 - API는 `src/lib/api`의 `api.*`로만 불러요 (fetch를 직접 쓰지 않아요). 오류는 `toFieldErrors(error, input)`로 칸 오류, `formErrorMessage(error, input)`로 화면 위 안내, 칸이 없는 자리(결과 화면 버튼)는 `errorMessage(error)` 한 문장. 요청을 멈춘 것은 `isAbortError(error)`로 걸러요 (오류로 안내하지 않음).
 - 결과 화면의 버튼 작업(비교 · 추천 · 미리보기 · 가능성 범위)은 `useApiTask()`(lib/hooks.ts)로 불러요: 하나씩만, 새로 누르거나 화면을 떠나면 앞의 요청을 멈춰요. 가능성 범위 작업(맡기고 1.5초마다 묻기)은 `runRobust`(lib/api/robust.ts).
 - API는 기본이 전부 실제(real)예요. 목업은 테스트 · 오프라인용으로 `.env.local`의 `NEXT_PUBLIC_API_MODE`(예: `all-mock`)나 `/dev` 스위치로만 켜요.
+- 백엔드는 GitHub `capstone-backend` main(v1.7)이 기준이에요. 브라우저는 같은 출처 `/api/*`만 부르고 Next 서버가 넘겨요 (`next.config.ts` rewrites). 넘기기 전에 `src/proxy.ts`가 `Origin`을 빼요 (백엔드 CORS 허용 목록에 없으면 POST가 403).
+- 담은 계획을 서버에 보낼 때는 `planRequests`(features/plan/plan.ts)로 보내요: 서버는 계획 이름을 20자까지만 받아요(PlanSpec). 결과에는 `planLabels`로 담은 계획 이름을 붙여요 (보낸 이름 그대로 돌아온 줄만. 목업이 정답 파일의 예시 계획을 돌려주면 그 이름 그대로).
 - 환경 값(`process.env`)은 `src/config/env.ts`에서만 읽어요. 새 설정은 거기와 `.env.example`에 같이 적어요. `/dev`는 개발 서버에서만 열려요 (배포 빌드는 `NEXT_PUBLIC_DEV_TOOLS=1`일 때만, `devToolsEnabled()`).
 - 제도 숫자(금리 · 한도 · 소득 기준 · 기본값)를 화면 문장에 직접 쓰지 않아요. 서버 응답 값을 쓰고, 서버가 안 주는 값은 `src/config/policy.ts`(출처와 함께)에서 가져와요.
 - 입력은 `useSimInput()`(simInput.v1)으로만 읽고 써요. `startMonth`는 첫 값을 넣을 때 자동으로 정해져요. `localStorage`를 직접 쓰지 않아요.

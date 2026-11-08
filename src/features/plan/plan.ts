@@ -6,12 +6,13 @@
 import { EMERGENCY_FIRST_OPTIONS, INPUT_DEFAULTS } from "@/config/policy";
 import { PROBABILITY_GOOD, compareDiff, type CompareDiff } from "@/features/result/result";
 import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint, MINUS } from "@/lib/format";
-import { resolvedExpenseTotal } from "@/lib/rules";
+import { LIMITS, resolvedExpenseTotal } from "@/lib/rules";
 import type {
   Adjustments,
   CompareResult,
   ComparisonMetric,
   EmergencyFirstAmount,
+  PlanRequest,
   PreviewResult,
   RobustJobResult,
   SimulationInput,
@@ -91,11 +92,45 @@ function valueText(key: PlanKey, value: unknown): string {
   return formatKoreanWon(value as number);
 }
 
-/** "변동지출 85만 원 · 목표 시점 2032년 11월" (담은 계획 이름) */
+/** "변동지출 85만 원 · 목표 시점 2032년 11월" (담은 계획 이름, 20자를 넘을 수 있다 → 서버에는 planRequests로) */
 export function describeChanges(adjustments: Adjustments): string {
   return PLAN_KEYS.filter((key) => key in adjustments)
     .map((key) => `${SHORT[key]} ${valueText(key, (adjustments as Record<string, unknown>)[key])}`)
     .join(" · ");
+}
+
+/** max자를 넘으면 앞 max−1자 + "…" */
+function clipName(name: string, max: number): string {
+  return name.length <= max ? name : `${name.slice(0, max - 1).trimEnd()}…`;
+}
+
+/**
+ * 담은 계획 → 서버에 보내는 계획 (/compare · /robust · /reports).
+ * 서버는 계획 이름을 20자까지만 받는다 (PlanSpec.name, 넘으면 COMMON400 "plans[0].name").
+ * 두 값 이상 바꾼 계획 이름(describeChanges)은 20자를 넘기 쉬워서 줄여 보내고, 화면에는 planLabels로 담은 계획 이름을 붙인다.
+ */
+export function planRequests(plans: readonly { name: string; adjustments: Adjustments }[]): PlanRequest[] {
+  return plans.map((plan) => ({ name: clipName(plan.name, LIMITS.nameLength), adjustments: plan.adjustments }));
+}
+
+/** 보낸 계획 하나의 이름표: 서버에 보낸 이름(20자까지)과 화면에 보여 줄 담은 계획 이름 */
+export interface PlanLabel {
+  sent: string;
+  label: string;
+}
+
+/** planRequests와 같은 순서의 이름표 (planCompareRows · robustPlanLines · reportView에 넘긴다) */
+export function planLabels(plans: readonly { name: string }[]): PlanLabel[] {
+  return plans.map((plan) => ({ sent: clipName(plan.name, LIMITS.nameLength), label: plan.name }));
+}
+
+/**
+ * 서버가 돌려준 index번째 계획 이름 → 화면 이름. 보낸 이름 그대로 돌아왔을 때만 담은 계획 이름으로 바꾼다.
+ * 목업은 정답 파일에 없는 계획이면 정답 파일의 예시 계획을 대신 돌려주므로, 그때는 그 예시 이름을 그대로 둔다.
+ */
+function labelOf(name: string, index: number, labels?: readonly PlanLabel[]): string {
+  const label = labels?.[index];
+  return label && label.sent === name ? label.label : name;
 }
 
 export function sameAdjustments(a: Adjustments, b: Adjustments): boolean {
@@ -180,10 +215,13 @@ export interface PlanCompareRow {
   taxNetBenefit: string;
 }
 
-/** 서버는 '지금 계획' 다음에 보낸 순서대로 돌려준다 */
-export function planCompareRows(compare: CompareResult): PlanCompareRow[] {
-  return compare.plans.map((plan) => ({
-    name: plan.name,
+/**
+ * 서버는 '지금 계획' 다음에 보낸 순서대로 돌려준다.
+ * labels: 보낸 계획의 이름표 (planLabels). 줄여 보낸 이름 대신 담은 계획 이름을 붙인다
+ */
+export function planCompareRows(compare: CompareResult, labels?: readonly PlanLabel[]): PlanCompareRow[] {
+  return compare.plans.map((plan, index) => ({
+    name: plan.isBase ? plan.name : labelOf(plan.name, index - 1, labels),
     isBase: plan.isBase,
     probability: formatPercent(plan.probability),
     diff: compareDiff(plan),
@@ -199,10 +237,10 @@ export function planCompareRows(compare: CompareResult): PlanCompareRow[] {
 
 const oneDecimal = (value: number) => `${value < 0 ? MINUS : ""}${Math.abs(value).toFixed(1)}`;
 
-/** 담은 계획마다 한 줄: 결론(지금보다 나은지 · 못한지)이 몇 번 유지되는지 */
-export function robustPlanLines(job: RobustJobResult): { name: string; text: string }[] {
-  return (job.plans ?? []).map((plan) => ({
-    name: plan.name,
+/** 담은 계획마다 한 줄: 결론(지금보다 나은지 · 못한지)이 몇 번 유지되는지. labels는 planCompareRows와 같다 */
+export function robustPlanLines(job: RobustJobResult, labels?: readonly PlanLabel[]): { name: string; text: string }[] {
+  return (job.plans ?? []).map((plan, index) => ({
+    name: labelOf(plan.name, index, labels),
     text:
       `가정을 ${plan.trials}가지로 바꿔도 지금 계획보다 ${plan.diffMedian >= 0 ? "나은" : "못한"} 결론이 ` +
       `${plan.trials}번 중 ${plan.conclusionKept}번 유지돼요 (차이 가운데 ${formatPercentPoint(plan.diffMedian)}, ` +

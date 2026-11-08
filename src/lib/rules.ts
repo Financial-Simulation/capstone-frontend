@@ -83,6 +83,7 @@ export const LIMITS = {
   eventMonths: { min: 0, max: 119 },
   jobChangeRate: { min: -90, max: 200 },
   jobChangeGapMonths: { min: 0, max: 24 },
+  /** 이름 칸: 지출 항목 · 대출 · 예정된 일, 비교 계획 이름(PlanSpec.name) */
   nameLength: 20,
   goalNameLength: 30,
 } as const;

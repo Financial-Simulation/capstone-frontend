@@ -15,6 +15,7 @@ import type {
   CompareResult,
   ExamplesResult,
   MetaResult,
+  PlanRequest,
   PresetsResult,
   PreviewRequest,
   PreviewResult,
@@ -40,7 +41,7 @@ import type {
 } from "@/lib/types";
 import { INPUT_DEFAULTS, YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { ApiError } from "@/lib/api/errors";
-import { checkCrossRules, checkFields, checkRequired, resolvedExpenseTotal } from "@/lib/rules";
+import { LIMITS, MESSAGES, checkCrossRules, checkFields, checkRequired, resolvedExpenseTotal } from "@/lib/rules";
 import examplesData from "./data/examples.json";
 import metaData from "./data/meta.json";
 import presetsData from "./data/presets.json";
@@ -79,6 +80,24 @@ function assertComputable(input: SimulationInputDraft): void {
   if (Object.keys(fields).length > 0) throw badRequest(fields);
   const cross = checkCrossRules(input);
   if (cross) throw new ApiError(cross.code, cross.message, 400);
+}
+
+/** 서버 PlanSpec 검사 (compare · robust · reports의 plans): 이름 20자까지, 조정값 필수. 칸 경로는 "plans[0].name" */
+function assertPlanSpecs(plans: readonly PlanRequest[] | null | undefined): void {
+  const errors: Record<string, string> = {};
+  (plans ?? []).forEach((plan, i) => {
+    if (plan.name == null) errors[`plans[${i}].name`] = "계획 이름을 입력해 주세요";
+    else if (plan.name.length > LIMITS.nameLength) errors[`plans[${i}].name`] = MESSAGES.name20;
+    if (plan.adjustments == null) errors[`plans[${i}].adjustments`] = "바꿀 값을 하나 이상 보내 주세요";
+  });
+  if (Object.keys(errors).length > 0) throw badRequest(errors);
+}
+
+/** 정답 파일의 비교 줄에서 보낸 조정값(adjustments)을 뺀다. 서버 응답에는 없는 칸이다 */
+function withoutAdjustments(plan: ComparePlanResult): ComparePlanResult {
+  const row = { ...plan };
+  delete row.adjustments;
+  return row;
 }
 
 const FALLBACK_NOTE = "정답 파일에 같은 입력이 없어 S1 결과를 보여 줘요";
@@ -314,22 +333,24 @@ export async function preview(request: PreviewRequest): Promise<MockReturn<Previ
 
 export async function compare(request: CompareRequest): Promise<MockReturn<CompareResult>> {
   await wait(CALC_DELAY_MS);
-  assertComputable(request.input);
+  // 서버처럼 계획 칸 검사(@Valid) → 개수(SIM4003) → 입력 순서
+  assertPlanSpecs(request.plans);
   if (!request.plans || request.plans.length < 1 || request.plans.length > 3) {
     throw new ApiError("SIM4003", "비교 계획은 1~3개여야 해요.", 400);
   }
+  assertComputable(request.input);
   const picked = pickCase(request.input);
   const result = answer(picked, picked.golden.compare);
   const [base, ...candidates] = result.plans;
   const matched = request.plans.map((plan) => {
     const hit = candidates.find((c) => adjustmentsKey(c.adjustments) === adjustmentsKey(plan.adjustments));
-    return hit ? { ...hit, name: plan.name } : null;
+    return hit ? { ...withoutAdjustments(hit), name: plan.name } : null;
   });
   if (picked.exact && matched.every(Boolean)) {
     return { data: { ...result, plans: [base, ...matched.map((p) => p!)] }, match: matchOf(picked, true) };
   }
   return {
-    data: result,
+    data: { ...result, plans: result.plans.map(withoutAdjustments) },
     match: matchOf(
       picked,
       false,
@@ -365,10 +386,11 @@ let jobCounter = 0;
 
 export async function startRobust(request: RobustRequest): Promise<MockReturn<RobustStartResult>> {
   await wait(LOOKUP_DELAY_MS);
-  assertComputable(request.input);
+  assertPlanSpecs(request.plans);
   if (request.plans && request.plans.length > 3) {
     throw new ApiError("SIM4003", "비교 계획은 1~3개여야 해요.", 400);
   }
+  assertComputable(request.input);
   const picked = pickCase(request.input);
   jobCounter += 1;
   const jobId = `mock-${picked.golden.key.toLowerCase()}-${jobCounter}`;

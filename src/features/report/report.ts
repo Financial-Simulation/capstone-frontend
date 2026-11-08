@@ -3,7 +3,7 @@
  * 숫자는 모두 서버(POST /reports) 값이다. 결과 화면과 같은 표기 · 같은 기준(70% · 2%p · '거의 차이 없음')으로 고르기만 한다.
  */
 import { SIMULATION_PATHS, YOUTH_FUTURE_SAVING } from "@/config/policy";
-import { planCompareRows, type PlanCompareRow } from "@/features/plan/plan";
+import { planCompareRows, type PlanCompareRow, type PlanLabel } from "@/features/plan/plan";
 import { LEVEL_LABELS, PROBABILITY_GOOD, afterLabel, causeRows, leverRows, probabilityLevel } from "@/features/result/result";
 import { allocationLine } from "@/features/tax/allocation";
 import { formatKoreanWon, formatManwon, formatPercent } from "@/lib/format";
@@ -57,7 +57,12 @@ export function generatedText(at: string): string {
 const won = (value: number | null | undefined) => (value == null ? "—" : formatKoreanWon(value));
 const money = (value: number): MoneyCell => ({ text: formatManwon(value), negative: value < 0 });
 
-export function reportView(report: ReportResult, gradeLegend?: Record<string, string> | null): ReportView {
+/** planLabels: 보낸 담은 계획의 이름표 (줄여 보낸 이름 대신 담은 계획 이름, plan.ts planLabels) */
+export function reportView(
+  report: ReportResult,
+  gradeLegend?: Record<string, string> | null,
+  planLabels?: readonly PlanLabel[],
+): ReportView {
   const { goal, risks, tax } = report;
   const { debt, policySaving } = risks;
   const eligible = policySaving.eligible;
@@ -137,7 +142,8 @@ export function reportView(report: ReportResult, gradeLegend?: Record<string, st
       probability: lever.probability,
       diff: lever.flat ? "거의 차이 없음" : lever.diff,
     })),
-    comparison: report.comparison.length > 0 ? planCompareRows({ goalMonths: goal.goalMonths, plans: report.comparison }) : [],
+    comparison:
+      report.comparison.length > 0 ? planCompareRows({ goalMonths: goal.goalMonths, plans: report.comparison }, planLabels) : [],
     parameters: report.parameters.map((p) => ({
       key: p.key,
       label: p.label,

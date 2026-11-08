@@ -1,6 +1,6 @@
 /**
  * API 공통 모양과 입력 쪽 API(입력 검사 · 대출 상환액 · 프리셋 · 예시)의 요청·응답.
- * 기준: v1.7 합본 백엔드의 DTO(…/dto/*.java)와 API_CHANGES_v1.7.md, 노션 「선빈 api 명세서」.
+ * 기준: 백엔드 GitHub main(v1.7, 11/8 PR #3)의 DTO(…/dto/*.java)와 docs/tasks/tax-module-v1.7/api-changes.md, 노션 「선빈 api 명세서」.
  */
 import type {
   EventType,

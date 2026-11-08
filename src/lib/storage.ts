@@ -126,7 +126,7 @@ export function isStartMonthPast(draft: SimulationInputDraft | null, now: Date =
 
 export interface SavedPlan {
   id: string;
-  /** 20자 이내 */
+  /** 화면 이름 (describeChanges). 20자를 넘을 수 있어서 서버에는 planRequests로 줄여 보낸다 */
   name: string;
   adjustments: Adjustments;
   /** ISO 시각 */

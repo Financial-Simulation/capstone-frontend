@@ -22,14 +22,17 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 ./gradlew bootRun            # http://localhost:8080, 'Started CapstoneServerApplication'이 보이면 켜진 것
 ```
 
-- 백엔드는 **v1.7**(세금 · 배분 추천 · 리포트 포함, 조민석 11/1)이 있어야 해요. 받은 백엔드가 v1.7인지는 아래 '붙었는지 확인'(17개가 기대대로)으로 봐요.
+- 백엔드는 GitHub main을 그대로 받으면 돼요. 11/8 PR #3부터 **v1.7**(세금 · 배분 추천 · 리포트 포함)이에요. 전에 받아 둔 폴더면 `git pull`.
+  받은 백엔드가 v1.7인지는 아래 '붙었는지 확인'(17개가 기대대로)으로 봐요.
   bootRun 진행 표시가 `80% EXECUTING`에서 멈춘 것처럼 보이는 건 서버가 켜져 있다는 뜻이에요. 끌 때는 Ctrl+C.
 - 설정(백엔드 주소 · 목업 스위치)은 아무것도 안 해도 기본값으로 돌아가요. 바꿀 때만 `.env.local`을 만들어 그 줄만 적어요.
   항목과 기본값은 `.env.example`, 코드에서 읽는 곳은 `src/config/env.ts` 하나예요.
 - 붙었는지 확인: `localhost:3000/dev` → API 점검 `전부 실행` (기본이 전부 real이에요).
-  v1.7 백엔드면 17개가 모두 기대대로예요 (세금 · 배분 추천 · 리포트 포함). v1.6 백엔드(GitHub main)에 붙이면 v1.7 점검 4개(세금 · 배분 추천 · 리포트 · meta)가 실패해요.
+  v1.7 백엔드면 17개가 모두 기대대로예요 (세금 · 배분 추천 · 리포트 포함). v1.6 백엔드(11/8 전 main)에 붙이면 v1.7 점검 4개(세금 · 배분 추천 · 리포트 · meta)가 실패해요.
 - 브라우저는 `localhost:3000/api/*`만 부르고, 개발 서버가 `localhost:8080/api/*`로 넘겨요 (`next.config.ts`의 rewrites).
-  그래서 백엔드의 CORS 설정(`app.cors.allowed-origins`)은 건드리지 않아도 돼요. 백엔드 주소를 바꾸려면 `.env.local`에 `BACKEND_URL=…`을 적고 `npm run dev`를 다시 켜요.
+  넘길 때 브라우저가 붙인 `Origin` 머리글은 빼요 (`src/proxy.ts`). 백엔드 main에는 CORS 허용 목록(`app.cors.allowed-origins`, 팀 데모 사이트 하나)이 있어서,
+  `Origin: http://localhost:3000`이 그대로 가면 POST가 전부 403 "Invalid CORS request"로 막혀요 (화면에는 '서버 응답을 읽지 못했어요').
+  그래서 백엔드의 CORS 설정은 건드리지 않아도 돼요. 백엔드 주소를 바꾸려면 `.env.local`에 `BACKEND_URL=…`을 적고 `npm run dev`를 다시 켜요.
   배포 빌드(`npm run build`)는 빌드할 때 이 주소가 정해져서, 바꾸면 다시 빌드해요.
   CORS는 브라우저가 백엔드 주소를 바로 부를 때만 필요해요 (예: 예전 데모를 `localhost:5173`에서 띄울 때 → `./gradlew bootRun --args='--app.cors.allowed-origins=http://localhost:5173'`).
 - 백엔드가 꺼져 있으면 "백엔드가 응답하지 않아요"가 나와요. 백엔드 없이 화면만 보려면 `.env.local`에 `NEXT_PUBLIC_API_MODE=all-mock`을 적거나 `/dev`에서 `전부 mock`을 눌러요.
@@ -43,7 +46,7 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 
 발표는 노트북 한 대에서 백엔드와 프론트를 같이 켜서 해요. DB · 외부 서비스 · 인터넷이 필요 없어서 발표장 와이파이와 상관없어요 (글꼴도 컴퓨터에 있는 것을 써요).
 
-1. 전날: JDK 21 · Node 20.9 이상, 이 폴더에서 `npm install`. 개발 서버로 `/dev` → API 점검 `전부 실행`이 17개 모두 기대대로인지(백엔드 v1.7) 확인해요.
+1. 전날: JDK 21 · Node 20.9 이상, 이 폴더에서 `npm install`, 백엔드 폴더에서 `git pull`(main). 개발 서버로 `/dev` → API 점검 `전부 실행`이 17개 모두 기대대로인지(백엔드 v1.7) 확인해요.
 2. 터미널 1: 백엔드 `./gradlew bootRun`
 3. 터미널 2: 프론트 `npm run build && npm start` → http://localhost:3000
    개발 서버보다 빠르고 화면을 처음 열 때 멈칫하지 않아요. 백엔드 주소는 빌드할 때 정해져요 (기본 localhost:8080).
@@ -177,6 +180,8 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 - 세금 (v1.7, `features/tax/TaxSection.tsx` · `tax.ts`): `/simulate`의 `tax`로 카드 5장(매년 · 목표 시점까지 돌려받는 세금, 낸 이자소득세, 해지로 다시 낸 세금, 순이득)과 안내 문장. 금액은 모두 서버 값이고, 화면에서 세율표로 계산하지 않는다 ('내는 세금 연 약 n만 원'은 서버가 값을 주면 넣는다). 04-E 예시에는 붙이지 않는다.
 - 가능성 범위 (`features/result/RobustSection.tsx` · `robust.ts`): '가능성 범위 계산'을 누르면 `POST /robust`로 작업을 맡기고 1.5초마다 `GET /robust/{jobId}`로 진행률을 물어 범위를 띠로 그린다 (`lib/api/robust.ts`의 `runRobust`, 계획 바꿔 보기도 같이 쓴다). 화면을 떠나면 묻기를 멈춘다.
 - 계획 바꿔 보기 04-2 (`features/plan/PlanSection.tsx` · `plan.ts`): 맨 아래 '계획 바꿔 보기'로 펼친다. 값 7개(변동 · 고정지출, 월 저축액, 버틸 금액, 목표 금액 · 시점, 비상금 먼저)를 바꿔 '바꾼 계획 미리보기'(`POST /simulate/preview`), 최대 3개 담아(`simPlans.v1`) '담은 계획 비교'(`POST /compare`), '가정을 바꿔도 결론이 같은지 보기'(`POST /robust`의 plans). 내 입력은 바꾸지 않는다.
+  서버는 계획 이름을 20자까지만 받아서(PlanSpec) 두 값 이상 바꾼 계획 이름은 줄여 보내고(`planRequests`), 비교 표 · 결론 · 리포트에는 담은 계획 이름을 그대로 붙인다(`planLabels`).
+  목업은 정답 파일에 없는 계획을 계산하지 못해서, 담은 계획 대신 정답 파일의 예시 계획(변동지출 10만 원 줄이기 · 비상금 300만 원 먼저 · 목표 1년 늦추기)을 보여 준다.
 - 어디에 얼마나 (v1.7, `features/tax/AllocationSection.tsx` · `allocation.ts`): 월 저축액을 청년미래 · 청약 · 연금저축으로 나눠 '지금 계획과 비교하기'(`POST /compare`), '가장 좋은 배분 찾기'(`POST /allocations/recommend`). '이 배분으로'는 내 입력의 배분(`savingPlan.policyMonthly` 등)을 바꾸고 결과 전체를 다시 계산한다. 04-E 예시에는 붙이지 않는다.
 - 리포트 저장 (`features/report/ReportScreen.tsx` · `ReportPaper.tsx` · `report.ts`): 위쪽 '리포트 저장' → `/report`. 내 입력과 담은 계획(`simPlans.v1`)으로 `POST /reports`를 불러 한 장으로 그린다 (입력 요약 · 목표 · 앞으로 모을 돈 · 위험 · 세금 · 개선 포인트 · 담은 계획 비교 · 근거 · 유의사항).
   '인쇄 · PDF로 저장'은 브라우저 인쇄(대상: 'PDF로 저장')이고, 인쇄할 때는 머리글 · 버튼을 빼고(`print:hidden`) A4로 나온다 (`globals.css`의 `@page`). 04-E 예시에는 없다.
@@ -191,7 +196,7 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 
 1. 결과 화면은 실제 API로 계산한다 (11/8, 기본을 전부 real로). 목업으로 볼 때만 '목업' 안내를 띄운다.
 2. 입력 검사 순서는 지금 구현대로(필수 칸은 프론트, '다음'마다 `/inputs/validate`). 오류 문장은 서버 것을 그대로 쓴다.
-3. CORS는 같은 도메인 프록시(Next 서버의 rewrites, `BACKEND_URL`). `next start`에서도 확인했다.
+3. CORS는 같은 도메인 프록시(Next 서버의 rewrites, `BACKEND_URL`)로 피하고, 넘길 때 `Origin`을 빼서(`src/proxy.ts`) 백엔드의 CORS 허용 목록과 상관없이 붙는다. `next start`에서도 확인했다.
 4. 계산기 결과는 선이 아니라 두 점(목표 시점 · 10년 뒤). 월별 값이 API에 생기면 선으로 바꾼다.
 5. 예정된 일 표시는 입력의 occurDate로 그린다.
 6. 달성 가능성 색: 70% 이상 '가능성 높음'(초록) · 50~70% '가능성 보통'(주황) · 50% 미만 '가능성 낮음'(빨강), 색만 쓰지 않고 점 + 글자.
@@ -243,6 +248,7 @@ src/
     ui/                공용 부품: index.tsx(Button · LinkButton · Card · FormSection · Badge)
                        Modal · Field · Choice · MoneyInput(쉼표 자동) · NumberInput · YearMonthPicker
                        Stat.tsx(결과 숫자 카드 StatCard · 비교 표의 차이 DiffText)
+  proxy.ts             /api/* 요청을 백엔드로 넘기기 전에 Origin 머리글 빼기 (백엔드 CORS 허용 목록과 상관없이 붙게, 넘기는 건 next.config.ts rewrites)
   config/
     env.ts             환경 설정을 읽는 곳 (백엔드 주소 · API 주소 · 목업 스위치 · 개발 점검, 목록과 기본값은 .env.example)
     policy.ts          서버가 주지 않는 제도 숫자 · 기본값 (출처와 함께): 빈 칸 기본값 · 대출 기본값 · 청년미래적금 · 세금 기준 · 경로 수

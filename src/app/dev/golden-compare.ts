@@ -1,6 +1,6 @@
 /**
  * 정답 파일 대조: 정답 파일(v1.7, 11개 입력)의 입력을 그대로 API에 보내고 응답이 정답과 똑같은지 본다.
- * 같은 seed라서 숫자가 한 자리도 달라지면 안 된다. 응답에만 있는 칸(warnings 등)은 보지 않는다.
+ * 같은 seed라서 숫자가 한 자리도 달라지면 안 된다. 응답에만 있는 칸(warnings 등)과 정답 파일에만 있는 칸(보낸 조정값 adjustments)은 보지 않는다.
  * 가능성 범위(robust)는 입력마다 몇 초씩 걸려서 여기서는 빼고, 위 API 점검에서 S1만 본다.
  */
 import { api, isAbortError, isApiError, type ApiResult, type Endpoint } from "@/lib/api";
@@ -59,6 +59,12 @@ export type CellResult =
   | { status: "mock"; ms: number }
   | { status: "error"; ms: number; message: string };
 
+function withoutAdjustments<T extends { adjustments?: unknown }>(row: T): Omit<T, "adjustments"> {
+  const copy = { ...row };
+  delete copy.adjustments;
+  return copy;
+}
+
 /** 정답 파일에 있는 요청 그대로 API를 부르고, 비교할 정답을 같이 돌려준다 */
 async function callGolden(golden: GoldenCase, target: GoldenTarget, signal: AbortSignal) {
   const { input } = golden;
@@ -74,7 +80,9 @@ async function callGolden(golden: GoldenCase, target: GoldenTarget, signal: Abor
       const plans = golden.compare.plans
         .filter((plan) => !plan.isBase)
         .map((plan) => ({ name: plan.name, adjustments: plan.adjustments ?? {} }));
-      return { result: await api.compare({ input, plans }, { signal }), expected: golden.compare };
+      // 정답 파일의 비교 줄에도 보낸 조정값이 같이 들어 있다. 응답에는 없는 칸이라 빼고 본다 (백엔드 AnalysisGoldenTest와 같게)
+      const expected = { ...golden.compare, plans: golden.compare.plans.map(withoutAdjustments) };
+      return { result: await api.compare({ input, plans }, { signal }), expected };
     }
     case "reverse":
       return { result: await api.reverse({ input, targetProbability: 70 }, { signal }), expected: golden.reverse };

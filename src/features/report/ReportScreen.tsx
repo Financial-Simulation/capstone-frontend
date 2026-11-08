@@ -6,6 +6,7 @@
  * 인쇄할 때는 머리글 · 버튼을 빼고 리포트만 나온다. 입력이 덜 끝났거나 계산하지 못했을 때는 결과 화면과 같은 안내.
  */
 import { Button, LinkButton } from "@/components/ui";
+import { planLabels, planRequests } from "@/features/plan/plan";
 import { MockNote } from "@/features/result/Hero";
 import { Computing, Empty, Failed, NotReady } from "@/features/result/StateViews";
 import { readiness } from "@/features/result/result";
@@ -21,15 +22,14 @@ export function ReportScreen() {
   const { input } = useSimInput();
   const { plans: basket } = useSavedPlans();
   const ready = hydrated ? readiness(input) : null;
-  const plans = basket.map((plan) => ({ name: plan.name, adjustments: plan.adjustments }));
-  const report = useReport(ready?.ok && input ? (input as SimulationInput) : null, plans);
+  const report = useReport(ready?.ok && input ? (input as SimulationInput) : null, planRequests(basket));
 
   if (!ready) return <Computing />;
   if (!ready.ok) return ready.reason === "empty" ? <Empty /> : <NotReady step={ready.step} message={ready.message} />;
   if (report.status === "failed") return <Failed error={report.error} onRetry={report.retry} />;
   if (!report.result) return <Computing />;
 
-  const view = reportView(report.result.data, report.gradeLegend);
+  const view = reportView(report.result.data, report.gradeLegend, planLabels(basket));
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">

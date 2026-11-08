@@ -27,10 +27,13 @@ import {
   planBase,
   planChanges,
   planCompareRows,
+  planLabels,
+  planRequests,
   previewView,
   robustPlanLines,
   sameAdjustments,
   type PlanDraft,
+  type PlanLabel,
 } from "./plan";
 
 const selectClass = "h-11 w-full rounded-lg border border-line-strong bg-surface px-3 text-[15px]";
@@ -48,11 +51,13 @@ export function PlanSection({ input, onClose }: { input: SimulationInput; onClos
 
   const [progress, setProgress] = useState(0);
   const [preview, setPreview] = useState<{ result: PreviewResult; adjustments: Adjustments } | null>(null);
-  const [compare, setCompare] = useState<CompareResult | null>(null);
-  const [robust, setRobust] = useState<RobustJobResult | null>(null);
+  // 결과와 함께 보낸 계획의 이름표를 둔다 (서버에는 20자로 줄인 이름이 가고, 화면에는 담은 계획 이름)
+  const [compare, setCompare] = useState<{ result: CompareResult; labels: PlanLabel[] } | null>(null);
+  const [robust, setRobust] = useState<{ result: RobustJobResult; labels: PlanLabel[] } | null>(null);
   const { busy, error, run } = useApiTask<"preview" | "compare" | "robust">();
 
-  const sent = basket.map((plan) => ({ name: plan.name, adjustments: plan.adjustments }));
+  const sent = planRequests(basket);
+  const labels = planLabels(basket);
   const failText = "계산하지 못했어요";
 
   const runPreview = () =>
@@ -64,12 +69,13 @@ export function PlanSection({ input, onClose }: { input: SimulationInput; onClos
   const runCompare = () =>
     run("compare", failText, async (signal) => {
       const { data } = await api.compare({ input, plans: sent }, { signal });
-      setCompare(data);
+      setCompare({ result: data, labels });
     });
   const runRobustCheck = () =>
     run("robust", failText, async (signal) => {
       setProgress(0);
-      setRobust(await runRobust(input, { plans: sent, signal, onProgress: setProgress }));
+      const result = await runRobust(input, { plans: sent, signal, onProgress: setProgress });
+      setRobust({ result, labels });
     });
 
   /** 담은 계획이 바뀌면 앞의 비교 결과는 지운다 */
@@ -256,7 +262,7 @@ export function PlanSection({ input, onClose }: { input: SimulationInput; onClos
                 </tr>
               </thead>
               <tbody>
-                {planCompareRows(compare).map((row) => (
+                {planCompareRows(compare.result, compare.labels).map((row) => (
                   <tr key={row.name} className={`border-b border-line align-top last:border-0 ${row.isBase ? "bg-system-soft" : ""}`}>
                     <td className="py-2 pr-3 font-semibold">{row.name}</td>
                     <td className="py-2 pr-3">
@@ -277,7 +283,7 @@ export function PlanSection({ input, onClose }: { input: SimulationInput; onClos
 
         {robust && (
           <ul className="mt-4 list-disc space-y-1.5 rounded-xl border border-line bg-canvas py-3 pl-8 pr-4 text-sm">
-            {robustPlanLines(robust).map((line) => (
+            {robustPlanLines(robust.result, robust.labels).map((line) => (
               <li key={line.name}>
                 <span className="font-semibold">{line.name}</span>: {line.text}
               </li>

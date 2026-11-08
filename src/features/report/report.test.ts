@@ -59,6 +59,13 @@ describe("리포트 한 장 (POST /reports, 숫자는 서버 값 그대로)", ()
     expect(view.disclaimer).toContain("투자 권유가 아니에요");
   });
 
+  it("비교 줄 이름은 담은 계획 이름 (서버에는 20자로 줄여 보낸 이름)", async () => {
+    const data = await report("S1", [{ name: "변동지출 85만 원 · 목표 시…", adjustments: { monthlyVariableExpense: 850_000 } }]);
+    expect(reportView(data).comparison[1].name).toBe("변동지출 85만 원 · 목표 시…");
+    const labels = [{ sent: "변동지출 85만 원 · 목표 시…", label: "변동지출 85만 원 · 목표 시점 2032년 11월" }];
+    expect(reportView(data, null, labels).comparison.map((r) => r.name)).toEqual(["지금 계획", "변동지출 85만 원 · 목표 시점 2032년 11월"]);
+  });
+
   it("담은 계획이 없으면 비교 없음, 등급 설명은 /meta를 받았을 때만", async () => {
     const data = await report("S1");
     expect(reportView(data).comparison).toEqual([]);

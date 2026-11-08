@@ -232,6 +232,18 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
     expect((await fail(mocks.compare({ input: input("S1"), plans: four }))).code).toBe("SIM4003");
   });
 
+  it("compare · robust · reports: 계획 이름이 20자를 넘으면 서버(PlanSpec)처럼 COMMON400, 비교 줄에 조정값 echo는 없다", async () => {
+    const long = { name: "변동지출 85만 원 · 목표 시점 2032년 11월", adjustments: { monthlyVariableExpense: 850_000 } };
+    const error = await fail(mocks.compare({ input: input("S1"), plans: [long] }));
+    expect(error.code).toBe("COMMON400");
+    expect(error.fieldErrors).toEqual({ "plans[0].name": "20자 이내로 입력해 주세요" });
+    expect((await fail(mocks.startRobust({ input: input("S1"), plans: [long] }))).fieldErrors).toHaveProperty(["plans[0].name"]);
+    expect((await fail(mocks.report({ input: input("S1"), plans: [long] }))).fieldErrors).toHaveProperty(["plans[0].name"]);
+
+    const { data } = await ok(mocks.compare({ input: input("S1"), plans: [{ ...long, name: "변동지출 85만 원" }] }));
+    for (const plan of data.plans) expect(plan).not.toHaveProperty("adjustments");
+  });
+
   it("reverse: 목표 확률 70%일 때만 exact", async () => {
     expect((await ok(mocks.reverse({ input: input("S1") }))).match.exact).toBe(true);
     const at80 = await ok(mocks.reverse({ input: input("S1"), targetProbability: 80 }));

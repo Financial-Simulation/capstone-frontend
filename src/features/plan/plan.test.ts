@@ -9,6 +9,8 @@ import {
   planBase,
   planChanges,
   planCompareRows,
+  planLabels,
+  planRequests,
   previewView,
   robustPlanLines,
   sameAdjustments,
@@ -112,5 +114,37 @@ describe("담은 계획 비교 (/compare) · 결론이 같은지 (/robust)", () 
         text: "가정을 60가지로 바꿔도 지금 계획보다 나은 결론이 60번 중 60번 유지돼요 (차이 가운데 +11.4%p, 95% 범위 4.3~15.8%p).",
       },
     ]);
+  });
+
+  it("서버에는 이름을 20자까지 보내고 (PlanSpec), 보낸 이름 그대로 돌아온 줄에만 담은 계획 이름을 붙인다", () => {
+    const two = { monthlyVariableExpense: 850_000, goalTargetDate: "2032-11" } as const;
+    const basket = [
+      { name: describeChanges(two), adjustments: two },
+      { name: describeChanges({ emergencyFirstAmount: 3_000_000 }), adjustments: { emergencyFirstAmount: 3_000_000 as const } },
+    ];
+    expect(basket[0].name).toHaveLength(28);
+    expect(planRequests(basket)).toEqual([
+      { name: "변동지출 85만 원 · 목표 시점…", adjustments: two },
+      { name: "비상금 먼저 300만 원", adjustments: { emergencyFirstAmount: 3_000_000 } },
+    ]);
+    expect(planRequests(basket).every((plan) => plan.name.length <= 20)).toBe(true);
+    const labels = planLabels(basket);
+    expect(labels.map((l) => l.sent)).toEqual(planRequests(basket).map((p) => p.name));
+
+    // 실제 서버: 보낸 순서 · 보낸 이름 그대로 돌려준다 → 담은 계획 이름으로
+    const s1 = golden("S1").compare;
+    const answered = { ...s1, plans: [s1.plans[0], ...labels.map((l, i) => ({ ...s1.plans[i + 1], name: l.sent }))] };
+    expect(planCompareRows(answered, labels).map((r) => r.name)).toEqual([
+      "지금 계획",
+      "변동지출 85만 원 · 목표 시점 2032년 11월",
+      "비상금 먼저 300만 원",
+    ]);
+    // 목업: 정답 파일에 없는 계획이면 정답 파일의 예시 계획이 온다 → 그 이름 그대로 (내 계획 이름을 붙이지 않음)
+    expect(planCompareRows(s1, labels).map((r) => r.name)).toEqual(["지금 계획", "변동지출 10만 원 줄이기", "비상금 300만 원 먼저", "목표 1년 늦추기"]);
+
+    const job: RobustJobResult = { jobId: "j", status: "DONE", progress: 100, ...golden("S1").robust };
+    expect(robustPlanLines(job, labels)[0].name).toBe("변동지출 10만 원 줄이기");
+    const sentBack = { ...job, plans: job.plans!.map((p) => ({ ...p, name: labels[0].sent })) };
+    expect(robustPlanLines(sentBack, labels)[0].name).toBe("변동지출 85만 원 · 목표 시점 2032년 11월");
   });
 });

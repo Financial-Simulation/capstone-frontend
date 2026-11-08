@@ -1,7 +1,8 @@
 /**
  * 계산 API의 요청·응답
  * (/simulate · /simulate/preview · /compare · /reverse · /robust · /allocations/recommend · /reports · /meta).
- * 기준: v1.7 정답 파일(engine/analysis_golden.json, 11개 입력)과 API_CHANGES_v1.7.md, 노션 API 명세.
+ * 기준: 백엔드 GitHub main(v1.7, 11/8 PR #3)의 DTO(simulation/dto · report/dto)와 v1.7 정답 파일(analysis_golden.json, 11개 입력),
+ * docs/tasks/tax-module-v1.7/api-changes.md, 노션 API 명세.
  * 정답 파일에만 있는 값, 명세에만 있는 값, v1.7에서 생긴 응답 칸(v1.6 백엔드에는 없음)은 선택(?) 필드로 두었다.
  *
  * 단위: 금액은 원, 확률·비율은 % (소수 1자리), 연월은 "YYYY-MM". "모은 돈"은 대출 잔액을 빼지 않는다.
@@ -235,7 +236,7 @@ export interface PreviewResult {
 // ===== POST /api/compare =====
 
 export interface PlanRequest {
-  /** 20자 이내 */
+  /** 20자 이내 (PlanSpec, 넘으면 COMMON400 "plans[0].name"). 담은 계획은 plan.ts의 planRequests로 줄여 보낸다 */
   name: string;
   adjustments: Adjustments;
 }
@@ -251,6 +252,7 @@ export interface ComparePlanResult {
   name: string;
   /** 첫 항목은 항상 '지금 계획' */
   isBase: boolean;
+  /** 정답 파일에만 있음 (요청한 조정값). 서버 응답에는 없다 */
   adjustments?: Adjustments;
   diffFromBase: number;
   z: number | null;
@@ -422,7 +424,7 @@ export interface ReportRequest {
   input: SimulationInput;
   /** 0~3개. 보내면 comparison에 /compare와 같은 줄이 들어간다 */
   plans?: PlanRequest[];
-  /** null 또는 20261007만 */
+  /** 비우면 20261007 (목업은 20261007만) */
   seed?: number | null;
 }
 
