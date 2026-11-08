@@ -98,10 +98,11 @@ describe("simInput.v1", () => {
     expect(saveInput({ person: { age: 27 } }, null, OCT_27).saved).toBe(false);
   });
 
-  it("기준 달이 지났는지", () => {
-    expect(isStartMonthPast({ startMonth: "2026-09" }, OCT_27)).toBe(true);
-    expect(isStartMonthPast({ startMonth: "2026-10" }, OCT_27)).toBe(false);
-    expect(isStartMonthPast(null, OCT_27)).toBe(false);
+  it("기준 달이 지났는지 (이번 달을 아직 모르면 false)", () => {
+    expect(isStartMonthPast({ startMonth: "2026-09" }, "2026-10")).toBe(true);
+    expect(isStartMonthPast({ startMonth: "2026-10" }, "2026-10")).toBe(false);
+    expect(isStartMonthPast(null, "2026-10")).toBe(false);
+    expect(isStartMonthPast({ startMonth: "2026-09" }, null)).toBe(false);
   });
 
   it("무엇을 '값'으로 보는지", () => {

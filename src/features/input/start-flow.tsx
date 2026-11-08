@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { formatWon } from "@/lib/format";
 import { useCurrentMonth, useHydrated, useSimInput } from "@/lib/hooks";
-import { hasAnyValue } from "@/lib/storage";
+import { hasAnyValue, isStartMonthPast } from "@/lib/storage";
 import { STEPS } from "@/lib/steps";
 import { formatYearMonth, isYearMonth } from "@/lib/year-month";
 import { Modal } from "@/components/ui/Modal";
@@ -31,7 +31,7 @@ export function useStartFlow(): { start: () => void; dialogs: ReactNode } {
 
   const saved = hydrated && input !== null && hasAnyValue(input);
   const savedStart = isYearMonth(input?.startMonth) ? input.startMonth : null;
-  const stale = savedStart !== null && currentMonth !== null && savedStart < currentMonth;
+  const stale = isStartMonthPast(input, currentMonth);
   const firstStep = STEPS[0].href;
 
   const go = (href: string) => {

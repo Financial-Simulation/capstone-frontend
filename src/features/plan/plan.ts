@@ -203,6 +203,17 @@ export function previewView(preview: PreviewResult, adjustments: Adjustments): P
 
 // ===== 담은 계획 비교 (/compare) =====
 
+/** 담은 계획 비교 표의 칸 이름. 결과 화면 '계획 바꿔 보기'와 리포트가 같이 쓴다 (PlanCompareRow와 같은 순서) */
+export const PLAN_COMPARE_HEADERS = [
+  "계획",
+  "목표 달성 가능성",
+  "빚질 가능성",
+  "최악의 경우",
+  "청년미래 중도해지",
+  "정부 지원금",
+  "세금 순이득",
+] as const;
+
 export interface PlanCompareRow {
   name: string;
   isBase: boolean;

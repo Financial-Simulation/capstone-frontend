@@ -57,11 +57,11 @@ export function generatedText(at: string): string {
 const won = (value: number | null | undefined) => (value == null ? "—" : formatKoreanWon(value));
 const money = (value: number): MoneyCell => ({ text: formatManwon(value), negative: value < 0 });
 
-/** planLabels: 보낸 담은 계획의 이름표 (줄여 보낸 이름 대신 담은 계획 이름, plan.ts planLabels) */
+/** labels: 보낸 담은 계획의 이름표 (줄여 보낸 이름 대신 담은 계획 이름, plan.ts의 planLabels) */
 export function reportView(
   report: ReportResult,
   gradeLegend?: Record<string, string> | null,
-  planLabels?: readonly PlanLabel[],
+  labels?: readonly PlanLabel[],
 ): ReportView {
   const { goal, risks, tax } = report;
   const { debt, policySaving } = risks;
@@ -143,7 +143,7 @@ export function reportView(
       diff: lever.flat ? "거의 차이 없음" : lever.diff,
     })),
     comparison:
-      report.comparison.length > 0 ? planCompareRows({ goalMonths: goal.goalMonths, plans: report.comparison }, planLabels) : [],
+      report.comparison.length > 0 ? planCompareRows({ goalMonths: goal.goalMonths, plans: report.comparison }, labels) : [],
     parameters: report.parameters.map((p) => ({
       key: p.key,
       label: p.label,

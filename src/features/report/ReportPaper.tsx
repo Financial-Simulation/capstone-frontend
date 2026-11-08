@@ -4,6 +4,7 @@
  */
 import type { ReactNode } from "react";
 import { DiffText } from "@/components/ui/Stat";
+import { PLAN_COMPARE_HEADERS } from "@/features/plan/plan";
 import type { MoneyCell, ReportCell, ReportView } from "./report";
 
 export function ReportPaper({ view }: { view: ReportView }) {
@@ -70,7 +71,7 @@ export function ReportPaper({ view }: { view: ReportView }) {
 
       {view.comparison.length > 0 && (
         <Section title="담은 계획 비교">
-          <Table head={["계획", "목표 달성 가능성", "빚질 가능성", "최악의 경우", "청년미래 중도해지", "정부 지원금", "세금 순이득"]} minWidth="min-w-[44rem]">
+          <Table head={PLAN_COMPARE_HEADERS} minWidth="min-w-[44rem]">
             {view.comparison.map((row) => (
               <tr key={row.name} className="break-inside-avoid border-b border-line align-top last:border-0">
                 <td className="py-1.5 pr-3 font-semibold">{row.name}</td>
@@ -141,7 +142,7 @@ function Table({
   small = false,
   children,
 }: {
-  head: string[];
+  head: readonly string[];
   /** 첫 칸 말고는 숫자 (오른쪽 정렬) */
   numeric?: boolean;
   /** 이보다 좁으면 옆으로 민다 (예: "min-w-[40rem]") */

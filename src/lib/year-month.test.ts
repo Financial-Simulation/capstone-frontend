@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   addMonths,
-  compareYearMonth,
   currentYearMonth,
   formatDuration,
   formatYearMonth,
@@ -64,7 +63,6 @@ describe("year-month", () => {
     expect(monthsBetween("2026-11", "2031-11")).toBe(60);
     expect(monthsBetween("2026-11", "2027-10")).toBe(11);
     expect(monthsBetween("2026-11", "2026-10")).toBe(-1);
-    expect(compareYearMonth("2026-11", "2026-10")).toBeGreaterThan(0);
   });
 
   it("보여 주는 모양", () => {

@@ -31,10 +31,6 @@ export function monthsBetween(from: YearMonth, to: YearMonth): number {
   return toIndex(to) - toIndex(from);
 }
 
-export function compareYearMonth(a: YearMonth, b: YearMonth): number {
-  return toIndex(a) - toIndex(b);
-}
-
 export function toYearMonth(year: number, month: number): YearMonth {
   return fromIndex(year * 12 + (month - 1));
 }

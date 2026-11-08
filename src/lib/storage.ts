@@ -8,7 +8,7 @@
  * localStorage는 사생활 보호 모드·저장 공간 초과 등에서 예외를 던질 수 있어 모두 try/catch로 감싼다.
  * 스키마가 바뀌면 키를 v2로 올리고 v1 값을 옮기거나 버린다.
  */
-import type { Adjustments, SimulationInputDraft } from "./types";
+import type { Adjustments, SimulationInputDraft, YearMonth } from "./types";
 import { currentYearMonth, isYearMonth } from "./year-month";
 
 export const INPUT_KEY = "simInput.v1";
@@ -116,10 +116,13 @@ export function clearAll(storage: StorageLike | null = browserStorage()): void {
   remove(PROGRESS_KEY, storage);
 }
 
-/** 저장된 기준 연월이 이번 달보다 이전인지 ('기준 달을 이번 달로 바꿀까요?') */
-export function isStartMonthPast(draft: SimulationInputDraft | null, now: Date = new Date()): boolean {
+/**
+ * 저장된 기준 연월이 이번 달보다 이전인지 ('기준 달을 이번 달로 바꿀까요?', start-flow.tsx).
+ * currentMonth는 화면이 읽은 이번 달 (useCurrentMonth, 서버 렌더링 · hydration 중에는 null → false)
+ */
+export function isStartMonthPast(draft: SimulationInputDraft | null, currentMonth: YearMonth | null): boolean {
   const start = draft?.startMonth;
-  return isYearMonth(start) && start < currentYearMonth(now);
+  return currentMonth !== null && isYearMonth(start) && start < currentMonth;
 }
 
 // ===== simPlans.v1 =====

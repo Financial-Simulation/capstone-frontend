@@ -20,6 +20,7 @@ import { MAX_SAVED_PLANS } from "@/lib/storage";
 import type { Adjustments, CompareResult, EmergencyFirstAmount, PreviewResult, RobustJobResult, SimulationInput } from "@/lib/types";
 import {
   EMERGENCY_CHOICES,
+  PLAN_COMPARE_HEADERS,
   PLAN_MONEY_FIELDS,
   baseHint,
   describeChanges,
@@ -252,13 +253,11 @@ export function PlanSection({ input, onClose }: { input: SimulationInput; onClos
             <table className="w-full min-w-[46rem] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs text-muted">
-                  <th className="py-2 pr-3 font-semibold">계획</th>
-                  <th className="py-2 pr-3 font-semibold">목표 달성 가능성</th>
-                  <th className="py-2 pr-3 font-semibold">빚질 가능성</th>
-                  <th className="py-2 pr-3 font-semibold">최악의 경우</th>
-                  <th className="py-2 pr-3 font-semibold">청년미래 중도해지</th>
-                  <th className="py-2 pr-3 font-semibold">정부 지원금</th>
-                  <th className="py-2 font-semibold">세금 순이득</th>
+                  {PLAN_COMPARE_HEADERS.map((label, i) => (
+                    <th key={label} className={i < PLAN_COMPARE_HEADERS.length - 1 ? "py-2 pr-3 font-semibold" : "py-2 font-semibold"}>
+                      {label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
