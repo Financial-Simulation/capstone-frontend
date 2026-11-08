@@ -63,7 +63,7 @@ export function GoalStep() {
             id={nameId}
             className={textInputClass(Boolean(nameError))}
             value={input.goal?.name ?? ""}
-            maxLength={30}
+            maxLength={LIMITS.goalNameLength}
             placeholder={INPUT_DEFAULTS.goalName}
             aria-describedby={describedBy(nameId, nameError, nameHint)}
             onBlur={form.touch("goal.name")}

@@ -7,7 +7,7 @@ import { formatManwon, formatPercent } from "@/lib/format";
 import type { SimulateResult } from "@/lib/types";
 import { formatDuration, formatYearMonth, monthsBetween } from "@/lib/year-month";
 import type { MockMatch } from "@/mocks/handlers";
-import { LEVEL_LABELS, probabilityLevel } from "./result";
+import { LEVEL_LABELS, PROBABILITY_GOOD, probabilityLevel } from "./result";
 
 const LEVEL_STYLES = {
   good: { badge: "bg-good-soft text-good", dot: "bg-good" },
@@ -45,10 +45,10 @@ export function Hero({ result }: { result: SimulateResult }) {
           <dd className="mt-0.5 text-base font-semibold">{goal.medianReachDate ? formatYearMonth(goal.medianReachDate) : "10년 안에 못 닿아요"}</dd>
         </div>
         <div>
-          <dt className="text-muted">가능성 70%가 되는 때</dt>
-          <dd className="mt-0.5 text-base font-semibold">{reach70 ? formatYearMonth(reach70) : "10년 안에 70%가 안 돼요"}</dd>
+          <dt className="text-muted">{`가능성 ${PROBABILITY_GOOD}%가 되는 때`}</dt>
+          <dd className="mt-0.5 text-base font-semibold">{reach70 ? formatYearMonth(reach70) : `10년 안에 ${PROBABILITY_GOOD}%가 안 돼요`}</dd>
           {late !== null && late > 0 && <dd className="text-xs text-muted">목표 시점보다 {formatDuration(late)} 늦어요</dd>}
-          {late !== null && late <= 0 && <dd className="text-xs text-muted">목표 시점 안에 70%를 넘어요</dd>}
+          {late !== null && late <= 0 && <dd className="text-xs text-muted">{`목표 시점 안에 ${PROBABILITY_GOOD}%를 넘어요`}</dd>}
         </div>
       </dl>
     </section>

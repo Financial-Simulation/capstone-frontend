@@ -16,7 +16,7 @@ import {
 } from "@/features/input/draft";
 import { formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
-import { resolvedExpenseTotal } from "@/lib/rules";
+import { LIMITS, resolvedExpenseTotal } from "@/lib/rules";
 
 const MODE_OPTIONS = [
   { value: "TOTAL", label: "합계로 입력" },
@@ -103,7 +103,7 @@ export function ExpenseEditor({
                       aria-label={`${label} 항목 ${index + 1} 이름`}
                       className={textInputClass(Boolean(nameError))}
                       value={item.name ?? ""}
-                      maxLength={20}
+                      maxLength={LIMITS.nameLength}
                       placeholder="항목 이름"
                       onBlur={form.touch(`${itemPath}.name`)}
                       onChange={(event) =>

@@ -82,7 +82,7 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 2. `.env.local`의 `NEXT_PUBLIC_API_MODE`: 예) `all-mock`, `robust=mock`, `all-mock,validate=real` (dev 서버를 다시 켜야 적용돼요)
 3. `/dev` 화면의 스위치: 이 브라우저에만 저장돼요 (`localStorage`의 `apiMode.dev`)
 
-mock은 팀 정답 파일(`src/mocks/data/analysis_golden.json`, v1.7 `engine/analysis_golden.json`을 줄인 복사본)에서 **입력이 같은 케이스**(예시 S1~S3 · 경계 E1~E5 · 세금 T1~T3, 11개)를 돌려줘요.
+mock은 팀 정답 파일(`src/mocks/data/analysis_golden.json`, 백엔드 `src/test/resources/golden/analysis_golden.json`(v1.7)을 줄인 복사본)에서 **입력이 같은 케이스**(예시 S1~S3 · 경계 E1~E5 · 세금 T1~T3, 11개)를 돌려줘요.
 '같은 입력'은 엔진이 쓰는 값으로 비교해요. 이름, 합계로/항목별로 같은 입력 방식 차이, 비워 둔 기본값(금리 · 무주택 세대주 · 상품별 배분 등)은 같은 것으로 봐요.
 맞는 케이스가 없으면 S1 결과를 주고 `exact: false`로 표시해요. 화면은 `ApiResult.source`가 `"mock"`인지로 목업 배지를 띄우면 돼요.
 seed가 같아서 실제 API의 숫자도 정답 파일과 똑같아야 해요. `/dev`의 API 점검(대표 값 17개)과 정답 파일 대조(11개 입력 × 5개 API 전부)로 확인해요.
@@ -219,8 +219,8 @@ src/
       StepScreen · StepNav · StepIndicator · input-flow
                        입력 화면 틀 · '이전/다음' · 단계 표시
       step-form.tsx    '다음' 흐름 · 경고 모달 · 0.3초 디바운스 API
-      start-flow.tsx · StartActions.tsx
-                       '시뮬레이션 시작하기' · '내 정보로 시작하기'의 이어서 하기 모달
+      StartScreen · StartActions · start-flow.tsx
+                       00 시작 화면 · '시뮬레이션 시작하기' · '내 정보로 시작하기'의 이어서 하기 모달
       draft.ts         입력 고치기 (지출 방식 · 대출 · 기본 항목 · 상품별 배분)
       events.ts        예정된 일 프리셋 ↔ events[]
       warnings.ts      서버 경고 → 경고 모달 문구

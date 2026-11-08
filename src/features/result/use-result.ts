@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, isAbortError, type ApiResult } from "@/lib/api";
 import type { ReverseResult, SimulateResult, SimulationInput } from "@/lib/types";
+import { PROBABILITY_GOOD } from "./result";
 
 /** 결과 본문(ResultView)에 넘기는 값 */
 export interface ResultData {
@@ -47,7 +48,7 @@ export function useResult(input: SimulationInput | null) {
         if (!isAbortError(error)) setSim({ key, error });
       },
     );
-    api.reverse({ input: body, targetProbability: 70 }, { signal }).then(
+    api.reverse({ input: body, targetProbability: PROBABILITY_GOOD }, { signal }).then(
       (result) => setRev({ key, result }),
       (error: unknown) => {
         if (!isAbortError(error)) setRev({ key, result: null });

@@ -1,5 +1,5 @@
 /**
- * 정답 파일(engine/analysis_golden.json v1.7) 읽기와 '같은 입력' 찾기.
+ * 정답 파일(백엔드 src/test/resources/golden/analysis_golden.json v1.7을 줄인 복사본) 읽기와 '같은 입력' 찾기.
  *
  * 11개 입력(S1~S3 예시, E1~E5 경계, T1~T3 세금)마다 /simulate · preview · compare · reverse · robust ·
  * allocations/recommend 응답이 API 모양 그대로 들어 있다. seed가 같아서 백엔드 숫자가 이 파일과 똑같아야 한다.
