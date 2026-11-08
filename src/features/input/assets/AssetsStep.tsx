@@ -15,8 +15,9 @@ import { FormNoticeBox, StepWarningModal, useDebouncedApi, useStepForm, type Deb
 import { Button, FormSection } from "@/components/ui";
 import { api, isApiError } from "@/lib/api";
 import { addLoan, patch, setHasLoan } from "@/features/input/draft";
-import { MINUS, formatKoreanWon, formatWon } from "@/lib/format";
+import { MINUS, formatKoreanWon, formatManwon, formatManwonRange, formatRange, formatWon } from "@/lib/format";
 import { fieldId, scopeInput } from "@/lib/form";
+import { LIMITS } from "@/lib/rules";
 import { GENERAL_SAVING_RATE_BASIS, INPUT_DEFAULTS, YOUTH_FUTURE_SAVING } from "@/config/policy";
 import type { Draft, LoanItem, ValidateRequest, ValidateResult } from "@/lib/types";
 import { LoanCard } from "./LoanCard";
@@ -61,7 +62,7 @@ export function AssetsStep() {
 
   const rateId = fieldId("savingPlan.generalSavingRate");
   const rateError = form.error("savingPlan.generalSavingRate");
-  const rateHint = `가입한 상품이 있으면 그 금리로 고쳐요 (0~10%). 비워 두면 연 ${INPUT_DEFAULTS.generalSavingRate}% (${GENERAL_SAVING_RATE_BASIS})`;
+  const rateHint = `가입한 상품이 있으면 그 금리로 고쳐요 (${formatRange(LIMITS.generalSavingRate, "%")}). 비워 두면 연 ${INPUT_DEFAULTS.generalSavingRate}% (${GENERAL_SAVING_RATE_BASIS})`;
   const optionalFilled =
     input.assets?.investments != null ||
     input.savingPlan?.monthlyInvestment != null ||
@@ -81,7 +82,7 @@ export function AssetsStep() {
 
       <FormSection title="가진 돈" description="계산에서는 현금과 예·적금을 합쳐 시작 잔액으로 써요.">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {money("assets.cash", "현금·입출금", "지금 통장에 있는 돈 (예·적금과 합쳐 10억 원 이하)", input.assets?.cash, (cash) =>
+          {money("assets.cash", "현금·입출금", `지금 통장에 있는 돈 (예·적금과 합쳐 ${formatManwon(LIMITS.cashAndDeposits.max)} 이하)`, input.assets?.cash, (cash) =>
             form.update((prev) => patch(prev, "assets", { cash })),
           )}
           {money("assets.deposits", "예·적금", "지금 넣어 둔 예금·적금. 없으면 0", input.assets?.deposits, (deposits) =>
@@ -163,7 +164,7 @@ export function AssetsStep() {
             {money(
               "savingPlan.monthlyInvestment",
               "월 투자액",
-              "매달 투자에 넣는 돈 (0~3,000만 원)",
+              `매달 투자에 넣는 돈 (${formatManwonRange(LIMITS.monthlyInvestment)})`,
               input.savingPlan?.monthlyInvestment,
               (monthlyInvestment) => form.update((prev) => patch(prev, "savingPlan", { monthlyInvestment })),
               false,

@@ -7,12 +7,16 @@
  *  - 이 배분으로: 내 입력(simInput.v1)의 배분을 바꾼다 → 결과 전체를 새로고침 없이 다시 계산 (tax-addon.js는 새로고침)
  * 04 결과에만 붙인다 (04-E 예시 값은 내 입력으로 옮기지 않는다). 보여 줄 값은 allocation.ts에서 고른다.
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui";
 import { Field, describedBy } from "@/components/ui/Field";
 import { MoneyInput } from "@/components/ui/MoneyInput";
-import { api, formErrorMessage, toFieldErrors } from "@/lib/api";
+import { DiffText, StatCard } from "@/components/ui/Stat";
+import type { AllocationKey } from "@/features/input/draft";
+import { MEANINGFUL_DIFF, goalWhen } from "@/features/result/result";
+import { api } from "@/lib/api";
 import { formatKoreanWon, formatWon } from "@/lib/format";
+import { useApiTask } from "@/lib/hooks";
 import type { CompareResult, RecommendResult, SimulateResult, SimulationInput } from "@/lib/types";
 import {
   ALLOCATION_FIELDS,
@@ -26,27 +30,11 @@ import {
   restHint,
   sameAllocation,
   toMonthly,
-  type CompareRow,
   type MonthlyAllocation,
 } from "./allocation";
-import { MEANINGFUL_DIFF, goalWhen } from "./result";
 
-type DraftAllocation = Record<keyof MonthlyAllocation, number | null>;
-
-function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
-
-function errorText(prefix: string, error: unknown): string {
-  const detail = formErrorMessage(error) ?? Object.values(toFieldErrors(error))[0] ?? "잠시 후 다시 시도해 주세요.";
-  return `${prefix}: ${detail}`;
-}
-
-const DIFF_TONES: Record<NonNullable<CompareRow["diff"]>["tone"], string> = {
-  up: "text-good",
-  down: "text-danger",
-  flat: "text-muted",
-};
+/** 고치는 중인 배분 (칸을 비울 수 있다. 비우면 0원으로 본다) */
+type AllocationDraft = Record<AllocationKey, number | null>;
 
 export function AllocationSection({
   result,
@@ -65,14 +53,10 @@ export function AllocationSection({
   const eligible = result.risks.policySaving.eligible;
   const saving = input.savingPlan.monthlySaving;
 
-  const [draft, setDraft] = useState<DraftAllocation>(current);
-  const [busy, setBusy] = useState<"compare" | "recommend" | null>(null);
+  const [draft, setDraft] = useState<AllocationDraft>(current);
   const [compare, setCompare] = useState<CompareResult | null>(null);
   const [recommend, setRecommend] = useState<RecommendResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => () => abortRef.current?.abort(), []);
+  const { busy, error, run } = useApiTask<"compare" | "recommend">();
 
   const values: MonthlyAllocation = {
     policyMonthly: eligible ? (draft.policyMonthly ?? 0) : 0,
@@ -85,34 +69,14 @@ export function AllocationSection({
   const restInfo = restHint(rest, input.savingPlan.generalSavingRate);
   const plans = comparePlans(values, current, saving, eligible);
 
-  async function run<T>(kind: "compare" | "recommend", call: (signal: AbortSignal) => Promise<T>, done: (data: T) => void) {
-    abortRef.current?.abort();
-    const abort = new AbortController();
-    abortRef.current = abort;
-    setError(null);
-    setBusy(kind);
-    try {
-      done(await call(abort.signal));
-    } catch (caught) {
-      if (isAbort(caught)) return;
-      setError(errorText(kind === "compare" ? "비교하지 못했어요" : "배분을 찾지 못했어요", caught));
-    } finally {
-      if (abortRef.current === abort) setBusy(null);
-    }
-  }
-
   const runCompare = () =>
-    run(
-      "compare",
-      (signal) => api.compare({ input, plans }, { signal }),
-      ({ data }) => setCompare(data),
-    );
+    run("compare", "비교하지 못했어요", async (signal) => {
+      setCompare((await api.compare({ input, plans }, { signal })).data);
+    });
   const runRecommend = () =>
-    run(
-      "recommend",
-      (signal) => api.recommendAllocation({ input }, { signal }),
-      ({ data }) => setRecommend(data),
-    );
+    run("recommend", "배분을 찾지 못했어요", async (signal) => {
+      setRecommend((await api.recommendAllocation({ input }, { signal })).data);
+    });
 
   return (
     <section aria-labelledby="alloc-title" className="rounded-xl border border-line bg-surface p-5">
@@ -179,15 +143,17 @@ export function AllocationSection({
             <h3 className="text-sm font-bold">가장 좋은 배분</h3>
             <ul className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-3">
               {recommendCards(recommend).map((card) => (
-                <li
+                <StatCard
                   key={card.key}
-                  className={`rounded-xl border p-4 ${card.key === "bestBenefit" ? "border-good-line bg-good-soft/50" : "border-line bg-surface"}`}
+                  title={card.title}
+                  box={card.key === "bestBenefit" ? "good" : "default"}
+                  value={
+                    <>
+                      {card.probability}
+                      {card.diff && <span className="ml-1.5 text-sm font-medium text-ink-soft">({card.diff})</span>}
+                    </>
+                  }
                 >
-                  <p className="text-sm font-semibold text-ink-soft">{card.title}</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">
-                    {card.probability}
-                    {card.diff && <span className="ml-1.5 text-sm font-medium text-ink-soft">({card.diff})</span>}
-                  </p>
                   <p className="mt-1 text-sm">{card.allocation}</p>
                   <p className="mt-1 text-sm text-ink-soft">{card.benefit}</p>
                   {card.apply && (
@@ -195,7 +161,7 @@ export function AllocationSection({
                       이 배분으로
                     </Button>
                   )}
-                </li>
+                </StatCard>
               ))}
             </ul>
             <p className="mt-2 text-sm text-muted">{recommendNote(recommend, result.paths, goalWhen(result))}</p>
@@ -234,7 +200,7 @@ export function AllocationSection({
                       </td>
                       <td className="py-2 pr-3">
                         <span className="font-semibold tabular-nums">{row.probability}</span>
-                        {row.diff && <span className={`block text-xs ${DIFF_TONES[row.diff.tone]}`}>{row.diff.text}</span>}
+                        <DiffText diff={row.diff} />
                       </td>
                       <td className="py-2 pr-3 tabular-nums">{row.taxNetBenefit}</td>
                       <td className="py-2 pr-3 tabular-nums">{row.earlyTermination}</td>

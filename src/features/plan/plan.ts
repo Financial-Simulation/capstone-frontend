@@ -4,6 +4,7 @@
  * 계산은 서버가 하고, 여기서는 바꾼 값을 고르고 서버 결과에 이름을 붙인다.
  */
 import { EMERGENCY_FIRST_OPTIONS, INPUT_DEFAULTS } from "@/config/policy";
+import { PROBABILITY_GOOD, compareDiff, type CompareDiff } from "@/features/result/result";
 import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint, MINUS } from "@/lib/format";
 import { resolvedExpenseTotal } from "@/lib/rules";
 import type {
@@ -17,7 +18,6 @@ import type {
   YearMonth,
 } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
-import { PROBABILITY_GOOD } from "./result";
 
 /** 바꿔 볼 수 있는 값 7개 (Adjustments의 이름 그대로) */
 export interface PlanValues {
@@ -172,7 +172,7 @@ export interface PlanCompareRow {
   name: string;
   isBase: boolean;
   probability: string;
-  diff: { text: string; tone: "up" | "down" | "flat" } | null;
+  diff: CompareDiff | null;
   debt: string;
   worst: string;
   earlyTermination: string;
@@ -186,11 +186,7 @@ export function planCompareRows(compare: CompareResult): PlanCompareRow[] {
     name: plan.name,
     isBase: plan.isBase,
     probability: formatPercent(plan.probability),
-    diff: plan.isBase
-      ? null
-      : plan.meaningful
-        ? { text: formatPercentPoint(plan.diffFromBase), tone: plan.diffFromBase > 0 ? "up" : "down" }
-        : { text: "거의 차이 없음", tone: "flat" },
+    diff: compareDiff(plan),
     debt: formatPercent(plan.debtProbability),
     worst: formatManwon(plan.worstCaseAtGoal),
     earlyTermination: plan.earlyTerminationProbability == null ? "대상 아님" : formatPercent(plan.earlyTerminationProbability),

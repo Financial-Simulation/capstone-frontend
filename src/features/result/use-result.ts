@@ -8,12 +8,17 @@
  * 같은 입력 · 같은 seed면 같은 결과라서, 화면에 다시 들어오면 다시 불러도 숫자는 같다.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type ApiResult } from "@/lib/api";
+import { api, isAbortError, type ApiResult } from "@/lib/api";
 import type { ReverseResult, SimulateResult, SimulationInput } from "@/lib/types";
-import type { ResultData } from "./ResultView";
 
-function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
+/** 결과 본문(ResultView)에 넘기는 값 */
+export interface ResultData {
+  sim: ApiResult<SimulateResult>;
+  reverse: ApiResult<ReverseResult> | null;
+  /** 개선 포인트 계산 중 */
+  reversePending: boolean;
+  /** 청년미래적금 비대상 이유 (입력 검사의 policySaving.reason) */
+  policyReason: string | null;
 }
 
 export type ResultStatus = "idle" | "computing" | "done" | "failed" | "cancelled";
@@ -39,19 +44,19 @@ export function useResult(input: SimulationInput | null) {
     api.simulate({ input: body }, { signal }).then(
       (result) => setSim({ key, result }),
       (error: unknown) => {
-        if (!isAbort(error)) setSim({ key, error });
+        if (!isAbortError(error)) setSim({ key, error });
       },
     );
     api.reverse({ input: body, targetProbability: 70 }, { signal }).then(
       (result) => setRev({ key, result }),
       (error: unknown) => {
-        if (!isAbort(error)) setRev({ key, result: null });
+        if (!isAbortError(error)) setRev({ key, result: null });
       },
     );
     api.validate({ step: "ALL", input: body }, { signal }).then(
       ({ data }) => setPolicy({ key, reason: data.policySaving?.reason ?? null }),
       (error: unknown) => {
-        if (!isAbort(error)) setPolicy({ key, reason: null });
+        if (!isAbortError(error)) setPolicy({ key, reason: null });
       },
     );
     return () => abort.abort();

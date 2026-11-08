@@ -1,11 +1,14 @@
 "use client";
 
 /**
- * 저장소를 React에서 쓰는 훅. useSyncExternalStore로 읽어서
+ * 여러 화면이 같이 쓰는 React 훅.
+ *
+ * 저장소(simInput.v1 · simPlans.v1 · 거쳐 간 단계 · 목업 스위치)는 useSyncExternalStore로 읽어서
  *  - 서버 렌더링·첫 화면(hydration)에서는 '아직 모름'(null/빈 값)으로 그리고, 바로 다음에 저장값으로 다시 그린다
  *  - 같은 탭의 다른 컴포넌트, 다른 탭(storage 이벤트)의 변경도 따라온다
+ * 버튼으로 부르는 API 작업(결과 화면의 비교 · 추천 · 미리보기 · 가능성 범위)은 맨 아래 useApiTask.
  */
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { SimulationInputDraft, YearMonth } from "./types";
 import { currentYearMonth } from "./year-month";
 import {
@@ -27,6 +30,8 @@ import {
 } from "./storage";
 import type { StepKey } from "./steps";
 import { MODE_OVERRIDE_KEY, currentModes, parseModeSpec, writeModeOverride, type ModeMap } from "./api/mode";
+import { isAbortError } from "./api/client";
+import { errorMessage } from "./api/errors";
 
 type Listener = () => void;
 const listeners = new Set<Listener>();
@@ -179,4 +184,37 @@ function probeStorage(): boolean {
 /** 저장소를 쓸 수 있는 브라우저인지 (사생활 보호 모드 등에서 false). 처음 한 번만 확인한다 */
 export function useStorageAvailable(): boolean {
   return useSyncExternalStore(noopSubscribe, probeStorage, () => true);
+}
+
+/**
+ * 버튼으로 부르는 API 작업 (결과 화면의 비교 · 추천 · 미리보기 · 가능성 범위).
+ *  - 한 번에 하나: 새로 부르면 앞의 요청을 멈추고, 화면을 떠나도 멈춘다 (멈춘 요청은 오류로 보지 않는다)
+ *  - busy: 돌고 있는 작업 이름 (버튼 글자 · 다른 버튼 막기), error: 실패하면 "{failText}: {오류 한 문장}"
+ *
+ *   const { busy, error, run } = useApiTask<"compare" | "recommend">();
+ *   run("compare", "비교하지 못했어요", async (signal) => setCompare((await api.compare(body, { signal })).data));
+ */
+export function useApiTask<K extends string>() {
+  const [busy, setBusy] = useState<K | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  const run = useCallback(async (kind: K, failText: string, task: (signal: AbortSignal) => Promise<void>) => {
+    abortRef.current?.abort();
+    const abort = new AbortController();
+    abortRef.current = abort;
+    setError(null);
+    setBusy(kind);
+    try {
+      await task(abort.signal);
+    } catch (caught) {
+      if (!isAbortError(caught)) setError(`${failText}: ${errorMessage(caught)}`);
+    } finally {
+      if (abortRef.current === abort) setBusy(null);
+    }
+  }, []);
+
+  return { busy, error, run };
 }

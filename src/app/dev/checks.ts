@@ -7,6 +7,7 @@ import examplesData from "@/mocks/data/examples.json";
 import {
   api,
   formErrorMessage,
+  isAbortError,
   isApiError,
   resolveMode,
   toFieldErrors,
@@ -73,10 +74,6 @@ interface CheckDefinition<T> {
 
 const elapsed = (start: number) => Math.round(performance.now() - start);
 
-export function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
-
 function defineCheck<T>(def: CheckDefinition<T>): Check {
   return {
     id: def.id,
@@ -99,7 +96,7 @@ function defineCheck<T>(def: CheckDefinition<T>): Check {
           json: result.data,
         };
       } catch (error) {
-        if (isAbort(error)) throw error;
+        if (isAbortError(error)) throw error;
         const view: CheckErrorView = isApiError(error)
           ? {
               code: error.code,

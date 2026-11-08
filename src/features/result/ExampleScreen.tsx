@@ -13,7 +13,7 @@ import { Computing, Failed } from "./StateViews";
 import { useResult } from "./use-result";
 import { useStartFlow } from "@/features/input/start-flow";
 import { Button } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, isAbortError } from "@/lib/api";
 import { formatManwon, formatWon } from "@/lib/format";
 import type { ExampleInput, ExamplesResult } from "@/lib/types";
 import { formatDuration, monthsBetween } from "@/lib/year-month";
@@ -30,7 +30,7 @@ function useExamples(): ListState {
     api.examples({ signal: abort.signal }).then(
       ({ data }) => setState({ examples: data.examples, fallback: false }),
       (error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) setState({ examples: BUNDLED, fallback: true });
+        if (!isAbortError(error)) setState({ examples: BUNDLED, fallback: true });
       },
     );
     return () => abort.abort();

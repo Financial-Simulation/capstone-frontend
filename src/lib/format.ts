@@ -78,3 +78,32 @@ export function formatPercentPoint(value: number | null | undefined, digits = 1)
   if (value < 0) return `${MINUS}${body}`;
   return body;
 }
+
+// ===== 범위 안내 (칸 아래 '19~39세' 같은 글자. 숫자는 rules.ts의 LIMITS) =====
+
+export interface Range {
+  min: number;
+  max: number;
+}
+
+/** 10 → "+10", −90 → "−90", 0 → "0" (변화율 안내) */
+export function formatSigned(value: number): string {
+  if (value > 0) return `+${value}`;
+  if (value < 0) return `${MINUS}${Math.abs(value)}`;
+  return "0";
+}
+
+/** ({ min: 19, max: 39 }, "세") → "19~39세" */
+export function formatRange({ min, max }: Range, unit = ""): string {
+  return `${min}~${max}${unit}`;
+}
+
+/** ({ min: −90, max: 200 }, "%") → "−90~+200%" */
+export function formatSignedRange({ min, max }: Range, unit = ""): string {
+  return `${formatSigned(min)}~${formatSigned(max)}${unit}`;
+}
+
+/** 만 원 단위 금액 범위: { min: 10000, max: 30000000 } → "1만~3,000만 원", { min: 0, max: 1000000000 } → "0~10억 원" */
+export function formatManwonRange({ min, max }: Range): string {
+  return `${formatManwon(min).replace(/\s?원$/, "")}~${formatManwon(max)}`;
+}

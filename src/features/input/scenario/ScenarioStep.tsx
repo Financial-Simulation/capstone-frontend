@@ -14,13 +14,16 @@ import { YearMonthPicker } from "@/components/ui/YearMonthPicker";
 import { FormNoticeBox, useStepForm, type StepForm } from "@/features/input/step-form";
 import { Badge, Button, FormSection } from "@/components/ui";
 import { SIMULATION_PATHS } from "@/config/policy";
-import { api, formErrorMessage, type ApiSource } from "@/lib/api";
+import { api, formErrorMessage, isAbortError, type ApiSource } from "@/lib/api";
 import { eventFields, presetEventIndexes, setEventAmount, setPresetDate, togglePreset } from "@/features/input/events";
 import { fieldId } from "@/lib/form";
 import { useCurrentMonth } from "@/lib/hooks";
 import { LIMITS } from "@/lib/rules";
 import type { EventPreset, YearMonth } from "@/lib/types";
 import { formatYearMonth, isYearMonth } from "@/lib/year-month";
+
+/** 예정된 일 시점 범위: 기준 달부터 10년(119개월) 안 (lib/rules.ts의 LIMITS) */
+const EVENT_WINDOW = `${(LIMITS.eventMonths.max + 1) / 12}년(${LIMITS.eventMonths.max}개월)`;
 
 type PresetState =
   | { status: "loading" }
@@ -36,7 +39,7 @@ function usePresets() {
     api.presets({ signal: abort.signal }).then(
       ({ data, source }) => setState({ status: "ok", presets: data.presets, source }),
       (error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
+        if (!isAbortError(error)) {
           setState({ status: "error", message: formErrorMessage(error) ?? "예정된 일 목록을 불러오지 못했어요." });
         }
       },
@@ -80,7 +83,7 @@ export function ScenarioStep() {
         title="예정된 일"
         description={
           start
-            ? `켜면 '언제'와 기본 금액 칸이 열려요. 금액은 고칠 수 있고, 시점은 ${formatYearMonth(start)}부터 10년(119개월) 안이에요.`
+            ? `켜면 '언제'와 기본 금액 칸이 열려요. 금액은 고칠 수 있고, 시점은 ${formatYearMonth(start)}부터 ${EVENT_WINDOW} 안이에요.`
             : "켜면 '언제'와 기본 금액 칸이 열려요. 금액은 고칠 수 있어요."
         }
       >
@@ -166,7 +169,11 @@ function PresetCard({ form, preset, start }: { form: StepForm; preset: EventPres
           </Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {events.flatMap(({ index, event }) =>
-              eventFields(event?.presetKey, event?.eventType).map((def) => {
+              eventFields(
+                event?.presetKey,
+                event?.eventType,
+                preset.events.find((template) => template.eventType === event?.eventType),
+              ).map((def) => {
                 const path = `events[${index}].${def.key}`;
                 const id = fieldId(path);
                 const error = form.error(path);

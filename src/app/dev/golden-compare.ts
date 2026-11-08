@@ -3,7 +3,7 @@
  * 같은 seed라서 숫자가 한 자리도 달라지면 안 된다. 응답에만 있는 칸(warnings 등)은 보지 않는다.
  * 가능성 범위(robust)는 입력마다 몇 초씩 걸려서 여기서는 빼고, 위 API 점검에서 S1만 본다.
  */
-import { api, isApiError, type ApiResult, type Endpoint } from "@/lib/api";
+import { api, isAbortError, isApiError, type ApiResult, type Endpoint } from "@/lib/api";
 import type { GoldenCase } from "@/mocks/golden";
 
 export interface Difference {
@@ -83,10 +83,6 @@ async function callGolden(golden: GoldenCase, target: GoldenTarget, signal: Abor
   }
 }
 
-function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
-
 export async function compareWithGolden(golden: GoldenCase, target: GoldenTarget, signal: AbortSignal): Promise<CellResult> {
   const start = performance.now();
   const ms = () => Math.round(performance.now() - start);
@@ -96,7 +92,7 @@ export async function compareWithGolden(golden: GoldenCase, target: GoldenTarget
     const difference = firstDifference(expected, result.data);
     return difference ? { status: "different", ms: ms(), difference } : { status: "same", ms: ms() };
   } catch (error) {
-    if (isAbort(error)) throw error;
+    if (isAbortError(error)) throw error;
     const message = isApiError(error) ? `${error.code} · ${error.message}` : String(error);
     return { status: "error", ms: ms(), message };
   }

@@ -45,6 +45,7 @@
   - 서버 값: `/inputs/validate`의 합계 · 청년미래 판정과 이유 · 지원금 없음 안내(v1.7 `INFO_POLICY_NO_MATCH`, 01-2와 결과의 지원금 카드), `/simulate`의 `paths`. 서버가 안 주는 값은 `src/config/policy.ts`(빈 칸 기본값 · 대출 기본값 · 청년미래 기준 · 결과 전 안내의 경로 수), `policy.test.ts`가 `/meta` 사본과 대조. 대출 기본값은 주는 API가 없어서 config로 옮겼다. 목업도 같은 config를 쓴다.
 - [x] 폴더를 기능 단위로: `features/input · result · tax · plan · report` + 공용 `components/ui`, `lib/api`
   - 지금 있는 화면은 `features/input`(00 시작 · 입력 4단계) · `features/result`(04 · 04-E)로 옮겼다. `tax · plan · report`는 그 기능을 만드는 3~5단계에 만든다. `app/`에는 주소(page.tsx)만 남겼다.
+  - `tax · plan`은 4단계 블록을 `features/result`에 먼저 만들고 '4단계 뒤 정리'에서 옮겼다. `report`는 5단계.
 - [x] v1.7 API 타입 반영, 목업 · 테스트를 v1.7 정답 파일(11개 입력: S1~S3 · E1~E5 · T1~T3)로 교체, `/dev` 점검 기준 갱신 (모델 1.7 · 근거 15개)
   - 타입: 입력 6칸 · `tax` · 배분 · 배분 추천 · 리포트. API 함수 `api.recommendAllocation` · `api.report`. 목업: 정답 파일 v1.7(11개) · meta 15개 · validate의 청년미래 판정 v1.7. `/dev` 점검 17개(세금 T1 · 배분 추천 · 리포트 추가). 새 칸의 입력 규칙과 오류 키 연결은 3단계에서.
 - [ ] 팀 저장소에 push → PR (0~1단계 커밋 함께, 정선빈 리뷰). PR에서 '팀과 정할 것' 2번(`index.html`)도 묻는다
@@ -63,7 +64,7 @@
 - [x] 01-1 '더 정확하게 넣기': 세전 연봉 · 무주택 세대주(예/아니요, 비우면 예) / 고정지출 아래 '그중 월세' (`features/input/basic/TaxInputs.tsx`)
   - 자리와 안내 문장은 명세서 9.3 · `tax-addon.js` 그대로, 문장 속 숫자(0.88 · 6,000만 · 15~17% · 8,000만)는 `src/config/policy.ts`(월세 세액공제는 새 `RENT_TAX_CREDIT`, 출처 `YearEndTax.java`)
   - 바뀐 것: 이름을 01-2와 같게 '더 정확하게 넣기 (선택 · 비워 두면 기본값)'. 무주택 세대주는 체크박스 대신 다른 칸과 같은 예/아니요. 결과 화면 '내 입력값과 적용 가정'에도 세 값을 보여 준다
-- [x] 상품별 배분 3칸: 타입 · 저장(`simInput.v1`)은 1단계에서 들어가 있었다. 이번에 칸 규칙(청년미래 · 청약 월 50만, 연금저축 월 150만 원)과 넣고 읽는 함수 `setAllocation` · `allocationOf`(`features/input/draft.ts`). 입력 칸은 4단계 '어디에 얼마나'에서 만든다. 04-E 예시 입력에는 넣지 않는다
+- [x] 상품별 배분 3칸: 타입 · 저장(`simInput.v1`)은 1단계에서 들어가 있었다. 이번에 칸 규칙(청년미래 · 청약 월 50만, 연금저축 월 150만 원)과 넣고 읽는 함수 `setAllocation` · `allocationOf`(`features/input/draft.ts`, `allocationOf`는 쓰는 곳이 없어 '4단계 뒤 정리'에서 지웠다). 입력 칸은 4단계 '어디에 얼마나'에서 만든다. 04-E 예시 입력에는 넣지 않는다
 - [x] 새 오류 키 두 개를 칸 아래로: `income.grossConsistentWithNet` → 세전 연봉, `expenses.rentWithinFixed` → 그중 월세 (`lib/api/errors.ts`). 같은 규칙을 `rules.ts`에도 넣어 칸을 떠나면 바로 보이고, 목업 검사도 서버처럼 같은 키를 낸다
   - 바뀐 것: 접어 둔 '더 정확하게 넣기' 안의 칸이 틀리면 '다음'이 펼쳐서 그 칸으로 간다 (`focusFirstField`, 01-2의 '더 정확하게 넣기'도 같이 고쳐짐. 전에는 접힌 채라 오류가 안 보였다)
 - 커밋: 하나 (`feat: 01-1 세전 연봉 · 무주택 세대주 · 그중 월세와 v1.7 오류 키 연결`), 브랜치 `feat/stage3-v17-inputs`
@@ -71,19 +72,36 @@
 
 ### 4단계. 결과 화면 새 블록 (tax-addon → 컴포넌트) — ~11/20
 - 4단계를 마치면 백엔드의 `frontend-addon/tax-addon.js`와 `build.py`(빌드 파일에 끼워 넣기)는 필요 없다 (명세서 9.3). 지우는 건 백엔드 저장소 일이라 정선빈 · 조민석에게 알린다
-- [x] 세금: `/simulate`의 `tax` 카드 5개 + 안내 문장 (`features/result/TaxSection.tsx`, 보여 줄 값은 `result.ts`의 `taxView`). '위험' 아래, 04 결과에만 (04-E 예시에는 붙이지 않음, 명세서 9.1)
+- [x] 세금: `/simulate`의 `tax` 카드 5개 + 안내 문장 (`features/tax/TaxSection.tsx`, 보여 줄 값은 `tax.ts`의 `taxView`. '4단계 뒤 정리'에서 옮김). '위험' 아래, 04 결과에만 (04-E 예시에는 붙이지 않음, 명세서 9.1)
   - 바뀐 것: 화면에서 세율표로 계산하던 '내는 세금 연 약 n만 원' · 연금저축 세액공제 어림은 금액 없는 안내로 바꿨다 (계산은 서버에서만). 최종은 서버가 두 값을 주는 것 → '팀과 정할 것' 3번
   - 바뀐 것: 우대형 안내 조건은 화면에서 어림한 총급여 대신 서버의 정부 지원금(0보다 크면)으로. 월세 안내는 무주택 세대주가 아니거나 넣은 세전 연봉이 월세 세액공제 기준을 넘으면 띄우지 않고, 01-1 '그중 월세' 칸으로 가는 링크를 붙였다. 문장 속 숫자(15.4% · 16.5% · 5년 · 3,600만 / 6,000만)는 `config/policy.ts`
   - 커밋: `feat: 결과 화면 세금 블록 (4-1)`
-- [x] 어디에 얼마나: 배분 입력(청년미래 · 청약 · 연금저축, 나머지는 일반 적금) → '지금 계획과 비교하기' `/compare`(바꾼 배분 + 예시 배분, 최대 3개), '가장 좋은 배분 찾기' `/allocations/recommend`, '이 배분으로' = 내 입력(`simInput.v1`)의 배분을 바꾸고 새로고침 없이 다시 계산 (`features/result/AllocationSection.tsx`, 보여 줄 값은 `allocation.ts`). 04 결과에만
+- [x] 어디에 얼마나: 배분 입력(청년미래 · 청약 · 연금저축, 나머지는 일반 적금) → '지금 계획과 비교하기' `/compare`(바꾼 배분 + 예시 배분, 최대 3개), '가장 좋은 배분 찾기' `/allocations/recommend`, '이 배분으로' = 내 입력(`simInput.v1`)의 배분을 바꾸고 새로고침 없이 다시 계산 (`features/tax/AllocationSection.tsx`, 보여 줄 값은 `allocation.ts`. '4단계 뒤 정리'에서 옮김). 04 결과에만
   - 바뀐 것: '이 배분으로'는 새로고침 대신 저장 → 다시 계산(화면 맨 위로). 청년미래 대상이 아니면 예시 배분에서 청년미래를 0으로(이름도 '일반 적금만' 등). 지금 배분과 같은 추천 · 비교 줄에는 '이 배분으로'를 숨김. 버튼의 '(10~30초)' 같은 시간 안내는 뺐다 (명세서 12.2: 추천 0.9~3.5초). 칸 안내 숫자(50만 · 300만 · 40% · 150만 · 600만 · 55세 · 16.5% · 6%)는 `config/policy.ts`
   - 커밋: `feat: 결과 화면 어디에 얼마나 (4-2)`
-- [x] 가능성 범위: '이 숫자는 얼마나 믿을 수 있나요?' (첫 결과 카드 아래, `features/result/RobustSection.tsx` · `robust.ts`). '가능성 범위 계산' → `POST /robust` 작업 → 1.5초마다 `GET /robust/{jobId}` 진행률 → 범위를 띠로, 지금 결과는 세로 선. 화면을 떠나거나 결과를 다시 계산하면 묻기를 멈춘다. 04 결과에만
+- [x] 가능성 범위: '이 숫자는 얼마나 믿을 수 있나요?' (첫 결과 카드 아래, `features/result/RobustSection.tsx` · `robust.ts`, 작업을 맡기고 묻는 건 '4단계 뒤 정리'에서 `lib/api/robust.ts`로). '가능성 범위 계산' → `POST /robust` 작업 → 1.5초마다 `GET /robust/{jobId}` 진행률 → 범위를 띠로, 지금 결과는 세로 선. 화면을 떠나거나 결과를 다시 계산하면 묻기를 멈춘다. 04 결과에만
   - 바뀐 것: 안내의 '10~40초쯤 걸려요'는 뺐다 (컴퓨터마다 달라서 진행률로 보여 준다). 2분이 지나도 안 끝나거나 서버가 실패하면 멈추고 '다시 계산'. 안내 속 60가지 · 2,000개는 `config/policy.ts`(`ROBUST_TRIALS` · `SIMULATION_PATHS`), 결과 문장의 횟수는 서버의 `trials`
   - 커밋: `feat: 결과 화면 가능성 범위 (4-3)`
-- [x] 계획 바꿔 보기(04-2): 7개 값 미리보기(`/simulate/preview`), 최대 3개 담아 비교(`/compare`), 가정을 바꿔도 결론이 같은지(`/robust`) (`features/result/PlanSection.tsx` · `plan.ts`). 결과 맨 아래 '계획 바꿔 보기'(지금까지 꺼져 있던 '(11/6)' 버튼)로 '이렇게 바꿔 보세요' 아래에 펼친다. 04 결과에만
+- [x] 계획 바꿔 보기(04-2): 7개 값 미리보기(`/simulate/preview`), 최대 3개 담아 비교(`/compare`), 가정을 바꿔도 결론이 같은지(`/robust`) (`features/plan/PlanSection.tsx` · `plan.ts`. '4단계 뒤 정리'에서 옮김). 결과 맨 아래 '계획 바꿔 보기'(지금까지 꺼져 있던 '(11/6)' 버튼)로 '이렇게 바꿔 보세요' 아래에 펼친다. 04 결과에만
   - 바뀐 것: 담은 계획은 `simPlans.v1`에 저장해서 새로고침해도 남는다 ('새로 시작'이면 지운다). 같은 계획은 두 번 담지 않는다. 내 입력(`simInput.v1`)은 바꾸지 않는다. 04-E의 꺼진 '계획 바꿔 보기 (11/6)' 버튼은 뺐다
   - 커밋: `feat: 결과 화면 계획 바꿔 보기 04-2 (4-4)`
+
+### 4단계 뒤 정리 (1단계 규칙 다시 점검) — 11/8
+- 점검: 1단계 규칙(환경 값은 `env.ts`만 · API는 `api.*`만 · 저장은 `useSimInput` · 제도 숫자는 서버 값이나 `policy.ts` · 계산은 서버)은 4단계 새 코드도 지켰다. 어긋난 건 폴더 · 겹친 코드 · 칸 범위 글자였다
+- [x] 폴더를 계획대로: `features/tax`(세금 `TaxSection` · `tax.ts`, 어디에 얼마나 `AllocationSection` · `allocation.ts`) · `features/plan`(계획 바꿔 보기 `PlanSection` · `plan.ts`). 가능성 범위는 결과 본문 블록이라 `features/result`에 둔다
+  - 472줄이던 `ResultView.tsx`는 블록 순서만 남기고 `Hero` · `SavingsSections` · `RiskSections` · `Levers` · `Assumptions`로 나눴다. `result.ts`(459줄)에서 세금(`taxView`)을 `tax.ts`로 뺐다
+- [x] 겹친 코드를 하나로
+  - 요청을 멈춘 것인지 보는 함수 10곳 → `isAbortError`(`lib/api`)
+  - 결과 화면 버튼 작업(하나씩 · 화면을 떠나면 멈춤 · 실패 문장) 3곳 → `useApiTask`(`lib/hooks.ts`), 오류 한 문장 3곳 → `errorMessage`(`lib/api/errors.ts`)
+  - 가능성 범위 작업(맡기고 1.5초마다 묻기)은 결과 · 계획 바꿔 보기가 같이 써서 `lib/api/robust.ts`의 `runRobust`로. 실패 · 2분 초과도 다른 API 오류처럼 `ApiError`(`ROBUST_FAILED` · `ROBUST_TIMEOUT`)
+  - 숫자 카드 4곳(위험 · 세금 · 가장 좋은 배분 · 미리보기) → `StatCard`, 비교 표의 '지금 계획과의 차이' 2곳 → `compareDiff`(`result.ts`) + `DiffText` (`components/ui/Stat.tsx`)
+  - 배분 타입 3개 → 칸 이름은 `ALLOCATION_KEYS`(`draft.ts`) 하나로. 배분 칸 범위 검사는 따로 두지 않고 입력 칸 규칙(`rules.ts`)을 쓴다
+- [x] 칸 범위 숫자를 한 곳에: 입력 화면 안내('19~39세' · '1만~3,000만 원' · '0~20%' · '1~480개월' · '1~10년(12~120개월)' · '10년(119개월)' 등)와 `rules.ts`의 검사가 모두 `LIMITS`를 쓴다. 이직 칸의 '기본 +10% · 2개월'은 프리셋(서버 `/events/presets`) 값으로
+- [x] 안 쓰는 코드 지우기: `ComingSoon` · `Notice` · `allocationOf`
+- [x] `/dev`는 개발 서버에서만: 배포 빌드(Vercel 데모 포함)에서는 '없는 화면'이고 아래 링크도 숨긴다. 열려면 `NEXT_PUBLIC_DEV_TOOLS=1` (`config/env.ts`의 `devToolsEnabled`)
+- 바뀐 것 (화면 두 군데): 위험 카드의 큰 숫자도 다른 카드처럼 고정폭 숫자(`tabular-nums`). 연금저축 칸 범위 오류가 입력 칸 규칙(서버) 문장과 같은 '0원 ~ 150만 원 사이로 입력해 주세요 (연금계좌 한도 연 1,800만 원)'
+- 확인: `npm run check`(26개 파일, 294개 시험) · `npm run build` · `next start`에서 `/dev` 404(`NEXT_PUBLIC_DEV_TOOLS=1`이면 열림). 정리 전후로 같은 상태 29장(입력 4단계 · 결과 S1 · T1 · S3 · T3 · 가능성 범위 · 배분 · 계획 바꿔 보기 · 예시 · 계산 실패 · 계산 중 · 390px)을 가짜 백엔드로 찍어 픽셀 비교 → 위 두 군데 말고는 같음
+- 커밋: 하나 (`refactor: 4단계 뒤 정리 (폴더 · 겹친 코드 · 칸 범위 · /dev)`), 브랜치 `refactor/after-stage4`
 
 ### 5단계. 리포트 — ~11/27
 - [ ] `/reports` 데이터로 인쇄용 화면 + 인쇄 CSS → 브라우저 인쇄로 PDF 저장

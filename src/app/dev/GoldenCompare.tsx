@@ -6,14 +6,11 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Badge, Button, Card } from "@/components/ui";
+import { isAbortError } from "@/lib/api";
 import { compareWithGolden, GOLDEN_TARGETS, shortValue, type CellResult, type GoldenTarget } from "./golden-compare";
 
 type Cell = CellResult | { status: "running" };
 type Row = { key: string; note: string; cells: Partial<Record<GoldenTarget, Cell>> };
-
-function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
 
 const CELL_VIEW: Record<Cell["status"], { text: string; className: string }> = {
   same: { text: "✓ 같음", className: "text-good" },
@@ -48,7 +45,7 @@ export function GoldenCompare() {
         }
       }
     } catch (error) {
-      if (!isAbort(error)) throw error;
+      if (!isAbortError(error)) throw error;
     } finally {
       if (abortRef.current === abort) setRunning(false);
     }

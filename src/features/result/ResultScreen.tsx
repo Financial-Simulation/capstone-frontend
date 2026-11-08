@@ -8,8 +8,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { PLAN_SECTION_ID } from "@/features/plan/PlanSection";
 import { ResultView } from "./ResultView";
-import { PLAN_SECTION_ID } from "./PlanSection";
 import { Computing, Empty, Failed, NotReady } from "./StateViews";
 import { useResult } from "./use-result";
 import { Button, LinkButton } from "@/components/ui";

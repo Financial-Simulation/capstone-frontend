@@ -12,7 +12,7 @@ import { YearMonthPicker } from "@/components/ui/YearMonthPicker";
 import { FormNoticeBox, StepWarningModal, useStepForm } from "@/features/input/step-form";
 import { FormSection, textInputClass } from "@/components/ui";
 import { patch } from "@/features/input/draft";
-import { formatWon } from "@/lib/format";
+import { formatManwonRange, formatRange, formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import { useCurrentMonth } from "@/lib/hooks";
 import { LIMITS, resolvedExpenseTotal } from "@/lib/rules";
@@ -20,6 +20,11 @@ import { STEPS } from "@/lib/steps";
 import { INPUT_DEFAULTS } from "@/config/policy";
 import type { SimulationInputDraft } from "@/lib/types";
 import { formatDuration, formatYearMonth, isWithinMonths, isYearMonth, monthsBetween } from "@/lib/year-month";
+
+/** 목표 시점 범위 '1~10년' · '12~120개월'과 금액 범위 (lib/rules.ts의 LIMITS) */
+const GOAL_YEARS = formatRange({ min: LIMITS.goalMonths.min / 12, max: LIMITS.goalMonths.max / 12 }, "년");
+const GOAL_MONTHS = formatRange(LIMITS.goalMonths, "개월");
+const AMOUNT_HINT = formatManwonRange(LIMITS.goalTargetAmount);
 
 const QUICK_PICKS = [
   { label: "1년 뒤", months: 12 },
@@ -44,11 +49,8 @@ export function GoalStep() {
   const outOfRange =
     start !== null && isYearMonth(target) && !isWithinMonths(start, target, LIMITS.goalMonths.min, LIMITS.goalMonths.max);
   const dateError =
-    form.error("goal.targetDate") ?? (outOfRange ? "기준 연월부터 1~10년(12~120개월) 사이로 골라 주세요" : undefined);
-  const dateHint = start
-    ? `기준 연월(${formatYearMonth(start)})부터 1~10년 사이만 고를 수 있어요.`
-    : "기준 연월부터 1~10년 사이만 고를 수 있어요.";
-  const amountHint = "1만~10억 원";
+    form.error("goal.targetDate") ?? (outOfRange ? `기준 연월부터 ${GOAL_YEARS}(${GOAL_MONTHS}) 사이로 골라 주세요` : undefined);
+  const dateHint = `기준 연월${start ? `(${formatYearMonth(start)})` : ""}부터 ${GOAL_YEARS} 사이만 고를 수 있어요.`;
 
   return (
     <StepScreen step="GOAL" description="언제까지 얼마를 모으고 싶은지 정해요." onNext={form.submit} busy={form.busy}>
@@ -73,7 +75,7 @@ export function GoalStep() {
           path="goal.targetAmount"
           label="목표 금액"
           required
-          hint={amountHint}
+          hint={AMOUNT_HINT}
           error={amountError}
           highlight={form.highlighted("goal.targetAmount")}
         >
@@ -81,7 +83,7 @@ export function GoalStep() {
             id={amountId}
             value={input.goal?.targetAmount}
             invalid={Boolean(amountError)}
-            aria-describedby={describedBy(amountId, amountError, amountHint)}
+            aria-describedby={describedBy(amountId, amountError, AMOUNT_HINT)}
             onBlur={form.touch("goal.targetAmount")}
             onChange={(targetAmount) => form.update((prev) => patch(prev, "goal", { targetAmount }))}
           />

@@ -30,5 +30,11 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.trim() || "/api";
  */
 export const API_MODE_SPEC = process.env.NEXT_PUBLIC_API_MODE?.trim() ?? "";
 
-/** 개발 서버(next dev)인지. 배포 빌드(next build)에서는 false라서 개발 점검 링크 같은 걸 숨긴다 */
-export const IS_DEV = process.env.NODE_ENV !== "production";
+/**
+ * 개발 점검 화면(/dev)과 아래쪽 '개발 점검' 링크를 여는지.
+ * 개발 서버(npm run dev)에서는 늘 열고, 배포 빌드(next build)에서는 .env.local의 NEXT_PUBLIC_DEV_TOOLS=1일 때만 연다
+ * (발표용 배포에서 목업 스위치 · API 점검을 숨긴다).
+ */
+export function devToolsEnabled(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_DEV_TOOLS?.trim() === "1";
+}

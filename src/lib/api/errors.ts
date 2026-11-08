@@ -10,7 +10,10 @@ import type { FieldErrorMap, SimulationInputDraft } from "@/lib/types";
 import { eventDateInRange, eventFieldsMatch, jobChangeInRange } from "@/lib/rules";
 
 export class ApiError extends Error {
-  /** 서버 코드(COMMON400, INPUT4001 …) 또는 프론트 코드(NETWORK, BACKEND_UNAVAILABLE, BAD_RESPONSE, MOCK_UNAVAILABLE) */
+  /**
+   * 서버 코드(COMMON400, INPUT4001 …) 또는 프론트 코드
+   * (NETWORK, BACKEND_UNAVAILABLE, BAD_RESPONSE, MOCK_UNAVAILABLE, 가능성 범위 작업의 ROBUST_FAILED · ROBUST_TIMEOUT)
+   */
   readonly code: string;
   /** HTTP 상태. 서버에 닿지 못했으면 null */
   readonly status: number | null;
@@ -115,6 +118,14 @@ export function formErrorMessage(error: unknown, input?: SimulationInputDraft | 
     return error.message;
   }
   return "알 수 없는 오류가 났어요. 잠시 후 다시 시도해 주세요.";
+}
+
+/**
+ * 칸이 없는 자리(결과 화면의 비교 · 추천 · 미리보기 버튼 등)에 보여 줄 오류 한 문장.
+ * 화면 위 안내 문장이 있으면 그것, 칸 오류면 첫 칸의 문장, 둘 다 없으면 fallback.
+ */
+export function errorMessage(error: unknown, fallback = "잠시 후 다시 시도해 주세요."): string {
+  return formErrorMessage(error) ?? Object.values(toFieldErrors(error))[0] ?? fallback;
 }
 
 /** 칸 오류 하나 꺼내기. 그 칸 아래 경로(예: "loans.items[0]" 아래 "loans.items[0].principal")까지 보려면 prefix */

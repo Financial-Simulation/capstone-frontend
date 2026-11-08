@@ -52,10 +52,15 @@ export const MESSAGES = {
   eventType: "종류를 골라 주세요",
 } as const;
 
-/** 화면에서 min · max 안내에 쓸 범위 (원 · % · 개월 · 년) */
+/**
+ * 칸 범위 (원 · % · 개월 · 년). 아래 검사와 화면 안내(칸 아래 '19~39세' 같은 글자)가 같이 쓴다.
+ * 서버 SimulationInput.java의 @Min · @Max · @DecimalMax와 같게 맞춘다.
+ */
 export const LIMITS = {
   age: { min: 19, max: 39 },
   careerYears: { min: 0, max: 10 },
+  /** 경력은 나이 − 15년까지 (INPUT4001) */
+  careerStartAge: 15,
   monthlyNetIncome: { min: 10_000, max: 30_000_000 },
   annualGrossSalary: { min: 0, max: 1_000_000_000 },
   expenseTotal: { min: 0, max: 30_000_000 },
@@ -82,8 +87,12 @@ export const LIMITS = {
   goalNameLength: 30,
 } as const;
 
-const outside = (v: Num, min?: number, max?: number) =>
-  v != null && ((min != null && v < min) || (max != null && v > max));
+/** 0원 이상 (금액 칸 대부분) */
+const NON_NEGATIVE = { min: 0 } as const;
+
+/** 값이 있고 범위 밖이면 true (값이 없으면 검사하지 않는다) */
+const outside = (v: Num, range: { min?: number; max?: number }) =>
+  v != null && ((range.min != null && v < range.min) || (range.max != null && v > range.max));
 
 /** DETAIL이면 items 합계, TOTAL이면 total. 아직 모르면 null (ExpenseGroup.resolvedTotal) */
 export function resolvedExpenseTotal(group: Draft<ExpenseGroup> | null | undefined): number | null {
@@ -105,12 +114,12 @@ export function checkFields(input: SimulationInputDraft): FieldErrorMap {
   if (input.startMonth != null && !isYearMonth(input.startMonth)) add("startMonth", MESSAGES.yearMonth);
 
   const person = input.person;
-  if (outside(person?.age, 19, 39)) add("person.age", MESSAGES.age);
-  if (outside(person?.careerYears, 0, 10)) add("person.careerYears", MESSAGES.careerYears);
+  if (outside(person?.age, LIMITS.age)) add("person.age", MESSAGES.age);
+  if (outside(person?.careerYears, LIMITS.careerYears)) add("person.careerYears", MESSAGES.careerYears);
 
   const income = input.income;
-  if (outside(income?.monthlyNetIncome, 10_000, 30_000_000)) add("income.monthlyNetIncome", MESSAGES.monthlyNetIncome);
-  if (outside(income?.annualGrossSalary, 0, 1_000_000_000)) add("income.annualGrossSalary", MESSAGES.annualGrossSalary);
+  if (outside(income?.monthlyNetIncome, LIMITS.monthlyNetIncome)) add("income.monthlyNetIncome", MESSAGES.monthlyNetIncome);
+  if (outside(income?.annualGrossSalary, LIMITS.annualGrossSalary)) add("income.annualGrossSalary", MESSAGES.annualGrossSalary);
   // 세전 연봉 × 1.1 ≥ 월 실수령액 × 12 (서버는 정수로 gross × 11 ≥ net × 120). 화면 칸은 세전 연봉
   if (
     income?.annualGrossSalary != null &&
@@ -126,12 +135,12 @@ export function checkFields(input: SimulationInputDraft): FieldErrorMap {
     const base = `expenses.${key}`;
     (group.items ?? []).forEach((item, i) => {
       if (!item) return;
-      if (item.name != null && item.name.length > 20) add(`${base}.items[${i}].name`, MESSAGES.name20);
+      if (item.name != null && item.name.length > LIMITS.nameLength) add(`${base}.items[${i}].name`, MESSAGES.name20);
       if (item.amount == null) add(`${base}.items[${i}].amount`, MESSAGES.amountRequired);
       else if (item.amount < 0) add(`${base}.items[${i}].amount`, MESSAGES.nonNegative);
     });
-    if (outside(group.total, 0)) add(`${base}.total`, MESSAGES.nonNegative);
-    if (outside(resolvedExpenseTotal(group), 0, 30_000_000)) {
+    if (outside(group.total, NON_NEGATIVE)) add(`${base}.total`, MESSAGES.nonNegative);
+    if (outside(resolvedExpenseTotal(group), LIMITS.expenseTotal)) {
       add(`${base}.resolvedTotalInRange`, MESSAGES.expenseTotalRange);
     }
   }
@@ -139,54 +148,54 @@ export function checkFields(input: SimulationInputDraft): FieldErrorMap {
   // 그중 월세: 고정지출 안에 든 돈이라 고정지출보다 클 수 없다. 화면 칸은 그중 월세
   const rent = input.expenses?.monthlyRent;
   const fixedTotal = resolvedExpenseTotal(input.expenses?.fixed);
-  if (outside(rent, 0)) add("expenses.monthlyRent", MESSAGES.nonNegative);
+  if (outside(rent, LIMITS.monthlyRent)) add("expenses.monthlyRent", MESSAGES.nonNegative);
   if (rent != null && fixedTotal != null && rent > fixedTotal) add("expenses.rentWithinFixed", MESSAGES.rentWithinFixed);
 
   const assets = input.assets;
   if (assets) {
-    if (outside(assets.cash, 0)) add("assets.cash", MESSAGES.nonNegative);
-    if (outside(assets.deposits, 0)) add("assets.deposits", MESSAGES.nonNegative);
-    if (outside(assets.investments, 0, 1_000_000_000)) add("assets.investments", MESSAGES.investments);
-    if (assets.cash != null && assets.deposits != null && assets.cash + assets.deposits > 1_000_000_000) {
+    if (outside(assets.cash, NON_NEGATIVE)) add("assets.cash", MESSAGES.nonNegative);
+    if (outside(assets.deposits, NON_NEGATIVE)) add("assets.deposits", MESSAGES.nonNegative);
+    if (outside(assets.investments, LIMITS.investments)) add("assets.investments", MESSAGES.investments);
+    if (assets.cash != null && assets.deposits != null && assets.cash + assets.deposits > LIMITS.cashAndDeposits.max) {
       add("assets.cashAndDepositsInRange", MESSAGES.cashAndDeposits);
     }
   }
 
   const plan = input.savingPlan;
   if (plan) {
-    if (outside(plan.monthlySaving, 0, 30_000_000)) add("savingPlan.monthlySaving", MESSAGES.monthlyAmount);
-    if (outside(plan.generalSavingRate, 0, 10)) add("savingPlan.generalSavingRate", MESSAGES.generalSavingRate);
-    if (outside(plan.monthlyInvestment, 0, 30_000_000)) add("savingPlan.monthlyInvestment", MESSAGES.monthlyAmount);
+    if (outside(plan.monthlySaving, LIMITS.monthlySaving)) add("savingPlan.monthlySaving", MESSAGES.monthlyAmount);
+    if (outside(plan.generalSavingRate, LIMITS.generalSavingRate)) add("savingPlan.generalSavingRate", MESSAGES.generalSavingRate);
+    if (outside(plan.monthlyInvestment, LIMITS.monthlyInvestment)) add("savingPlan.monthlyInvestment", MESSAGES.monthlyAmount);
     // 상품별 배분 (v1.7): 청년미래 · 청약 월 50만 원, 연금저축 월 150만 원까지
-    if (outside(plan.policyMonthly, 0, 500_000)) add("savingPlan.policyMonthly", MESSAGES.allocationMonthly);
-    if (outside(plan.housingMonthly, 0, 500_000)) add("savingPlan.housingMonthly", MESSAGES.allocationMonthly);
-    if (outside(plan.pensionMonthly, 0, 1_500_000)) add("savingPlan.pensionMonthly", MESSAGES.pensionMonthly);
+    if (outside(plan.policyMonthly, LIMITS.policyMonthly)) add("savingPlan.policyMonthly", MESSAGES.allocationMonthly);
+    if (outside(plan.housingMonthly, LIMITS.housingMonthly)) add("savingPlan.housingMonthly", MESSAGES.allocationMonthly);
+    if (outside(plan.pensionMonthly, LIMITS.pensionMonthly)) add("savingPlan.pensionMonthly", MESSAGES.pensionMonthly);
     const first = plan.emergencyFirstAmount ?? 0;
     if (!(EMERGENCY_FIRST_OPTIONS as readonly number[]).includes(first)) {
       add("savingPlan.emergencyFirstAmountAllowed", MESSAGES.emergencyFirst);
     }
   }
 
-  if (outside(input.emergency?.breakThreshold, 0, 100_000_000)) {
+  if (outside(input.emergency?.breakThreshold, LIMITS.breakThreshold)) {
     add("emergency.breakThreshold", MESSAGES.breakThreshold);
   }
 
   (input.loans?.items ?? []).forEach((loan, i) => {
     if (!loan) return;
     const base = `loans.items[${i}]`;
-    if (loan.name != null && loan.name.length > 20) add(`${base}.name`, MESSAGES.name20);
+    if (loan.name != null && loan.name.length > LIMITS.nameLength) add(`${base}.name`, MESSAGES.name20);
     if (loan.loanType == null) add(`${base}.loanType`, MESSAGES.loanType);
     if (loan.principal == null) add(`${base}.principal`, MESSAGES.principalRequired);
-    else if (loan.principal < 1) add(`${base}.principal`, MESSAGES.principalMin);
-    if (outside(loan.annualRate, 0, 20)) add(`${base}.annualRate`, MESSAGES.annualRate);
+    else if (loan.principal < LIMITS.loanPrincipal.min) add(`${base}.principal`, MESSAGES.principalMin);
+    if (outside(loan.annualRate, LIMITS.loanAnnualRate)) add(`${base}.annualRate`, MESSAGES.annualRate);
     if (loan.remainingMonths == null) add(`${base}.remainingMonths`, MESSAGES.remainingRequired);
-    else if (outside(loan.remainingMonths, 1, 480)) add(`${base}.remainingMonths`, MESSAGES.remainingRange);
+    else if (outside(loan.remainingMonths, LIMITS.loanRemainingMonths)) add(`${base}.remainingMonths`, MESSAGES.remainingRange);
   });
 
   const goal = input.goal;
   if (goal) {
-    if (goal.name != null && goal.name.length > 30) add("goal.name", MESSAGES.name30);
-    if (outside(goal.targetAmount, 10_000, 1_000_000_000)) add("goal.targetAmount", MESSAGES.goalAmount);
+    if (goal.name != null && goal.name.length > LIMITS.goalNameLength) add("goal.name", MESSAGES.name30);
+    if (outside(goal.targetAmount, LIMITS.goalTargetAmount)) add("goal.targetAmount", MESSAGES.goalAmount);
     if (goal.targetDate != null && !isYearMonth(goal.targetDate)) add("goal.targetDate", MESSAGES.yearMonth);
   }
 
@@ -194,12 +203,12 @@ export function checkFields(input: SimulationInputDraft): FieldErrorMap {
     if (!event) return;
     const base = `events[${i}]`;
     if (event.presetKey == null) add(`${base}.presetKey`, MESSAGES.presetKey);
-    if (event.name != null && event.name.length > 20) add(`${base}.name`, MESSAGES.name20);
+    if (event.name != null && event.name.length > LIMITS.nameLength) add(`${base}.name`, MESSAGES.name20);
     if (event.occurDate == null) add(`${base}.occurDate`, MESSAGES.occurDateRequired);
     else if (!isYearMonth(event.occurDate)) add(`${base}.occurDate`, MESSAGES.yearMonth);
     if (event.eventType == null) add(`${base}.eventType`, MESSAGES.eventType);
-    if (outside(event.amount, 0)) add(`${base}.amount`, MESSAGES.nonNegative);
-    if (outside(event.deposit, 0)) add(`${base}.deposit`, MESSAGES.nonNegative);
+    if (outside(event.amount, NON_NEGATIVE)) add(`${base}.amount`, MESSAGES.nonNegative);
+    if (outside(event.deposit, NON_NEGATIVE)) add(`${base}.deposit`, MESSAGES.nonNegative);
   });
 
   return errors;
@@ -243,22 +252,21 @@ export function eventFieldsMatch(event: Draft<PlannedEvent>): boolean {
 export function eventDateInRange(startMonth: string | null | undefined, event: Draft<PlannedEvent>): boolean {
   if (!isYearMonth(startMonth) || !isYearMonth(event.occurDate)) return true;
   const months = monthsBetween(startMonth, event.occurDate);
-  return months >= 0 && months <= 119;
+  return !outside(months, LIMITS.eventMonths);
 }
 
 /** 이직 연봉 변화율 −90~+200%, 쉬는 기간 0~24개월 (EVENT4004) */
 export function jobChangeInRange(event: Draft<PlannedEvent>): boolean {
   if (event.eventType !== "JOB_CHANGE") return true;
-  const rate = event.incomeChangeRate;
-  const gap = event.gapMonths;
-  return rate != null && rate >= -90 && rate <= 200 && gap != null && gap >= 0 && gap <= 24;
+  const { incomeChangeRate: rate, gapMonths: gap } = event;
+  return rate != null && gap != null && !outside(rate, LIMITS.jobChangeRate) && !outside(gap, LIMITS.jobChangeGapMonths);
 }
 
 export function checkCrossRules(input: SimulationInputDraft): CrossRuleError | null {
   const fail = (code: CrossRuleError["code"]): CrossRuleError => ({ code, message: CROSS_RULE_MESSAGES[code] });
 
   const person = input.person;
-  if (person?.age != null && person.careerYears != null && person.careerYears > person.age - 15) {
+  if (person?.age != null && person.careerYears != null && person.careerYears > person.age - LIMITS.careerStartAge) {
     return fail("INPUT4001");
   }
 
@@ -272,8 +280,8 @@ export function checkCrossRules(input: SimulationInputDraft): CrossRuleError | n
   const target = input.goal?.targetDate;
   if (start && isYearMonth(target)) {
     const months = monthsBetween(start, target);
-    if (months < 12) return fail("GOAL4001");
-    if (months > 120) return fail("GOAL4002");
+    if (months < LIMITS.goalMonths.min) return fail("GOAL4001");
+    if (months > LIMITS.goalMonths.max) return fail("GOAL4002");
   }
 
   for (const event of input.events ?? []) {

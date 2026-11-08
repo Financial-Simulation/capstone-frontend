@@ -10,8 +10,9 @@ import { NumberInput } from "@/components/ui/NumberInput";
 import { useDebouncedApi, type DebouncedState, type StepForm } from "@/features/input/step-form";
 import { api, isApiError } from "@/lib/api";
 import { patchLoan, removeLoan, setLoanType } from "@/features/input/draft";
-import { formatWon } from "@/lib/format";
+import { formatRange, formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
+import { LIMITS } from "@/lib/rules";
 import { LOAN_DEFAULTS, REPAYMENT_LABELS } from "@/config/policy";
 import type {
   Draft,
@@ -63,8 +64,9 @@ export function LoanCard({ form, index, count }: { form: StepForm; index: number
   };
   const cardError = form.error(base, { prefix: true });
   const defaults = loan?.loanType ? LOAN_DEFAULTS[loan.loanType] : null;
-  const rateHint = defaults ? `${defaults.label} 평균 ${defaults.annualRate}% (0~20%)` : "종류를 고르면 평균 금리를 채워요 (0~20%)";
-  const monthsHint = "1~480개월";
+  const rateRange = formatRange(LIMITS.loanAnnualRate, "%");
+  const rateHint = defaults ? `${defaults.label} 평균 ${defaults.annualRate}% (${rateRange})` : `종류를 고르면 평균 금리를 채워요 (${rateRange})`;
+  const monthsHint = formatRange(LIMITS.loanRemainingMonths, "개월");
 
   const preview = useDebouncedApi(repaymentBody(loan), fetchRepayment);
 

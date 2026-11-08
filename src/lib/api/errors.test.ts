@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { SimulationInputDraft } from "@/lib/types";
 import { CROSS_RULE_MESSAGES } from "@/lib/rules";
-import { ApiError, fieldError, formErrorMessage, normalizeFieldPath, toFieldErrors } from "./errors";
+import { isAbortError } from "./client";
+import { ApiError, errorMessage, fieldError, formErrorMessage, normalizeFieldPath, toFieldErrors } from "./errors";
 
 const business = (code: keyof typeof CROSS_RULE_MESSAGES) => new ApiError(code, CROSS_RULE_MESSAGES[code], 400);
 
@@ -101,6 +102,22 @@ describe("formErrorMessage", () => {
     expect(formErrorMessage(new ApiError("SIM4003", "비교 계획은 1~3개여야 해요.", 400))).toBe("비교 계획은 1~3개여야 해요.");
     expect(formErrorMessage(new Error("x"))).toBe("알 수 없는 오류가 났어요. 잠시 후 다시 시도해 주세요.");
     expect(formErrorMessage(null)).toBeNull();
+  });
+});
+
+describe("errorMessage (칸이 없는 자리의 오류 한 문장)", () => {
+  it("안내 문장 → 칸 오류의 첫 문장 → fallback", () => {
+    expect(errorMessage(new ApiError("BACKEND_UNAVAILABLE", "백엔드가 응답하지 않아요.", 502))).toBe("백엔드가 응답하지 않아요.");
+    const fields = new ApiError("COMMON400", "잘못된 요청", 400, { "input.person.age": "19~39 사이로 입력해 주세요" });
+    expect(errorMessage(fields)).toBe("19~39 사이로 입력해 주세요");
+    expect(errorMessage(new ApiError("COMMON400", "잘못된 요청", 400))).toBe("잘못된 요청");
+    expect(errorMessage(new Error("x"))).toBe("알 수 없는 오류가 났어요. 잠시 후 다시 시도해 주세요.");
+    expect(errorMessage(null)).toBe("잠시 후 다시 시도해 주세요.");
+  });
+
+  it("요청을 멈춘 것(AbortError)은 오류로 보지 않게 가린다", () => {
+    expect(isAbortError(new DOMException("aborted", "AbortError"))).toBe(true);
+    expect(isAbortError(new ApiError("NETWORK", "x", null))).toBe(false);
   });
 });
 

@@ -7,13 +7,14 @@
  *  - '가정을 바꿔도 결론이 같은지 보기': POST /robust (plans) + 1.5초마다 진행률
  * 내 입력(simInput.v1)은 바꾸지 않는다. 04 결과에만. 보여 줄 값은 plan.ts에서 고른다.
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui";
 import { Field, describedBy } from "@/components/ui/Field";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { DiffText, StatCard } from "@/components/ui/Stat";
 import { YearMonthPicker } from "@/components/ui/YearMonthPicker";
-import { api, formErrorMessage, toFieldErrors } from "@/lib/api";
-import { useSavedPlans } from "@/lib/hooks";
+import { api, runRobust } from "@/lib/api";
+import { useApiTask, useSavedPlans } from "@/lib/hooks";
 import { LIMITS } from "@/lib/rules";
 import { MAX_SAVED_PLANS } from "@/lib/storage";
 import type { Adjustments, CompareResult, EmergencyFirstAmount, PreviewResult, RobustJobResult, SimulationInput } from "@/lib/types";
@@ -29,33 +30,8 @@ import {
   previewView,
   robustPlanLines,
   sameAdjustments,
-  type PlanCompareRow,
   type PlanDraft,
 } from "./plan";
-import { RobustFailed, runRobust } from "./robust";
-
-type Busy = "preview" | "compare" | "robust" | null;
-
-function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
-
-function errorDetail(error: unknown): string {
-  if (error instanceof RobustFailed) return error.message;
-  return formErrorMessage(error) ?? Object.values(toFieldErrors(error))[0] ?? "잠시 후 다시 시도해 주세요.";
-}
-
-const CARD_TONES = {
-  default: "border-line bg-surface",
-  good: "border-good-line bg-good-soft/50",
-  danger: "border-danger-line bg-danger-soft/60",
-} as const;
-
-const DIFF_TONES: Record<NonNullable<PlanCompareRow["diff"]>["tone"], string> = {
-  up: "text-good",
-  down: "text-danger",
-  flat: "text-muted",
-};
 
 const selectClass = "h-11 w-full rounded-lg border border-line-strong bg-surface px-3 text-[15px]";
 
@@ -70,48 +46,29 @@ export function PlanSection({ input, onClose }: { input: SimulationInput; onClos
   const { plans: basket, setPlans } = useSavedPlans();
   const inBasket = basket.some((plan) => sameAdjustments(plan.adjustments, adjustments));
 
-  const [busy, setBusy] = useState<Busy>(null);
   const [progress, setProgress] = useState(0);
   const [preview, setPreview] = useState<{ result: PreviewResult; adjustments: Adjustments } | null>(null);
   const [compare, setCompare] = useState<CompareResult | null>(null);
   const [robust, setRobust] = useState<RobustJobResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => () => abortRef.current?.abort(), []);
-
-  async function run(kind: Exclude<Busy, null>, task: (signal: AbortSignal) => Promise<void>) {
-    abortRef.current?.abort();
-    const abort = new AbortController();
-    abortRef.current = abort;
-    setError(null);
-    setBusy(kind);
-    setProgress(0);
-    try {
-      await task(abort.signal);
-    } catch (caught) {
-      if (isAbort(caught)) return;
-      setError(`계산하지 못했어요: ${errorDetail(caught)}`);
-    } finally {
-      if (abortRef.current === abort) setBusy(null);
-    }
-  }
+  const { busy, error, run } = useApiTask<"preview" | "compare" | "robust">();
 
   const sent = basket.map((plan) => ({ name: plan.name, adjustments: plan.adjustments }));
+  const failText = "계산하지 못했어요";
 
   const runPreview = () =>
-    run("preview", async (signal) => {
+    run("preview", failText, async (signal) => {
       const snapshot = adjustments;
       const { data } = await api.preview({ input, adjustments: snapshot }, { signal });
       setPreview({ result: data, adjustments: snapshot });
     });
   const runCompare = () =>
-    run("compare", async (signal) => {
+    run("compare", failText, async (signal) => {
       const { data } = await api.compare({ input, plans: sent }, { signal });
       setCompare(data);
     });
   const runRobustCheck = () =>
-    run("robust", async (signal) => {
+    run("robust", failText, async (signal) => {
+      setProgress(0);
       setRobust(await runRobust(input, { plans: sent, signal, onProgress: setProgress }));
     });
 
@@ -224,16 +181,8 @@ export function PlanSection({ input, onClose }: { input: SimulationInput; onClos
         {view && (
           <div className="mt-6">
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <li className="rounded-xl border border-line bg-system-soft p-4">
-                <p className="text-sm font-semibold text-ink-soft">지금 계획</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums">{view.current.probability}</p>
-                <p className="mt-1 text-sm text-ink-soft">{view.current.detail}</p>
-              </li>
-              <li className={`rounded-xl border p-4 ${CARD_TONES[view.adjusted.tone]}`}>
-                <p className="text-sm font-semibold text-ink-soft">{view.adjusted.title}</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums">{view.adjusted.probability}</p>
-                <p className="mt-1 text-sm text-ink-soft">{view.adjusted.detail}</p>
-              </li>
+              <StatCard title="지금 계획" box="system" value={view.current.probability} detail={view.current.detail} />
+              <StatCard title={view.adjusted.title} box={view.adjusted.tone} value={view.adjusted.probability} detail={view.adjusted.detail} />
             </ul>
             <div className="relative mt-3 overflow-x-auto">
               <table className="w-full min-w-[30rem] text-sm">
@@ -312,7 +261,7 @@ export function PlanSection({ input, onClose }: { input: SimulationInput; onClos
                     <td className="py-2 pr-3 font-semibold">{row.name}</td>
                     <td className="py-2 pr-3">
                       <span className="font-semibold tabular-nums">{row.probability}</span>
-                      {row.diff && <span className={`block text-xs ${DIFF_TONES[row.diff.tone]}`}>{row.diff.text}</span>}
+                      <DiffText diff={row.diff} />
                     </td>
                     <td className="py-2 pr-3 tabular-nums">{row.debt}</td>
                     <td className="py-2 pr-3 tabular-nums">{row.worst}</td>

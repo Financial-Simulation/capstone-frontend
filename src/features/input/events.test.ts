@@ -57,4 +57,12 @@ describe("예정된 일 프리셋", () => {
     expect(eventFields("JEONSE_MOVE", "MOVE").map((f) => f.key)).toEqual(["deposit", "monthlyChange", "amount"]);
     expect(eventFields(null, null)).toEqual([]);
   });
+
+  it("이직 칸 안내: 범위(LIMITS)와 프리셋 기본값 (서버가 기본값을 바꾸면 안내도 바뀐다)", () => {
+    const job = preset("JOB_CHANGE").events[0];
+    expect(eventFields("JOB_CHANGE", "JOB_CHANGE", job).map((f) => f.hint)).toEqual(["−90~+200%, 기본 +10%", "0~24개월, 기본 2개월"]);
+    expect(eventFields("JOB_CHANGE", "JOB_CHANGE", { ...job, incomeChangeRate: -5 })[0].hint).toBe("−90~+200%, 기본 −5%");
+    expect(eventFields("JOB_CHANGE", "JOB_CHANGE").map((f) => f.hint)).toEqual(["−90~+200%", "0~24개월"]);
+    expect(eventFields("JEONSE_MOVE", "MOVE")[1].hint).toBe("늘면 그대로, 줄면 앞에 −");
+  });
 });

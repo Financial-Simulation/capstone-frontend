@@ -95,28 +95,3 @@ export function Badge({ tone = "neutral", children }: { tone?: Tone; children: R
     </span>
   );
 }
-
-/** 화면 위쪽 안내 (오류·경고·알림) */
-export function Notice({
-  tone = "neutral",
-  title,
-  children,
-}: {
-  tone?: Exclude<Tone, "mock"> | "info";
-  title?: string;
-  children?: ReactNode;
-}) {
-  const styles: Record<string, string> = {
-    neutral: "border-line bg-surface",
-    primary: "border-info-line bg-system-soft",
-    info: "border-info-line bg-system-soft",
-    danger: "border-danger-line bg-danger-soft",
-    warn: "border-warn-line bg-warn-soft",
-  };
-  return (
-    <div role={tone === "danger" ? "alert" : "status"} className={`rounded-lg border px-4 py-3 text-sm ${styles[tone]}`}>
-      {title && <p className="font-semibold">{title}</p>}
-      {children && <div className={title ? "mt-1 text-ink-soft" : ""}>{children}</div>}
-    </div>
-  );
-}

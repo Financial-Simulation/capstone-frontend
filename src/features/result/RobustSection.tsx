@@ -3,51 +3,30 @@
 /**
  * 결과 화면 '이 숫자는 얼마나 믿을 수 있나요?' (첫 결과 카드 아래, 명세서 v1.7 9.2).
  * 버튼을 누르면 서버에 가능성 범위 작업을 맡기고 1.5초마다 진행률을 보여 준 뒤, 범위를 띠로 그린다.
- * 화면을 떠나거나 결과를 다시 계산하면 묻기를 멈춘다. 04 결과에만 붙인다. 보여 줄 값은 robust.ts에서 고른다.
+ * 화면을 떠나거나 결과를 다시 계산하면 묻기를 멈춘다(useApiTask). 04 결과에만 붙인다.
+ * 작업을 맡기고 묻는 건 lib/api의 runRobust, 보여 줄 값은 robust.ts에서 고른다.
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui";
 import { ROBUST_TRIALS, SIMULATION_PATHS } from "@/config/policy";
-import { formErrorMessage } from "@/lib/api";
+import { runRobust } from "@/lib/api";
 import { formatPercent } from "@/lib/format";
+import { useApiTask } from "@/lib/hooks";
 import type { RobustJobResult, SimulationInput } from "@/lib/types";
-import { RobustFailed, robustView, runRobust, type RobustView } from "./robust";
-
-type RobustState =
-  | { kind: "idle" }
-  | { kind: "running"; progress: number }
-  | { kind: "done"; job: RobustJobResult }
-  | { kind: "failed"; message: string };
-
-function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
+import { robustView, type RobustView } from "./robust";
 
 export function RobustSection({ input, currentProbability }: { input: SimulationInput; currentProbability: number }) {
-  const [state, setState] = useState<RobustState>({ kind: "idle" });
-  const abortRef = useRef<AbortController | null>(null);
+  const { busy, error, run } = useApiTask<"robust">();
+  const [progress, setProgress] = useState(0);
+  const [job, setJob] = useState<RobustJobResult | null>(null);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  const start = () =>
+    run("robust", "계산하지 못했어요", async (signal) => {
+      setProgress(0);
+      setJob(await runRobust(input, { signal, onProgress: setProgress }));
+    });
 
-  const start = async () => {
-    abortRef.current?.abort();
-    const abort = new AbortController();
-    abortRef.current = abort;
-    setState({ kind: "running", progress: 0 });
-    try {
-      const job = await runRobust(input, {
-        signal: abort.signal,
-        onProgress: (progress) => setState({ kind: "running", progress }),
-      });
-      setState({ kind: "done", job });
-    } catch (error) {
-      if (isAbort(error)) return;
-      const detail = error instanceof RobustFailed ? error.message : (formErrorMessage(error) ?? "잠시 후 다시 시도해 주세요.");
-      setState({ kind: "failed", message: `계산하지 못했어요: ${detail}` });
-    }
-  };
-
-  const view = state.kind === "done" ? robustView(state.job, currentProbability) : null;
+  const view = job ? robustView(job, currentProbability) : null;
 
   return (
     <section aria-labelledby="robust-title" className="rounded-xl border border-line bg-surface p-5">
@@ -59,26 +38,26 @@ export function RobustSection({ input, currentProbability }: { input: Simulation
         {SIMULATION_PATHS.toLocaleString("ko-KR")}개를 다시 계산해요. 시간이 조금 걸려서 진행률을 보여 드려요.
       </p>
 
-      {(state.kind === "idle" || state.kind === "failed") && (
+      {!busy && !job && (
         <Button className="mt-4" onClick={() => void start()}>
-          {state.kind === "failed" ? "다시 계산" : "가능성 범위 계산"}
+          {error ? "다시 계산" : "가능성 범위 계산"}
         </Button>
       )}
 
-      {state.kind === "running" && (
+      {busy && (
         <div className="mt-4">
           <div
             role="progressbar"
             aria-label="가능성 범위 계산 진행률"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={state.progress}
+            aria-valuenow={progress}
             className="h-2 overflow-hidden rounded-full bg-canvas"
           >
-            <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${state.progress}%` }} />
+            <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${progress}%` }} />
           </div>
           <p className="mt-2 text-sm text-muted" aria-live="polite">
-            계산 중… {state.progress}%
+            계산 중… {progress}%
           </p>
         </div>
       )}
@@ -91,9 +70,9 @@ export function RobustSection({ input, currentProbability }: { input: Simulation
         </div>
       )}
 
-      {state.kind === "failed" && (
+      {error && (
         <p role="alert" className="mt-2 text-sm text-danger">
-          {state.message}
+          {error}
         </p>
       )}
     </section>

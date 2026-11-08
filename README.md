@@ -34,6 +34,7 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 - 개발 서버에서는 화면 맨 아래 **개발 점검** 링크(`/dev`)로 API를 하나씩 보내 볼 수 있어요.
   `정답 파일 대조` → `전부 대조`: 정답 파일의 11개 입력을 기본 결과 · 미리보기 · 계획 비교 · 역산 · 배분 추천 API에 그대로 보내고 응답이 정답과 똑같은지 표로 봐요.
   v1.7 백엔드면 `같음 55 / 55`예요. 다르면 아래에 처음 다른 곳(예: `plans[1].probability: 정답 70.5 · 응답 70.4`)이 나와요.
+  배포 빌드(`npm run build` · Vercel)에서는 `/dev`가 '없는 화면'이고 링크도 숨겨요. 배포 빌드에서도 열려면 `.env.local`에 `NEXT_PUBLIC_DEV_TOOLS=1`을 적고 다시 빌드해요.
 
 ## VS Code
 
@@ -75,6 +76,7 @@ seed가 같아서 실제 API의 숫자도 정답 파일과 똑같아야 해요. 
 - 서버가 주지 않는 값(빈 칸 기본값 · 대출 종류별 기본 금리 · 청년미래적금 기준 · 월세 세액공제 안내 · 결과 전 안내의 경로 수)은 `src/config/policy.ts` 한 곳에 출처와 함께 있어요. 화면 문장에 숫자를 직접 쓰지 않아요.
 - `src/config/policy.test.ts`가 이 값을 서버 근거(`/meta` 사본)와 대조해요. 백엔드 숫자가 바뀌면 이 시험이 먼저 깨져요.
 - 입력 칸 범위(나이 19~39 등)는 `src/lib/rules.ts`가 서버 `SimulationInput.java`를 옮겨 둔 거예요 ('다음'을 누르기 전에 바로 알려 주려고). 기준은 서버예요.
+  범위 숫자는 `LIMITS` 한 곳에 있고, 검사와 칸 아래 안내('19~39세' · '1만~3,000만 원' · '1~480개월')가 같이 써요. 이직의 '기본 +10%'처럼 기본값 안내는 프리셋(`/events/presets`) 값이에요.
 
 ## API 쓰는 법
 
@@ -98,6 +100,16 @@ try {
 | `GOAL4001` · `GOAL4002` | 목표 시점 칸 (`goal.targetDate`) |
 | `EVENT4001` · `EVENT4002` · `EVENT4004` | 문제가 있는 예정된 일 카드 (`events[1]`). 서버가 몇 번째인지 안 알려 줘서 입력에서 다시 찾아요 |
 | 그 밖의 오류 · 네트워크 · 백엔드 꺼짐 | 화면 위 안내 |
+
+결과 화면의 버튼(비교 · 추천 · 미리보기 · 가능성 범위)은 칸이 없어서 `useApiTask`로 불러요.
+한 번에 하나만 돌고, 새로 누르거나 화면을 떠나면 앞의 요청을 멈춰요(멈춘 건 오류로 안 보여요). 실패하면 `errorMessage(error)` 한 문장을 붙여요.
+
+```ts
+const { busy, error, run } = useApiTask<"compare" | "recommend">();
+run("compare", "비교하지 못했어요", async (signal) => {
+  setCompare((await api.compare({ input, plans }, { signal })).data);
+}); // 실패하면 error = "비교하지 못했어요: 백엔드가 응답하지 않아요. …"
+```
 
 v1.7에서 생긴 것 (타입은 `src/lib/types`):
 
@@ -128,7 +140,7 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 | `/input/scenario` | 03 기본 상황 + 예정된 일 5종 (켜면 연월 · 금액 칸) | 완료 (presets · validate) |
 | `/result` | 04 결과 확인 · 계산 중 · 계산 실패 · 입력 없음 / 덜 끝남 · 가능성 범위 · 세금 · 어디에 얼마나 · 계획 바꿔 보기(04-2) | 완료 (simulate · reverse · validate · robust · compare · recommend · preview) |
 | `/example` | 04-E 예시 결과 (S1~S3, '예시 데이터로 계산한 결과예요' 배너) | 완료 (examples · simulate) |
-| `/dev` | 개발 점검 (목업 스위치 · API 점검 · 정답 파일 대조 · 저장값 · 금액 칸) | 완료 |
+| `/dev` | 개발 점검 (목업 스위치 · API 점검 · 정답 파일 대조 · 저장값 · 금액 칸). 개발 서버에서만 (배포 빌드는 `NEXT_PUBLIC_DEV_TOOLS=1`일 때만) | 완료 |
 
 ### '다음' 버튼 (모든 입력 화면 같음, `features/input/step-form.tsx`)
 
@@ -147,11 +159,11 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 - 상태: 입력 없음 → 시작 안내 / 필수 칸이 빠짐 → 그 단계로 가기 / 계산 중('취소' → 03, 5초가 넘으면 '평소보다 오래 걸리고 있어요') /
   계산 실패: 서버가 입력 칸을 문제 삼으면 '입력 확인하기'(그 단계로), 백엔드 꺼짐 · 응답 없음 · 서버 오류면 '다시 계산'만 (`result.ts`의 `failure`). 04-E는 늘 '다시 계산'.
 - 본문 순서 (`features/result/ResultView.tsx`): 첫 문장(API의 headline 그대로) → 가능성 범위(04만) → 범위 그래프 → 1·3·5·10년 표 → 위험 카드 5장 → 세금 → 어디에 얼마나(둘 다 04만) → 적금을 처음 깬 이유 4가지(합 100%) → 이렇게 바꿔 보세요 → 계획 바꿔 보기(펼쳤을 때) → 내 입력값과 적용 가정(펼치면 `GET /meta`).
-- 세금 (v1.7, `TaxSection.tsx` · `result.ts`의 `taxView`): `/simulate`의 `tax`로 카드 5장(매년 · 목표 시점까지 돌려받는 세금, 낸 이자소득세, 해지로 다시 낸 세금, 순이득)과 안내 문장. 금액은 모두 서버 값이고, 화면에서 세율표로 계산하지 않는다 ('내는 세금 연 약 n만 원'은 서버가 값을 주면 넣는다). 04-E 예시에는 붙이지 않는다.
-- 가능성 범위 (`RobustSection.tsx` · `robust.ts`): '가능성 범위 계산'을 누르면 `POST /robust`로 작업을 맡기고 1.5초마다 `GET /robust/{jobId}`로 진행률을 물어 범위를 띠로 그린다. 화면을 떠나면 묻기를 멈춘다.
-- 계획 바꿔 보기 04-2 (`PlanSection.tsx` · `plan.ts`): 맨 아래 '계획 바꿔 보기'로 펼친다. 값 7개(변동 · 고정지출, 월 저축액, 버틸 금액, 목표 금액 · 시점, 비상금 먼저)를 바꿔 '바꾼 계획 미리보기'(`POST /simulate/preview`), 최대 3개 담아(`simPlans.v1`) '담은 계획 비교'(`POST /compare`), '가정을 바꿔도 결론이 같은지 보기'(`POST /robust`의 plans). 내 입력은 바꾸지 않는다.
-- 어디에 얼마나 (v1.7, `AllocationSection.tsx` · `allocation.ts`): 월 저축액을 청년미래 · 청약 · 연금저축으로 나눠 '지금 계획과 비교하기'(`POST /compare`), '가장 좋은 배분 찾기'(`POST /allocations/recommend`). '이 배분으로'는 내 입력의 배분(`savingPlan.policyMonthly` 등)을 바꾸고 결과 전체를 다시 계산한다. 04-E 예시에는 붙이지 않는다.
-- 서버 값을 화면용으로 고르는 건 `features/result/result.ts`(계산하지 않고 고르기 · 문장 · 색 기준만), 눈금과 그래프 위 라벨 자리(선 · 점 · 다른 라벨과 겹치지 않는 곳, 없으면 계산기 라벨은 생략)는 `features/result/chart.ts`.
+- 세금 (v1.7, `features/tax/TaxSection.tsx` · `tax.ts`): `/simulate`의 `tax`로 카드 5장(매년 · 목표 시점까지 돌려받는 세금, 낸 이자소득세, 해지로 다시 낸 세금, 순이득)과 안내 문장. 금액은 모두 서버 값이고, 화면에서 세율표로 계산하지 않는다 ('내는 세금 연 약 n만 원'은 서버가 값을 주면 넣는다). 04-E 예시에는 붙이지 않는다.
+- 가능성 범위 (`features/result/RobustSection.tsx` · `robust.ts`): '가능성 범위 계산'을 누르면 `POST /robust`로 작업을 맡기고 1.5초마다 `GET /robust/{jobId}`로 진행률을 물어 범위를 띠로 그린다 (`lib/api/robust.ts`의 `runRobust`, 계획 바꿔 보기도 같이 쓴다). 화면을 떠나면 묻기를 멈춘다.
+- 계획 바꿔 보기 04-2 (`features/plan/PlanSection.tsx` · `plan.ts`): 맨 아래 '계획 바꿔 보기'로 펼친다. 값 7개(변동 · 고정지출, 월 저축액, 버틸 금액, 목표 금액 · 시점, 비상금 먼저)를 바꿔 '바꾼 계획 미리보기'(`POST /simulate/preview`), 최대 3개 담아(`simPlans.v1`) '담은 계획 비교'(`POST /compare`), '가정을 바꿔도 결론이 같은지 보기'(`POST /robust`의 plans). 내 입력은 바꾸지 않는다.
+- 어디에 얼마나 (v1.7, `features/tax/AllocationSection.tsx` · `allocation.ts`): 월 저축액을 청년미래 · 청약 · 연금저축으로 나눠 '지금 계획과 비교하기'(`POST /compare`), '가장 좋은 배분 찾기'(`POST /allocations/recommend`). '이 배분으로'는 내 입력의 배분(`savingPlan.policyMonthly` 등)을 바꾸고 결과 전체를 다시 계산한다. 04-E 예시에는 붙이지 않는다.
+- 서버 값을 화면용으로 고르는 건 `features/result/result.ts`(계산하지 않고 고르기 · 문장 · 색 기준만, 세금 · 배분 · 계획은 그 폴더의 `tax.ts` · `allocation.ts` · `plan.ts`), 눈금과 그래프 위 라벨 자리(선 · 점 · 다른 라벨과 겹치지 않는 곳, 없으면 계산기 라벨은 생략)는 `features/result/chart.ts`.
 - 그래프: 범위(아래 10%~위 10%)는 옅은 면, 중간값 · 최악의 경우(하위 5%)는 선, 목표 금액 · 목표 시점은 점선, 계산기 결과는 두 점(목표 시점 · 10년 뒤), 예정된 일은 입력의 occurDate로 ◆.
   마우스 · 손가락 · 화살표 키(Shift는 1년씩, Home/End)로 달을 옮기면 툴팁, '표로 보기'에 해마다 값.
 - 목업이면 결과 위에 보라색 '목업' 안내를 띄운다. 기준 연월이 정답 파일(2026-11)과 다르면 날짜만 옮긴 정답을 쓰고 그렇다고 적는다 (10월에 S1을 넣어도 S1과 같은 숫자).
@@ -177,40 +189,53 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 ```
 src/
   app/                 주소(라우트)만: page.tsx · layout.tsx가 features의 화면을 불러요
-    dev/               개발 점검 화면 · API 점검 목록 · 정답 파일 대조 (발표 화면이 아니라서 주소 폴더에 같이 둬요)
+    dev/               개발 점검 화면 · API 점검 목록 · 정답 파일 대조 (발표 화면이 아니라서 주소 폴더에 같이 둬요, 배포 빌드에서는 닫혀 있어요)
   features/
     input/             00 시작 · 입력 4단계 (01-1 · 01-2 · 02 · 03)
       basic/ assets/ goal/ scenario/
-                       단계 화면 (BasicStep · ExpenseEditor · AssetsStep · LoanCard · GoalStep · ScenarioStep)
+                       단계 화면 (BasicStep · ExpenseEditor · TaxInputs · AssetsStep · LoanCard · GoalStep · ScenarioStep)
       StepScreen · StepNav · StepIndicator · input-flow
                        입력 화면 틀 · '이전/다음' · 단계 표시
       step-form.tsx    '다음' 흐름 · 경고 모달 · 0.3초 디바운스 API
       start-flow.tsx · StartActions.tsx
                        '시뮬레이션 시작하기' · '내 정보로 시작하기'의 이어서 하기 모달
-      draft.ts         입력 고치기 (지출 방식 · 대출 · 기본 항목)
+      draft.ts         입력 고치기 (지출 방식 · 대출 · 기본 항목 · 상품별 배분)
       events.ts        예정된 일 프리셋 ↔ events[]
       warnings.ts      서버 경고 → 경고 모달 문구
     result/            04 결과 · 04-E 예시 결과
-      ResultScreen · ExampleScreen · ResultView(결과 본문) · BandChart(범위 그래프) · StateViews(계산 중 · 실패) · use-result
-      result.ts        결과 화면에 보여 줄 값 고르기 (위험 카드 · 표 · 원인 · 레버 · 입력이 다 찼는지)
+      ResultScreen · ExampleScreen · StateViews(계산 중 · 실패) · use-result(API 세 개를 한 번에)
+      ResultView       결과 본문의 블록 순서만 (아래 블록과 tax · plan 폴더의 블록)
+      Hero · RobustSection · SavingsSections · RiskSections · Levers · Assumptions · BandChart
+                       첫 문장 · 가능성 범위 · 모은 돈(그래프 · 표) · 위험 · 이렇게 바꿔 보세요 · 입력값과 가정 · 범위 그래프
+      result.ts        보여 줄 값 고르기 (표 · 위험 카드 · 원인 · 레버 · 비교 차이 · 입력이 다 찼는지 · 실패 안내)
+      robust.ts        가능성 범위 띠와 문장
       chart.ts         그래프 눈금 · 축 글자 · 라벨 자리 고르기
-    (tax · plan · report 폴더는 그 기능을 만드는 3~5단계에 생겨요)
+    tax/               세금 · 어디에 얼마나 (v1.7, 04 결과에만)
+      TaxSection · tax.ts
+                       세금 카드 5장과 안내 문장
+      AllocationSection · allocation.ts
+                       상품별 배분 · 지금 계획과 비교 · 가장 좋은 배분 · '이 배분으로'
+    plan/              계획 바꿔 보기 04-2 (04 결과에만)
+      PlanSection · plan.ts
+                       값 7개 미리보기 · 담은 계획 비교 · 결론이 같은지
+    (report 폴더는 5단계에 생겨요)
   components/
-    Header.tsx         모든 화면 위 머리글
-    ui/                공용 부품: index.tsx(Button · LinkButton · Card · FormSection · Badge · Notice)
+    Header.tsx         모든 화면 위 머리글 · 아래 꼬리글
+    ui/                공용 부품: index.tsx(Button · LinkButton · Card · FormSection · Badge)
                        Modal · Field · Choice · MoneyInput(쉼표 자동) · NumberInput · YearMonthPicker
+                       Stat.tsx(결과 숫자 카드 StatCard · 비교 표의 차이 DiffText)
   config/
-    env.ts             환경 설정을 읽는 곳 (백엔드 주소 · API 주소 · 목업 스위치, 목록과 기본값은 .env.example)
-    policy.ts          서버가 주지 않는 제도 숫자 · 기본값 (출처와 함께): 빈 칸 기본값 · 대출 기본값 · 청년미래적금 기준 · 경로 수
+    env.ts             환경 설정을 읽는 곳 (백엔드 주소 · API 주소 · 목업 스위치 · 개발 점검, 목록과 기본값은 .env.example)
+    policy.ts          서버가 주지 않는 제도 숫자 · 기본값 (출처와 함께): 빈 칸 기본값 · 대출 기본값 · 청년미래적금 · 세금 기준 · 경로 수
   lib/                 여러 기능이 같이 쓰는 것
     types/             SimulationInput · ApiResponse · ValidateResponse · 결과 타입 (v1.7)
-    api/               fetch 래퍼 · API 함수 · 오류 → 칸 · mock/real 스위치
-    rules.ts           입력 규칙과 오류 문장 (백엔드 SimulationInput.java와 같게)
+    api/               fetch 래퍼 · API 함수 · 오류 → 칸 · 오류 한 문장 · mock/real 스위치 · 가능성 범위 작업(runRobust)
+    rules.ts           입력 규칙 · 칸 범위(LIMITS) · 오류 문장 (백엔드 SimulationInput.java와 같게)
     form.ts            화면까지의 입력 · 오류 키
     steps.ts           입력 4단계와 주소
     storage.ts         simInput.v1 · simPlans.v1 · simProgress.v1
-    hooks.ts           useSimInput · useProgress · useSavedPlans · useApiModes
-    format.ts          금액·확률 표시 ("4,440만 원", "−1,568만 원", "+12.5%p")
+    hooks.ts           useSimInput · useProgress · useSavedPlans · useApiModes · useApiTask(결과 화면 버튼 작업)
+    format.ts          금액·확률 표시 ("4,440만 원", "−1,568만 원", "+12.5%p") · 범위 안내 ("19~39세", "1만~3,000만 원")
     year-month.ts      연월 계산 ("2026-11" + 개월 수)
   mocks/               목업 API와 정답 파일 (목업을 쓸 때만 불러와요)
 ```

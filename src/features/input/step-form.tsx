@@ -12,7 +12,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, fieldError, formErrorMessage, isApiError, toFieldErrors, type ApiResult, type ApiSource } from "@/lib/api";
+import {
+  api,
+  fieldError,
+  formErrorMessage,
+  isAbortError,
+  isApiError,
+  toFieldErrors,
+  type ApiResult,
+  type ApiSource,
+} from "@/lib/api";
 import {
   STEP_WARNINGS,
   errorTargets,
@@ -41,10 +50,6 @@ export interface FormNotice {
 }
 
 const EMPTY: SimulationInputDraft = {};
-
-function isAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
 
 /** data-field가 붙은 칸 중 keys가 가리키는 첫 칸으로 화면을 옮기고 포커스. 못 찾으면 false */
 export function focusFirstField(keys: string[]): boolean {
@@ -169,7 +174,7 @@ export function useStepForm(step: StepKey, options: StepFormOptions = {}) {
       if (stepWarning) setWarning(describeWarning(stepWarning, data.summary));
       else proceed();
     } catch (caught) {
-      if (isAbort(caught)) return;
+      if (isAbortError(caught)) return;
       const fields = toFieldErrors(caught, sent);
       if (hasErrors(fields)) {
         setServer({ errors: fields, sent });
@@ -310,7 +315,7 @@ export function useDebouncedApi<B, R>(
       fetcher(JSON.parse(key) as B, abort.signal).then(
         (result) => setState({ key, data: result.data, source: result.source, error: null }),
         (error: unknown) => {
-          if (!isAbort(error)) setState({ key, data: null, source: null, error });
+          if (!isAbortError(error)) setState({ key, data: null, source: null, error });
         },
       );
     }, delay);

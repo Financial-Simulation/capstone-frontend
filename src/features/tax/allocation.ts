@@ -3,26 +3,24 @@
  * 비교할 배분 후보를 만들고, 서버 결과(/compare · /allocations/recommend)를 화면 문장으로 고른다. 계산은 서버가 한다.
  */
 import { HOUSING_SUBSCRIPTION, INPUT_DEFAULTS, PENSION_SAVING, YOUTH_FUTURE_SAVING } from "@/config/policy";
+import { ALLOCATION_KEYS, type AllocationKey } from "@/features/input/draft";
+import { MEANINGFUL_DIFF, compareDiff, type CompareDiff } from "@/features/result/result";
 import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint } from "@/lib/format";
+import { checkFields } from "@/lib/rules";
 import type { AllocationOption, Allocation as ResultAllocation, CompareResult, PlanRequest, RecommendResult } from "@/lib/types";
 import { formatDuration } from "@/lib/year-month";
-import { MEANINGFUL_DIFF } from "./result";
 
-/** 상품별 월 납입 (원). 남는 돈은 일반 적금 */
-export interface MonthlyAllocation {
-  policyMonthly: number;
-  housingMonthly: number;
-  pensionMonthly: number;
-}
+/** 상품별 월 납입 (원, 입력 savingPlan의 세 칸). 남는 돈은 일반 적금 */
+export type MonthlyAllocation = Record<AllocationKey, number>;
 
-export const ALLOCATION_FIELDS = [
-  { key: "policyMonthly", label: "청년미래적금", max: YOUTH_FUTURE_SAVING.monthlyLimit },
-  { key: "housingMonthly", label: "주택청약", max: HOUSING_SUBSCRIPTION.monthlyLimit },
-  { key: "pensionMonthly", label: "연금저축", max: PENSION_SAVING.monthlyLimit },
-] as const;
+export const ALLOCATION_FIELDS: readonly { key: AllocationKey; label: string }[] = [
+  { key: "policyMonthly", label: "청년미래적금" },
+  { key: "housingMonthly", label: "주택청약" },
+  { key: "pensionMonthly", label: "연금저축" },
+];
 
 /** 칸 아래 안내 (숫자는 config) */
-export const ALLOCATION_HINTS: Record<keyof MonthlyAllocation, string> = {
+export const ALLOCATION_HINTS: Record<AllocationKey, string> = {
   policyMonthly: `월 ${formatKoreanWon(YOUTH_FUTURE_SAVING.monthlyLimit)}까지, 정부 지원금 ${YOUTH_FUTURE_SAVING.matchRate}%`,
   housingMonthly:
     `월 ${formatKoreanWon(HOUSING_SUBSCRIPTION.monthlyLimit)}까지. 납입액 연 ${formatKoreanWon(HOUSING_SUBSCRIPTION.deductionAnnualCap)}까지 ` +
@@ -36,6 +34,7 @@ export const ALLOCATION_HINTS: Record<keyof MonthlyAllocation, string> = {
 export const PRESET_STEP = 100_000;
 export const PRESET_PENSION_MAX = 500_000;
 
+/** 서버 배분(일반 적금 포함)에서 세 칸만 */
 export function toMonthly(allocation: ResultAllocation | MonthlyAllocation): MonthlyAllocation {
   return {
     policyMonthly: allocation.policyMonthly,
@@ -45,7 +44,7 @@ export function toMonthly(allocation: ResultAllocation | MonthlyAllocation): Mon
 }
 
 export function sameAllocation(a: MonthlyAllocation, b: MonthlyAllocation): boolean {
-  return a.policyMonthly === b.policyMonthly && a.housingMonthly === b.housingMonthly && a.pensionMonthly === b.pensionMonthly;
+  return ALLOCATION_KEYS.every((key) => a[key] === b[key]);
 }
 
 /** 월 저축액에서 세 상품을 뺀 나머지 (일반 적금, 입력하는 대로 보여 주는 표시용). 음수면 합이 월 저축액보다 많다 */
@@ -61,13 +60,15 @@ export function restHint(rest: number, generalSavingRate?: number | null): { tex
   return { text: `남는 돈은 일반 적금(연 ${generalSavingRate ?? INPUT_DEFAULTS.generalSavingRate}%)에 넣어요.`, over: false };
 }
 
-/** 칸 범위 (서버 SimulationInput.java와 같은 한도). 넘으면 그 칸의 문장 */
-export function allocationErrors(draft: MonthlyAllocation): Partial<Record<keyof MonthlyAllocation, string>> {
-  const errors: Partial<Record<keyof MonthlyAllocation, string>> = {};
-  for (const { key, max } of ALLOCATION_FIELDS) {
-    if (draft[key] < 0 || draft[key] > max) errors[key] = `0원 ~ ${formatKoreanWon(max)} 사이로 입력해 주세요`;
-  }
-  return errors;
+/** 칸 범위. 입력 칸 규칙(lib/rules.ts, 서버 SimulationInput.java와 같은 한도 · 문장)으로 검사한다 */
+export function allocationErrors(draft: MonthlyAllocation): Partial<Record<AllocationKey, string>> {
+  const errors = checkFields({ savingPlan: draft });
+  return Object.fromEntries(
+    ALLOCATION_KEYS.flatMap((key) => {
+      const message = errors[`savingPlan.${key}`];
+      return message ? [[key, message]] : [];
+    }),
+  );
 }
 
 /**
@@ -180,7 +181,7 @@ export interface CompareRow {
   allocation: string[];
   probability: string;
   /** 지금 계획과의 차이. 의미 없는 차이면 '거의 차이 없음' (서버의 meaningful) */
-  diff: { text: string; tone: "up" | "down" | "flat" } | null;
+  diff: CompareDiff | null;
   taxNetBenefit: string;
   earlyTermination: string;
   medianAtGoal: string;
@@ -202,11 +203,7 @@ export function compareRows(compare: CompareResult, current: MonthlyAllocation):
           ]
         : [],
       probability: formatPercent(plan.probability),
-      diff: plan.isBase
-        ? null
-        : plan.meaningful
-          ? { text: formatPercentPoint(plan.diffFromBase), tone: plan.diffFromBase > 0 ? "up" : "down" }
-          : { text: "거의 차이 없음", tone: "flat" },
+      diff: compareDiff(plan),
       taxNetBenefit: plan.taxNetBenefit == null ? "—" : formatKoreanWon(plan.taxNetBenefit),
       earlyTermination: plan.earlyTerminationProbability == null ? "대상 아님" : formatPercent(plan.earlyTerminationProbability),
       medianAtGoal: plan.medianAtGoal == null ? "—" : formatManwon(plan.medianAtGoal),

@@ -15,27 +15,19 @@ export function patch<K extends Section>(
   return { ...input, [key]: { ...(input[key] ?? {}), ...values } } as SimulationInputDraft;
 }
 
-/** 상품별 배분 3칸 (v1.7, savingPlan). 결과 화면 '어디에 얼마나'(4단계)에서 넣는다 */
+/** 상품별 배분 3칸 (v1.7, savingPlan). 결과 화면 '어디에 얼마나'(features/tax)에서 넣는다 */
 export const ALLOCATION_KEYS = ["policyMonthly", "housingMonthly", "pensionMonthly"] as const;
 export type AllocationKey = (typeof ALLOCATION_KEYS)[number];
-export type Allocation = Partial<Record<AllocationKey, number | null>>;
 
 /**
- * 배분을 내 입력(simInput.v1)에 넣는다. null은 비움 → 서버 기본값
+ * 배분을 내 입력(simInput.v1)에 넣는다. 넘긴 칸만 바꾸고, null은 비움 → 서버 기본값
  * (청년미래는 대상이면 월 저축액 안에서 한도까지, 청약 · 연금저축은 0). 04-E 예시 입력에는 넣지 않는다.
  */
-export function setAllocation(input: SimulationInputDraft, allocation: Allocation): SimulationInputDraft {
+export function setAllocation(
+  input: SimulationInputDraft,
+  allocation: Partial<Record<AllocationKey, number | null>>,
+): SimulationInputDraft {
   return patch(input, "savingPlan", allocation);
-}
-
-/** 지금 입력의 배분 (비운 칸은 null) */
-export function allocationOf(input: SimulationInputDraft): Record<AllocationKey, number | null> {
-  const plan = input.savingPlan;
-  return {
-    policyMonthly: plan?.policyMonthly ?? null,
-    housingMonthly: plan?.housingMonthly ?? null,
-    pensionMonthly: plan?.pensionMonthly ?? null,
-  };
 }
 
 export type ExpenseKind = "fixed" | "variable";

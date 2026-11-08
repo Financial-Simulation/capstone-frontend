@@ -13,12 +13,17 @@ import { StepScreen } from "@/features/input/StepScreen";
 import { FormNoticeBox, StepWarningModal, useStepForm } from "@/features/input/step-form";
 import { FormSection } from "@/components/ui";
 import { fillBlankExpenseItems, patch } from "@/features/input/draft";
-import { MINUS, formatKoreanWon, formatWon } from "@/lib/format";
+import { MINUS, formatKoreanWon, formatManwonRange, formatRange, formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
-import { resolvedExpenseTotal } from "@/lib/rules";
+import { LIMITS, resolvedExpenseTotal } from "@/lib/rules";
 import { formatYearMonth } from "@/lib/year-month";
 import { ExpenseEditor } from "./ExpenseEditor";
 import { MoreAccurateIncome, RentField } from "./TaxInputs";
+
+/** 칸 아래 안내 (범위는 lib/rules.ts의 LIMITS) */
+const AGE_HINT = `만 나이, ${formatRange(LIMITS.age, "세")}`;
+const CAREER_HINT = `${formatRange(LIMITS.careerYears, "년")}, 나이 ${MINUS} ${LIMITS.careerStartAge}년까지`;
+const INCOME_HINT = `세금·4대 보험을 뗀 뒤 통장에 들어오는 돈 (${formatManwonRange(LIMITS.monthlyNetIncome)})`;
 
 const EMPLOYMENT_OPTIONS = [
   { value: "REGULAR", label: "정규직" },
@@ -35,9 +40,6 @@ export function BasicStep() {
   const ageError = form.error("person.age");
   const careerError = form.error("person.careerYears");
   const incomeError = form.error("income.monthlyNetIncome");
-  const ageHint = "만 나이, 19~39세";
-  const careerHint = "0~10년, 나이 − 15년까지";
-  const incomeHint = "세금·4대 보험을 뗀 뒤 통장에 들어오는 돈 (1만~3,000만 원)";
 
   return (
     <StepScreen
@@ -50,26 +52,26 @@ export function BasicStep() {
 
       <FormSection title="나" description="실직 위험과 연봉 상승률을 고르고, 청년미래적금 대상인지 판정하는 데 써요.">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Field id={ageId} path="person.age" label="나이" required hint={ageHint} error={ageError}>
+          <Field id={ageId} path="person.age" label="나이" required hint={AGE_HINT} error={ageError}>
             <NumberInput
               id={ageId}
               value={input.person?.age}
               unit="세"
               maxIntegerDigits={2}
               invalid={Boolean(ageError)}
-              aria-describedby={describedBy(ageId, ageError, ageHint)}
+              aria-describedby={describedBy(ageId, ageError, AGE_HINT)}
               onBlur={form.touch("person.age")}
               onChange={(age) => form.update((prev) => patch(prev, "person", { age }))}
             />
           </Field>
-          <Field id={careerId} path="person.careerYears" label="경력" required hint={careerHint} error={careerError}>
+          <Field id={careerId} path="person.careerYears" label="경력" required hint={CAREER_HINT} error={careerError}>
             <NumberInput
               id={careerId}
               value={input.person?.careerYears}
               unit="년"
               maxIntegerDigits={2}
               invalid={Boolean(careerError)}
-              aria-describedby={describedBy(careerId, careerError, careerHint)}
+              aria-describedby={describedBy(careerId, careerError, CAREER_HINT)}
               onBlur={form.touch("person.careerYears")}
               onChange={(careerYears) => form.update((prev) => patch(prev, "person", { careerYears }))}
             />
@@ -94,12 +96,12 @@ export function BasicStep() {
       </FormSection>
 
       <FormSection title="소득">
-        <Field id={incomeId} path="income.monthlyNetIncome" label="월 실수령액" required hint={incomeHint} error={incomeError}>
+        <Field id={incomeId} path="income.monthlyNetIncome" label="월 실수령액" required hint={INCOME_HINT} error={incomeError}>
           <MoneyInput
             id={incomeId}
             value={input.income?.monthlyNetIncome}
             invalid={Boolean(incomeError)}
-            aria-describedby={describedBy(incomeId, incomeError, incomeHint)}
+            aria-describedby={describedBy(incomeId, incomeError, INCOME_HINT)}
             onBlur={form.touch("income.monthlyNetIncome")}
             onChange={(monthlyNetIncome) => form.update((prev) => patch(prev, "income", { monthlyNetIncome }))}
           />

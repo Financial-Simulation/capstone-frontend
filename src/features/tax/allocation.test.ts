@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { HOUSING_SUBSCRIPTION, PENSION_SAVING, YOUTH_FUTURE_SAVING } from "@/config/policy";
+import { LIMITS } from "@/lib/rules";
 import { goldenCaseByKey } from "@/mocks/golden";
 import {
   ALLOCATION_HINTS,
@@ -38,11 +40,17 @@ describe("칸 안내 · 일반 적금(나머지) · 범위", () => {
     });
   });
 
-  it("칸 범위: 청년미래 · 청약 50만, 연금저축 150만 원", () => {
+  it("칸 범위: 청년미래 · 청약 50만, 연금저축 150만 원 (입력 칸 규칙과 같은 문장)", () => {
+    // 칸 아래 안내(제도 한도, config)와 칸 규칙(LIMITS)이 같은 한도인지
+    expect([LIMITS.policyMonthly.max, LIMITS.housingMonthly.max, LIMITS.pensionMonthly.max]).toEqual([
+      YOUTH_FUTURE_SAVING.monthlyLimit,
+      HOUSING_SUBSCRIPTION.monthlyLimit,
+      PENSION_SAVING.monthlyLimit,
+    ]);
     expect(allocationErrors(alloc(500_000, 500_000, 1_500_000))).toEqual({});
     expect(allocationErrors(alloc(500_001, 0, 1_500_001))).toEqual({
       policyMonthly: "0원 ~ 50만 원 사이로 입력해 주세요",
-      pensionMonthly: "0원 ~ 150만 원 사이로 입력해 주세요",
+      pensionMonthly: "0원 ~ 150만 원 사이로 입력해 주세요 (연금계좌 한도 연 1,800만 원)",
     });
   });
 });

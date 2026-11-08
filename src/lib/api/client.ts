@@ -40,7 +40,8 @@ function isMessageMap(value: unknown): value is FieldErrorMap {
   );
 }
 
-function isAbortError(error: unknown): boolean {
+/** AbortController로 멈춘 요청인지 (화면을 떠났거나 새로 불러서 앞의 요청을 멈춤). 오류로 안내하지 않는다 */
+export function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }
 

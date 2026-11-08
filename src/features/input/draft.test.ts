@@ -4,7 +4,6 @@ import {
   DEFAULT_EXPENSE_ITEMS,
   addExpenseItem,
   addLoan,
-  allocationOf,
   fillBlankExpenseItems,
   patch,
   patchExpense,
@@ -32,7 +31,7 @@ describe("v1.7 칸", () => {
     expect(next).toEqual({ expenses: { fixed, monthlyRent: 500_000 } });
   });
 
-  it("상품별 배분: 넣고 · 비우고 · 읽기 (월 저축액 등 다른 저축 칸은 그대로)", () => {
+  it("상품별 배분: 넣고 · 비우기 (월 저축액 등 다른 저축 칸은 그대로)", () => {
     const base = { savingPlan: { monthlySaving: 500_000, generalSavingRate: 3.5 } };
     const next = setAllocation(base, { policyMonthly: 300_000, housingMonthly: 100_000, pensionMonthly: 100_000 });
     expect(next.savingPlan).toEqual({
@@ -42,12 +41,7 @@ describe("v1.7 칸", () => {
       housingMonthly: 100_000,
       pensionMonthly: 100_000,
     });
-    expect(allocationOf(setAllocation(next, { housingMonthly: null }))).toEqual({
-      policyMonthly: 300_000,
-      housingMonthly: null,
-      pensionMonthly: 100_000,
-    });
-    expect(allocationOf({})).toEqual({ policyMonthly: null, housingMonthly: null, pensionMonthly: null });
+    expect(setAllocation(next, { housingMonthly: null }).savingPlan).toEqual({ ...next.savingPlan, housingMonthly: null });
   });
 });
 

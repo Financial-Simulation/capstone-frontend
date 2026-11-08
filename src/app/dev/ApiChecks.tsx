@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Badge, Button, Card } from "@/components/ui";
-import { ENDPOINT_LABELS } from "@/lib/api";
+import { ENDPOINT_LABELS, isAbortError } from "@/lib/api";
 import { useApiModes, useHydrated } from "@/lib/hooks";
-import { CHECKS, isAbort, type Check, type CheckErrorView, type CheckRecord } from "./checks";
+import { CHECKS, type Check, type CheckErrorView, type CheckRecord } from "./checks";
 
 type RunState =
   | { status: "running"; progress?: string }
@@ -49,7 +49,7 @@ export function ApiChecks() {
       setState(check.id, { status: "done", record });
     } catch (error) {
       // 화면을 떠나 멈춘 점검은 '보내는 중'으로 남기지 않는다
-      if (isAbort(error)) clearState(check.id);
+      if (isAbortError(error)) clearState(check.id);
       else setState(check.id, { status: "crashed", message: String(error) });
     } finally {
       controllers.current.delete(controller);

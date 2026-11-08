@@ -3,8 +3,12 @@ import {
   MINUS,
   formatKoreanWon,
   formatManwon,
+  formatManwonRange,
   formatPercent,
   formatPercentPoint,
+  formatRange,
+  formatSigned,
+  formatSignedRange,
   formatWon,
   groupDigits,
   roundHalfUp,
@@ -87,5 +91,19 @@ describe("확률", () => {
     expect(formatPercentPoint(12.5)).toBe("+12.5%p");
     expect(formatPercentPoint(-3.1)).toBe("−3.1%p");
     expect(formatPercentPoint(0)).toBe("0.0%p");
+  });
+});
+
+describe("범위 안내 (LIMITS → 칸 아래 글자)", () => {
+  it("숫자 범위 · 부호 붙은 범위", () => {
+    expect(formatRange({ min: 19, max: 39 }, "세")).toBe("19~39세");
+    expect(formatRange({ min: 1, max: 480 }, "개월")).toBe("1~480개월");
+    expect(formatSignedRange({ min: -90, max: 200 }, "%")).toBe("−90~+200%");
+    expect([formatSigned(10), formatSigned(-3), formatSigned(0)]).toEqual(["+10", "−3", "0"]);
+  });
+  it("만 원 단위 금액 범위", () => {
+    expect(formatManwonRange({ min: 10_000, max: 30_000_000 })).toBe("1만~3,000만 원");
+    expect(formatManwonRange({ min: 10_000, max: 1_000_000_000 })).toBe("1만~10억 원");
+    expect(formatManwonRange({ min: 0, max: 30_000_000 })).toBe("0~3,000만 원");
   });
 });

@@ -2,7 +2,9 @@
  * 03 시나리오: 예정된 일 프리셋(/events/presets) ↔ 입력의 events[].
  * 프리셋 하나가 일 여러 개를 만들 수 있다 (자동차 = 차 값 한 번 + 매달 유지비). 같은 프리셋의 일은 시점을 함께 쓴다.
  */
-import type { EventPreset, EventType, PlannedEvent, PresetKey, SimulationInputDraft, Draft, YearMonth } from "@/lib/types";
+import { formatRange, formatSigned, formatSignedRange } from "@/lib/format";
+import { LIMITS } from "@/lib/rules";
+import type { EventPreset, EventTemplate, EventType, PlannedEvent, PresetKey, SimulationInputDraft, Draft, YearMonth } from "@/lib/types";
 
 export type EventAmountKey = "amount" | "monthlyChange" | "incomeChangeRate" | "gapMonths" | "deposit";
 
@@ -21,8 +23,8 @@ const FIELDS: Record<EventType, EventFieldDef[]> = {
     { key: "monthlyChange", label: "매달 지출 변화", kind: "money", allowNegative: true, hint: "늘면 그대로, 줄면 앞에 − (예: −300,000)" },
   ],
   JOB_CHANGE: [
-    { key: "incomeChangeRate", label: "연봉 변화율", kind: "percent", allowNegative: true, hint: "−90~+200%, 기본 +10%" },
-    { key: "gapMonths", label: "쉬는 기간", kind: "months", hint: "0~24개월, 기본 2개월" },
+    { key: "incomeChangeRate", label: "연봉 변화율", kind: "percent", allowNegative: true },
+    { key: "gapMonths", label: "쉬는 기간", kind: "months" },
   ],
   MOVE: [
     { key: "deposit", label: "보증금 (내 돈)", kind: "money" },
@@ -38,10 +40,30 @@ const LABEL_OVERRIDES: Partial<Record<PresetKey, Partial<Record<EventType, Parti
   INDEPENDENCE: { MOVE: { monthlyChange: "늘어나는 주거비 (매달)" } },
 };
 
-export function eventFields(presetKey: PresetKey | null | undefined, eventType: EventType | null | undefined): EventFieldDef[] {
+/** 범위가 정해진 칸 (이직, EVENT4004). 범위는 lib/rules.ts의 LIMITS */
+const RANGES: Partial<Record<EventAmountKey, string>> = {
+  incomeChangeRate: formatSignedRange(LIMITS.jobChangeRate, "%"),
+  gapMonths: formatRange(LIMITS.jobChangeGapMonths, "개월"),
+};
+
+/** 범위가 정해진 칸의 안내: "−90~+200%, 기본 +10%" (기본값은 프리셋, 서버 /events/presets) */
+function rangeHint(field: EventFieldDef, template?: EventTemplate): string | undefined {
+  const range = RANGES[field.key];
+  if (!range) return field.hint;
+  const base = template?.[field.key];
+  if (base == null) return range;
+  return `${range}, 기본 ${field.kind === "percent" ? `${formatSigned(base)}%` : `${base}개월`}`;
+}
+
+/** 그 일의 칸들. template(그 프리셋의 기본값)을 넘기면 범위 칸 안내에 기본값을 붙인다 */
+export function eventFields(
+  presetKey: PresetKey | null | undefined,
+  eventType: EventType | null | undefined,
+  template?: EventTemplate,
+): EventFieldDef[] {
   if (!eventType) return [];
   const overrides = presetKey ? LABEL_OVERRIDES[presetKey]?.[eventType] : undefined;
-  return FIELDS[eventType].map((field) => ({ ...field, label: overrides?.[field.key] ?? field.label }));
+  return FIELDS[eventType].map((field) => ({ ...field, label: overrides?.[field.key] ?? field.label, hint: rangeHint(field, template) }));
 }
 
 /** 프리셋을 켰을 때 넣을 일 (기본 금액 채움, 시점은 사용자가 고름) */

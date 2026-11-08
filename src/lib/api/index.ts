@@ -1,5 +1,5 @@
 export { api, type ApiResult } from "./endpoints";
-export { ApiError, isApiError, toFieldErrors, formErrorMessage, fieldError, normalizeFieldPath } from "./errors";
+export { ApiError, isApiError, toFieldErrors, formErrorMessage, errorMessage, fieldError, normalizeFieldPath } from "./errors";
 export {
   ENDPOINTS,
   ENDPOINT_LABELS,
@@ -16,4 +16,5 @@ export {
   type Endpoint,
   type ModeMap,
 } from "./mode";
-export { API_BASE, CLIENT_MESSAGES } from "./client";
+export { API_BASE, CLIENT_MESSAGES, isAbortError } from "./client";
+export { ROBUST_POLL_MS, ROBUST_TIMEOUT_MS, runRobust } from "./robust";
