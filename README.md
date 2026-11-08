@@ -66,6 +66,13 @@ mock은 팀 정답 파일(`src/mocks/data/analysis_golden.json`, v1.7 `engine/an
 맞는 케이스가 없으면 S1 결과를 주고 `exact: false`로 표시해요. 화면은 `ApiResult.source`가 `"mock"`인지로 목업 배지를 띄우면 돼요.
 seed가 같아서 실제 API의 숫자도 정답 파일과 똑같아야 해요. `/dev`의 API 점검으로 바로 확인돼요.
 
+## 제도 숫자 (금리 · 한도 · 소득 기준)
+
+- 서버가 주는 값은 응답 그대로 써요: 합계(`/inputs/validate`의 `summary`), 청년미래적금 대상 판정과 이유 · 지원금 없음 안내(`policySaving` · `warnings`), 근거와 가정(`/meta`), 예정된 일 기본 금액(`/events/presets`), 결과의 경로 수(`/simulate`의 `paths`).
+- 서버가 주지 않는 값(빈 칸 기본값 · 대출 종류별 기본 금리 · 청년미래적금 기준 · 결과 전 안내의 경로 수)은 `src/config/policy.ts` 한 곳에 출처와 함께 있어요. 화면 문장에 숫자를 직접 쓰지 않아요.
+- `src/config/policy.test.ts`가 이 값을 서버 근거(`/meta` 사본)와 대조해요. 백엔드 숫자가 바뀌면 이 시험이 먼저 깨져요.
+- 입력 칸 범위(나이 19~39 등)는 `src/lib/rules.ts`가 서버 `SimulationInput.java`를 옮겨 둔 거예요 ('다음'을 누르기 전에 바로 알려 주려고). 기준은 서버예요.
+
 ## API 쓰는 법
 
 ```ts
@@ -152,7 +159,7 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 5. 예정된 일 표시는 입력의 occurDate로 그린다.
 6. 달성 가능성 색: 70% 이상 '가능성 높음'(초록) · 50~70% '가능성 보통'(주황) · 50% 미만 '가능성 낮음'(빨강), 색만 쓰지 않고 점 + 글자.
 7. 금액은 원 단위로 받고(쉼표 자동) 옆에 '250만 원'처럼 읽기 쉬운 금액을 보여 준다.
-8. 리포트는 프론트가 이미 받은 결과로 조립한다 (11/20).
+8. 리포트는 v1.7 `POST /reports` 데이터로 인쇄용 화면을 그린다 (5단계). 처음 정한 '프론트가 받은 결과로 조립'에서 서버가 리포트 API를 만들면서 바뀌었다.
 
 ## 폴더
 
@@ -186,6 +193,7 @@ src/
                        Modal · Field · Choice · MoneyInput(쉼표 자동) · NumberInput · YearMonthPicker
   config/
     env.ts             환경 설정을 읽는 곳 (백엔드 주소 · API 주소 · 목업 스위치, 목록과 기본값은 .env.example)
+    policy.ts          서버가 주지 않는 제도 숫자 · 기본값 (출처와 함께): 빈 칸 기본값 · 대출 기본값 · 청년미래적금 기준 · 경로 수
   lib/                 여러 기능이 같이 쓰는 것
     types/             SimulationInput · ApiResponse · ValidateResponse · 결과 타입 (v1.7)
     api/               fetch 래퍼 · API 함수 · 오류 → 칸 · mock/real 스위치

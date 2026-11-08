@@ -21,7 +21,8 @@ import {
   type RiskCard,
 } from "./result";
 import { resolvedExpenseTotal } from "@/lib/rules";
-import { INPUT_DEFAULTS, LOAN_DEFAULTS, type MetaResult, type ReverseResult, type SimulateResult, type SimulationInputDraft } from "@/lib/types";
+import { INPUT_DEFAULTS, LOAN_DEFAULTS } from "@/config/policy";
+import type { MetaResult, ReverseResult, SimulateResult, SimulationInputDraft } from "@/lib/types";
 import { formatDuration, formatYearMonth, monthsBetween } from "@/lib/year-month";
 import type { MockMatch } from "@/mocks/handlers";
 import { Badge } from "@/components/ui";

@@ -12,15 +12,14 @@ import { api, isApiError } from "@/lib/api";
 import { patchLoan, removeLoan, setLoanType } from "@/features/input/draft";
 import { formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
-import {
-  LOAN_DEFAULTS,
-  REPAYMENT_LABELS,
-  type Draft,
-  type LoanItem,
-  type LoanType,
-  type RepaymentPreviewRequest,
-  type RepaymentPreviewResult,
-  type RepaymentType,
+import { LOAN_DEFAULTS, REPAYMENT_LABELS } from "@/config/policy";
+import type {
+  Draft,
+  LoanItem,
+  LoanType,
+  RepaymentPreviewRequest,
+  RepaymentPreviewResult,
+  RepaymentType,
 } from "@/lib/types";
 
 const LOAN_TYPES = Object.keys(LOAN_DEFAULTS) as LoanType[];

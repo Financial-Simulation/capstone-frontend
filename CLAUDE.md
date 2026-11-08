@@ -7,6 +7,7 @@
 - API는 `src/lib/api`의 `api.*`로만 불러요 (fetch를 직접 쓰지 않아요). 오류는 `toFieldErrors(error, input)`로 칸 오류, `formErrorMessage(error, input)`로 화면 위 안내.
 - API는 기본이 전부 실제(real)예요. 목업은 테스트 · 오프라인용으로 `.env.local`의 `NEXT_PUBLIC_API_MODE`(예: `all-mock`)나 `/dev` 스위치로만 켜요.
 - 환경 값(`process.env`)은 `src/config/env.ts`에서만 읽어요. 새 설정은 거기와 `.env.example`에 같이 적어요.
+- 제도 숫자(금리 · 한도 · 소득 기준 · 기본값)를 화면 문장에 직접 쓰지 않아요. 서버 응답 값을 쓰고, 서버가 안 주는 값은 `src/config/policy.ts`(출처와 함께)에서 가져와요.
 - 입력은 `useSimInput()`(simInput.v1)으로만 읽고 써요. `startMonth`는 첫 값을 넣을 때 자동으로 정해져요. `localStorage`를 직접 쓰지 않아요.
 - 칸 규칙과 오류 문장은 `src/lib/rules.ts`예요. 백엔드 `SimulationInput.java` · `ErrorStatus.java`와 같게 맞춰요.
 - 금액 칸은 `<MoneyInput>`, 숫자 칸은 `<NumberInput>`, 연월은 `<YearMonthPicker>`, 입력 단계 화면은 `<StepScreen>`을 써요.

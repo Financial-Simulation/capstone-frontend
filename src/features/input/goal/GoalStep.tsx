@@ -17,7 +17,8 @@ import { fieldId } from "@/lib/form";
 import { useCurrentMonth } from "@/lib/hooks";
 import { LIMITS, resolvedExpenseTotal } from "@/lib/rules";
 import { STEPS } from "@/lib/steps";
-import { INPUT_DEFAULTS, type SimulationInputDraft } from "@/lib/types";
+import { INPUT_DEFAULTS } from "@/config/policy";
+import type { SimulationInputDraft } from "@/lib/types";
 import { formatDuration, formatYearMonth, isWithinMonths, isYearMonth, monthsBetween } from "@/lib/year-month";
 
 const QUICK_PICKS = [

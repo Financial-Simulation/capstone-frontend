@@ -17,7 +17,8 @@ import { api, isApiError } from "@/lib/api";
 import { addLoan, patch, setHasLoan } from "@/features/input/draft";
 import { MINUS, formatKoreanWon, formatWon } from "@/lib/format";
 import { fieldId, scopeInput } from "@/lib/form";
-import { INPUT_DEFAULTS, type Draft, type LoanItem, type ValidateRequest, type ValidateResult } from "@/lib/types";
+import { GENERAL_SAVING_RATE_BASIS, INPUT_DEFAULTS, YOUTH_FUTURE_SAVING } from "@/config/policy";
+import type { Draft, LoanItem, ValidateRequest, ValidateResult } from "@/lib/types";
 import { LoanCard } from "./LoanCard";
 
 const LOAN_OPTIONS = [
@@ -60,7 +61,7 @@ export function AssetsStep() {
 
   const rateId = fieldId("savingPlan.generalSavingRate");
   const rateError = form.error("savingPlan.generalSavingRate");
-  const rateHint = "가입한 상품이 있으면 그 금리로 고쳐요 (0~10%). 비워 두면 연 3.03% (2025년 은행 정기적금 평균)";
+  const rateHint = `가입한 상품이 있으면 그 금리로 고쳐요 (0~10%). 비워 두면 연 ${INPUT_DEFAULTS.generalSavingRate}% (${GENERAL_SAVING_RATE_BASIS})`;
   const optionalFilled =
     input.assets?.investments != null ||
     input.savingPlan?.monthlyInvestment != null ||
@@ -131,7 +132,7 @@ export function AssetsStep() {
         {money(
           "savingPlan.monthlySaving",
           "월 저축액",
-          "매달 적금에 넣을 돈. 청년미래적금 대상이면 월 50만 원까지 청년미래적금, 넘는 돈은 일반 적금으로 계산해요.",
+          `매달 적금에 넣을 돈. 청년미래적금 대상이면 월 ${formatKoreanWon(YOUTH_FUTURE_SAVING.monthlyLimit)}까지 청년미래적금, 넘는 돈은 일반 적금으로 계산해요.`,
           input.savingPlan?.monthlySaving,
           (monthlySaving) => form.update((prev) => patch(prev, "savingPlan", { monthlySaving })),
         )}
@@ -186,7 +187,7 @@ export function AssetsStep() {
             {money(
               "emergency.breakThreshold",
               "급할 때 버틸 금액",
-              "마이너스가 이 금액을 넘으면 적금을 깬다고 보고 계산해요. 비워 두면 50만 원",
+              `마이너스가 이 금액을 넘으면 적금을 깬다고 보고 계산해요. 비워 두면 ${formatKoreanWon(INPUT_DEFAULTS.breakThreshold)}`,
               input.emergency?.breakThreshold,
               (breakThreshold) => form.update((prev) => patch(prev, "emergency", { breakThreshold })),
               false,
@@ -218,6 +219,8 @@ function liveProblem(live: LiveSummary): string | null {
 
 function PolicyNotice({ live }: { live: LiveSummary }) {
   const policy = live.data?.policySaving;
+  // v1.7: 가입은 되지만 총급여가 기준을 넘어 정부 지원금이 없으면 서버가 안내 문장을 준다
+  const noMatch = live.data?.warnings.find((w) => w.code === "INFO_POLICY_NO_MATCH");
   if (!policy) {
     const text = live.pending
       ? "청년미래적금 대상인지 확인하는 중…"
@@ -232,6 +235,7 @@ function PolicyNotice({ live }: { live: LiveSummary }) {
       <p className="mt-1 text-ink-soft">
         월 저축액 중 청년미래적금 {formatWon(policy.policyMonthly)} · 일반 적금 {formatWon(policy.generalMonthly)}으로 계산해요.
       </p>
+      {noMatch && <p className="mt-1 text-ink-soft">{noMatch.message}</p>}
     </div>
   ) : (
     <div role="status" className="rounded-lg border border-warn-line bg-warn-soft px-4 py-3 text-sm">

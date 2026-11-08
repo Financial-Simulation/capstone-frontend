@@ -17,7 +17,7 @@ export type EmploymentType = "REGULAR" | "CONTRACT";
 /** 지출 입력 방식. DETAIL이면 items 합계, TOTAL이면 total을 쓴다 */
 export type InputMode = "DETAIL" | "TOTAL";
 
-/** 대출 종류. 금리·상환 방식을 비워 두면 종류별 기본값 (LOAN_DEFAULTS) */
+/** 대출 종류. 금리·상환 방식을 비워 두면 종류별 기본값 (src/config/policy.ts의 LOAN_DEFAULTS) */
 export type LoanType = "STUDENT" | "JEONSE" | "CREDIT" | "MORTGAGE" | "OTHER";
 
 /** 원리금균등 · 원금균등 · 만기일시 · 이자만(전세자금) */
@@ -194,40 +194,4 @@ export type Draft<T> = T extends (infer U)[]
 /** 입력 중인 값. 화면을 하나씩 채워 가는 동안 simInput.v1에 저장되는 모양 */
 export type SimulationInputDraft = Draft<SimulationInput>;
 
-/** 대출 종류별 기본값 (LoanType.java, params.json loanDefaults) */
-export const LOAN_DEFAULTS: Record<
-  LoanType,
-  { label: string; annualRate: number; repaymentType: RepaymentType }
-> = {
-  STUDENT: { label: "학자금대출", annualRate: 1.7, repaymentType: "EQUAL_PAYMENT" },
-  JEONSE: { label: "전세자금대출", annualRate: 4.3, repaymentType: "INTEREST_ONLY" },
-  CREDIT: { label: "신용대출", annualRate: 6.3, repaymentType: "EQUAL_PAYMENT" },
-  MORTGAGE: { label: "주택담보대출", annualRate: 4.7, repaymentType: "EQUAL_PAYMENT" },
-  OTHER: { label: "기타 대출", annualRate: 5.0, repaymentType: "EQUAL_PAYMENT" },
-};
-
-export const REPAYMENT_LABELS: Record<RepaymentType, string> = {
-  EQUAL_PAYMENT: "원리금균등",
-  EQUAL_PRINCIPAL: "원금균등",
-  BULLET: "만기일시",
-  INTEREST_ONLY: "이자만",
-};
-
-export const EMERGENCY_FIRST_OPTIONS: readonly EmergencyFirstAmount[] = [
-  0, 1_000_000, 2_000_000, 3_000_000, 5_000_000,
-];
-
-/** 서버가 비운 칸에 넣는 기본값 (청년미래적금 배분은 월 저축액에 따라 달라서 여기 없음) */
-export const INPUT_DEFAULTS = {
-  employmentType: "REGULAR" as EmploymentType,
-  homelessHouseholder: true,
-  investments: 0,
-  generalSavingRate: 3.03,
-  monthlyInvestment: 0,
-  emergencyFirstAmount: 0 as EmergencyFirstAmount,
-  breakThreshold: 500_000,
-  monthlyRent: 0,
-  housingMonthly: 0,
-  pensionMonthly: 0,
-  goalName: "내 목표",
-} as const;
+// 기본값(INPUT_DEFAULTS · LOAN_DEFAULTS · REPAYMENT_LABELS · EMERGENCY_FIRST_OPTIONS)은 src/config/policy.ts

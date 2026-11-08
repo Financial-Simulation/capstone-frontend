@@ -121,6 +121,13 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
     expect(data.warnings).toEqual([]);
   });
 
+  it("simulate v1.7: 서버처럼 입력 검사 경고를 붙인다 (T2 → 지원금 없음 안내)", async () => {
+    const { data, match } = await ok(mocks.simulate({ input: input("T2") }));
+    expect(match).toMatchObject({ caseKey: "T2", exact: true });
+    expect(data.warnings?.map((w) => w.code)).toEqual(["INFO_POLICY_NO_MATCH"]);
+    expect(data.risks.policySaving.expectedSubsidy).toBe(0);
+  });
+
   it("simulate v1.7: T1 → 세금 (돌려받는 세금 · 순이득 · 실제 배분)", async () => {
     const { data, match } = await ok(mocks.simulate({ input: input("T1") }));
     expect(match).toMatchObject({ caseKey: "T1", exact: true });

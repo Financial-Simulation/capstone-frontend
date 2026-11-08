@@ -6,6 +6,7 @@ import { formErrorMessage, isApiError, toFieldErrors } from "@/lib/api";
 import { stepOfPath } from "@/lib/form";
 import { STEPS, stepByKey } from "@/lib/steps";
 import { Button, LinkButton } from "@/components/ui";
+import { SIMULATION_PATHS } from "@/config/policy";
 
 function Panel({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "danger" }) {
   return (
@@ -27,7 +28,7 @@ export function Computing({ onCancel, cancelLabel = "취소" }: { onCancel?: () 
         />
         <h1 className="mt-5 text-xl font-bold">계산하고 있어요</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
-          실직·급한 지출·물가·연봉이 서로 다르게 펼쳐지는 미래 2,000개를 계산해요 (몬테카를로 시뮬레이션).
+          실직·급한 지출·물가·연봉이 서로 다르게 펼쳐지는 미래 {SIMULATION_PATHS.toLocaleString("ko-KR")}개를 계산해요 (몬테카를로 시뮬레이션).
         </p>
         <p className="mt-1 text-sm text-muted">보통 1초 안에 끝나요. 같은 입력이면 같은 결과가 나오도록 난수 시드를 기록해요.</p>
       </div>

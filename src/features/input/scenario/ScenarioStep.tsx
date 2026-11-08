@@ -13,6 +13,7 @@ import { StepScreen } from "@/features/input/StepScreen";
 import { YearMonthPicker } from "@/components/ui/YearMonthPicker";
 import { FormNoticeBox, useStepForm, type StepForm } from "@/features/input/step-form";
 import { Badge, Button, FormSection } from "@/components/ui";
+import { SIMULATION_PATHS } from "@/config/policy";
 import { api, formErrorMessage, type ApiSource } from "@/lib/api";
 import { eventFields, presetEventIndexes, setEventAmount, setPresetDate, togglePreset } from "@/features/input/events";
 import { fieldId } from "@/lib/form";
@@ -71,7 +72,7 @@ export function ScenarioStep() {
           <Badge tone="primary">항상 포함</Badge>
         </div>
         <p className="mt-1 text-sm text-ink-soft">
-          실직, 급한 지출, 물가, 연봉 변화가 서로 다르게 펼쳐지는 미래 2,000개를 계산해요. 끌 수 없어요.
+          실직, 급한 지출, 물가, 연봉 변화가 서로 다르게 펼쳐지는 미래 {SIMULATION_PATHS.toLocaleString("ko-KR")}개를 계산해요. 끌 수 없어요.
         </p>
       </section>
 

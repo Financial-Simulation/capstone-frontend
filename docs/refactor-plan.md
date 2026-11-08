@@ -41,7 +41,8 @@
 ### 1단계. 하드코딩 걷어내기 (기능은 그대로) — ~11/13
 - [x] 설정을 `.env` 하나로: 백엔드 주소 · 목업/실제 모드. 기본은 실제 API, 목업은 테스트 · 오프라인용
   - 읽는 곳은 `src/config/env.ts` 하나, 항목과 기본값은 `.env.example`, 바꿀 때만 `.env.local`. 기본이 전부 real이 되면서 2단계의 'real로 전환'도 같이 됐다.
-- [ ] 제도 숫자 · 기본값: 서버가 주는 값(입력 검사 요약 · 청년미래 대상 판정 · meta · 프리셋 · 대출 기본값)을 쓰고, 서버가 안 주는 값은 `src/config/` 한 파일에 출처와 함께
+- [x] 제도 숫자 · 기본값: 서버가 주는 값(입력 검사 요약 · 청년미래 대상 판정 · meta · 프리셋 · 대출 기본값)을 쓰고, 서버가 안 주는 값은 `src/config/` 한 파일에 출처와 함께
+  - 서버 값: `/inputs/validate`의 합계 · 청년미래 판정과 이유 · 지원금 없음 안내(v1.7 `INFO_POLICY_NO_MATCH`, 01-2와 결과의 지원금 카드), `/simulate`의 `paths`. 서버가 안 주는 값은 `src/config/policy.ts`(빈 칸 기본값 · 대출 기본값 · 청년미래 기준 · 결과 전 안내의 경로 수), `policy.test.ts`가 `/meta` 사본과 대조. 대출 기본값은 주는 API가 없어서 config로 옮겼다. 목업도 같은 config를 쓴다.
 - [x] 폴더를 기능 단위로: `features/input · result · tax · plan · report` + 공용 `components/ui`, `lib/api`
   - 지금 있는 화면은 `features/input`(00 시작 · 입력 4단계) · `features/result`(04 · 04-E)로 옮겼다. `tax · plan · report`는 그 기능을 만드는 3~5단계에 만든다. `app/`에는 주소(page.tsx)만 남겼다.
 - [x] v1.7 API 타입 반영, 목업 · 테스트를 v1.7 정답 파일(11개 입력: S1~S3 · E1~E5 · T1~T3)로 교체, `/dev` 점검 기준 갱신 (모델 1.7 · 근거 15개)

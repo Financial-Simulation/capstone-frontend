@@ -66,6 +66,24 @@ describe("위험 카드", () => {
     const cash = riskCards(golden("E1").simulate)[4];
     expect(cash).toMatchObject({ value: "현금 부족 없음", tone: "muted" });
   });
+
+  it("서버 이유가 없을 때만 기준 숫자(config)로 문장을 만든다", () => {
+    expect(riskCards(golden("S3").simulate)[2].detail).toBe(
+      "청년미래적금 대상이 아니에요 (만 34세 초과 또는 총급여 7,500만 원 초과).",
+    );
+  });
+
+  it("지원금 설명의 경로 수는 응답의 paths", () => {
+    expect(riskCards(golden("S1").simulate)[3].detail).toBe("청년미래적금으로 받는 정부 지원금 (미래 2,000개의 평균)");
+  });
+
+  it("v1.7 T2(세전 6,500만 원): 가입은 되지만 지원금 없음 → 서버 안내 문장", () => {
+    const message = "총급여가 6,000만 원을 넘어 청년미래적금 정부 지원금은 없어요. 가입과 이자는 그대로예요.";
+    const t2 = { ...golden("T2").simulate, warnings: [{ code: "INFO_POLICY_NO_MATCH", message }] };
+    const cards = riskCards(t2);
+    expect(cards[2].value).toBe("1.3%");
+    expect(cards[3]).toMatchObject({ value: "없음", detail: message, tone: "muted" });
+  });
 });
 
 describe("주요 원인 · 이렇게 바꿔 보세요", () => {

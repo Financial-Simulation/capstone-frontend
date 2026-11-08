@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IS_DEV } from "@/config/env";
 import { ROUTES } from "@/lib/steps";
 
 /** 모든 화면 공통 헤더: '처음으로' → 00 시작, '예시 결과' → 04-E */
@@ -29,12 +30,11 @@ export function Header() {
 }
 
 export function Footer() {
-  const isDev = process.env.NODE_ENV !== "production";
   return (
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-muted">
         <p>입력한 값은 이 브라우저에만 저장돼요. 서버에는 저장하지 않고, 계산할 때마다 입력 전체를 보내요.</p>
-        {isDev && (
+        {IS_DEV && (
           <Link href={ROUTES.dev} className="font-semibold text-mock hover:underline">
             개발 점검
           </Link>

@@ -22,7 +22,7 @@ import type {
   SimulationInput,
   SimulationInputDraft,
 } from "@/lib/types";
-import { INPUT_DEFAULTS, LOAN_DEFAULTS } from "@/lib/types";
+import { INPUT_DEFAULTS, LOAN_DEFAULTS, YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { resolvedExpenseTotal } from "@/lib/rules";
 import { addMonths, isYearMonth, monthsBetween } from "@/lib/year-month";
 import goldenData from "./data/analysis_golden.json";
@@ -57,9 +57,6 @@ interface GoldenFile {
 export const GOLDEN = goldenData as unknown as GoldenFile;
 
 const n = (value: number | null | undefined): number | null => (value == null ? null : Number(value));
-
-/** 청년미래적금 월 한도. 배분을 비우면 min(월 저축액, 이 값)을 넣는다 (서버 InputValidationService · 엔진 policy.cap) */
-const POLICY_MONTHLY_LIMIT = 500_000;
 
 /** 엔진이 쓰는 값만 뽑은 비교용 문자열 */
 export function engineKey(input: SimulationInputDraft): string {
@@ -122,7 +119,7 @@ export function engineKey(input: SimulationInputDraft): string {
     gross: n(input.income?.annualGrossSalary),
     rent: n(input.expenses?.monthlyRent ?? INPUT_DEFAULTS.monthlyRent),
     homeless: input.person?.homelessHouseholder ?? INPUT_DEFAULTS.homelessHouseholder,
-    policy: policyBase === null ? null : Math.min(policyBase, POLICY_MONTHLY_LIMIT),
+    policy: policyBase === null ? null : Math.min(policyBase, YOUTH_FUTURE_SAVING.monthlyLimit),
     housing: n(input.savingPlan?.housingMonthly ?? INPUT_DEFAULTS.housingMonthly),
     pension: n(input.savingPlan?.pensionMonthly ?? INPUT_DEFAULTS.pensionMonthly),
   });

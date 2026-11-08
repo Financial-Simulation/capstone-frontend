@@ -14,7 +14,7 @@ import type {
   SimulationInputDraft,
   Draft,
 } from "./types";
-import { EMERGENCY_FIRST_OPTIONS } from "./types";
+import { EMERGENCY_FIRST_OPTIONS } from "@/config/policy";
 import { isYearMonth, monthsBetween } from "./year-month";
 
 type Num = number | null | undefined;

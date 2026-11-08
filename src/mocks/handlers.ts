@@ -38,6 +38,7 @@ import type {
   ValidateSummary,
   PolicySavingAllocation,
 } from "@/lib/types";
+import { INPUT_DEFAULTS, YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { ApiError } from "@/lib/api/errors";
 import { checkCrossRules, checkFields, checkRequired, resolvedExpenseTotal } from "@/lib/rules";
 import examplesData from "./data/examples.json";
@@ -131,11 +132,6 @@ function toKoreanServer(won: number): string {
 
 const allPresent = (...values: (number | null | undefined)[]) => values.every((v) => v != null);
 
-// 청년미래적금 판정 (서버 InputValidationService v1.7과 같은 기준)
-const POLICY_MAX_AGE = 34;
-const POLICY_MAX_GROSS_SALARY = 75_000_000;
-const POLICY_MATCH_MAX_GROSS_SALARY = 60_000_000;
-const POLICY_MONTHLY_LIMIT = 500_000;
 
 /** 일반 적금으로 가는 돈: 월 저축액에서 청년미래 → 청약 → 연금저축 순서로 떼고 남는 돈 (엔진과 같은 규칙) */
 function generalRest(saving: number, policy: number, housing: number, pension: number): number {
@@ -150,28 +146,31 @@ function policySavingOf(input: SimulationInputDraft, warnings: ApiWarning[]): Po
   const saving = input.savingPlan?.monthlySaving;
   if (age == null || net == null || saving == null) return null;
 
+  // 서버 InputValidationService(v1.7)와 같은 기준 · 같은 문장
+  const { maxAge, maxGrossSalary, matchMaxGrossSalary, monthlyLimit, netToGrossRatio } = YOUTH_FUTURE_SAVING;
   const gross = input.income?.annualGrossSalary ?? null;
-  const housing = input.savingPlan?.housingMonthly ?? 0;
-  const pension = input.savingPlan?.pensionMonthly ?? 0;
+  const housing = input.savingPlan?.housingMonthly ?? INPUT_DEFAULTS.housingMonthly;
+  const pension = input.savingPlan?.pensionMonthly ?? INPUT_DEFAULTS.pensionMonthly;
   // 총급여: 세전 연봉을 넣었으면 그 값, 아니면 실수령액 × 12 ÷ 0.88 (소수 오차를 피하려고 양변에 0.88을 곱해 비교)
-  const grossOver = (limit: number) => (gross != null ? gross > limit : net * 12 * 100 > limit * 88);
+  const ratio = Math.round(netToGrossRatio * 100);
+  const grossOver = (limit: number) => (gross != null ? gross > limit : net * 12 * 100 > limit * ratio);
 
   let reason: string | null = null;
-  if (age > POLICY_MAX_AGE) reason = "만 34세를 넘어 청년미래적금 대상이 아니에요. 일반 적금으로 계산해요.";
-  else if (grossOver(POLICY_MAX_GROSS_SALARY)) {
-    reason = "총급여가 7,500만 원을 넘어 청년미래적금 대상이 아니에요. 일반 적금으로 계산해요.";
+  if (age > maxAge) reason = `만 ${maxAge}세를 넘어 청년미래적금 대상이 아니에요. 일반 적금으로 계산해요.`;
+  else if (grossOver(maxGrossSalary)) {
+    reason = `총급여가 ${toKoreanServer(maxGrossSalary)}을 넘어 청년미래적금 대상이 아니에요. 일반 적금으로 계산해요.`;
   }
   if (reason) {
     warnings.push({ code: "INFO_POLICY_INELIGIBLE", message: reason });
     return { eligible: false, reason, policyMonthly: 0, generalMonthly: generalRest(saving, 0, housing, pension) };
   }
-  if (grossOver(POLICY_MATCH_MAX_GROSS_SALARY)) {
+  if (grossOver(matchMaxGrossSalary)) {
     warnings.push({
       code: "INFO_POLICY_NO_MATCH",
-      message: "총급여가 6,000만 원을 넘어 청년미래적금 정부 지원금은 없어요. 가입과 이자는 그대로예요.",
+      message: `총급여가 ${toKoreanServer(matchMaxGrossSalary)}을 넘어 청년미래적금 정부 지원금은 없어요. 가입과 이자는 그대로예요.`,
     });
   }
-  const cap = Math.min(input.savingPlan?.policyMonthly ?? POLICY_MONTHLY_LIMIT, POLICY_MONTHLY_LIMIT);
+  const cap = Math.min(input.savingPlan?.policyMonthly ?? monthlyLimit, monthlyLimit);
   const policy = Math.min(saving, cap);
   return { eligible: true, reason: null, policyMonthly: policy, generalMonthly: generalRest(saving, policy, housing, pension) };
 }
@@ -285,7 +284,12 @@ export async function simulate(request: SimulateRequest): Promise<MockReturn<Sim
   await wait(CALC_DELAY_MS);
   assertComputable(request.input);
   const picked = pickCase(request.input);
-  return { data: { ...answer(picked, picked.golden.simulate), warnings: [] }, match: matchOf(picked, picked.exact) };
+  // 서버처럼 입력 검사(step=ALL)의 경고를 붙인다 (목업 검사라 대출 상환액이 필요한 경고는 빠질 수 있다)
+  const { data: validated } = await validate({ step: "ALL", input: request.input });
+  return {
+    data: { ...answer(picked, picked.golden.simulate), warnings: validated.warnings },
+    match: matchOf(picked, picked.exact),
+  };
 }
 
 export async function preview(request: PreviewRequest): Promise<MockReturn<PreviewResult>> {

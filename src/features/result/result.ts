@@ -17,6 +17,7 @@ import type {
   SimulationInputDraft,
   YearMonth,
 } from "@/lib/types";
+import { YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint } from "@/lib/format";
 import { normalizeErrors, stepOfPath } from "@/lib/form";
 import { checkCrossRules, checkFields, checkRequired } from "@/lib/rules";
@@ -121,7 +122,12 @@ export function riskCards(result: SimulateResult, policyReason?: string | null):
   const goalDate = bandAt(result, result.goal.goalMonths)?.month;
   const goalWhen = goalDate ? formatYearMonth(goalDate) : afterLabel(result.goal.goalMonths);
   const notEligible = policySaving.eligible === false;
-  const reason = policyReason ?? "청년미래적금 대상이 아니에요 (만 34세 초과 또는 총급여 7,500만 원 초과).";
+  // 서버(validate)가 준 이유가 없을 때만 기준 숫자로 문장을 만든다
+  const reason =
+    policyReason ??
+    `청년미래적금 대상이 아니에요 (만 ${YOUTH_FUTURE_SAVING.maxAge}세 초과 또는 총급여 ${formatKoreanWon(YOUTH_FUTURE_SAVING.maxGrossSalary)} 초과).`;
+  // v1.7: 가입은 되지만 총급여가 기준을 넘어 지원금이 없으면 서버가 경고로 알려 준다
+  const noMatch = result.warnings?.find((w) => w.code === "INFO_POLICY_NO_MATCH")?.message ?? null;
 
   return [
     {
@@ -149,13 +155,15 @@ export function riskCards(result: SimulateResult, policyReason?: string | null):
         },
     notEligible || policySaving.expectedSubsidy == null
       ? { key: "subsidy", title: "정부 지원금", value: "해당 없음", detail: reason, tone: "muted" }
-      : {
-          key: "subsidy",
-          title: "정부 지원금",
-          value: formatKoreanWon(policySaving.expectedSubsidy),
-          detail: "청년미래적금으로 받는 정부 지원금 (미래 2,000개의 평균)",
-          tone: "default",
-        },
+      : noMatch
+        ? { key: "subsidy", title: "정부 지원금", value: "없음", detail: noMatch, tone: "muted" }
+        : {
+            key: "subsidy",
+            title: "정부 지원금",
+            value: formatKoreanWon(policySaving.expectedSubsidy),
+            detail: `청년미래적금으로 받는 정부 지원금 (미래 ${result.paths.toLocaleString("ko-KR")}개의 평균)`,
+            tone: "default",
+          },
     debt.probability > 0 && debt.medianFirstDate
       ? {
           key: "cashShort",
