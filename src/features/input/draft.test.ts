@@ -4,6 +4,7 @@ import {
   DEFAULT_EXPENSE_ITEMS,
   addExpenseItem,
   addLoan,
+  allocationOf,
   fillBlankExpenseItems,
   patch,
   patchExpense,
@@ -12,6 +13,7 @@ import {
   removeLoan,
   setExpenseMode,
   setHasLoan,
+  setAllocation,
   setLoanType,
 } from "./draft";
 
@@ -20,6 +22,32 @@ describe("묶음 고치기", () => {
     const next = patch({ person: { age: 27, careerYears: 2 } }, "person", { age: 28 });
     expect(next).toEqual({ person: { age: 28, careerYears: 2 } });
     expect(patch({}, "income", { monthlyNetIncome: 1 })).toEqual({ income: { monthlyNetIncome: 1 } });
+  });
+});
+
+describe("v1.7 칸", () => {
+  it("그중 월세는 지출 묶음에, 고정 · 변동지출은 그대로", () => {
+    const fixed = { inputMode: "TOTAL" as const, total: 950_000 };
+    const next = patch({ expenses: { fixed } }, "expenses", { monthlyRent: 500_000 });
+    expect(next).toEqual({ expenses: { fixed, monthlyRent: 500_000 } });
+  });
+
+  it("상품별 배분: 넣고 · 비우고 · 읽기 (월 저축액 등 다른 저축 칸은 그대로)", () => {
+    const base = { savingPlan: { monthlySaving: 500_000, generalSavingRate: 3.5 } };
+    const next = setAllocation(base, { policyMonthly: 300_000, housingMonthly: 100_000, pensionMonthly: 100_000 });
+    expect(next.savingPlan).toEqual({
+      monthlySaving: 500_000,
+      generalSavingRate: 3.5,
+      policyMonthly: 300_000,
+      housingMonthly: 100_000,
+      pensionMonthly: 100_000,
+    });
+    expect(allocationOf(setAllocation(next, { housingMonthly: null }))).toEqual({
+      policyMonthly: 300_000,
+      housingMonthly: null,
+      pensionMonthly: 100_000,
+    });
+    expect(allocationOf({})).toEqual({ policyMonthly: null, housingMonthly: null, pensionMonthly: null });
   });
 });
 

@@ -3,6 +3,7 @@
 /**
  * 01-1 나와 소득/지출.
  * 다음 → 필수 칸 확인 → POST /inputs/validate (step=BASIC) → 지출이 소득 이상이면 경고 모달 (WARN_EXPENSE_OVER_INCOME)
+ * v1.7 선택 칸: 소득 아래 '더 정확하게 넣기'(세전 연봉 · 무주택 세대주), 고정지출 아래 '그중 월세' (TaxInputs.tsx)
  */
 import { Choice } from "@/components/ui/Choice";
 import { Field, describedBy } from "@/components/ui/Field";
@@ -17,6 +18,7 @@ import { fieldId } from "@/lib/form";
 import { resolvedExpenseTotal } from "@/lib/rules";
 import { formatYearMonth } from "@/lib/year-month";
 import { ExpenseEditor } from "./ExpenseEditor";
+import { MoreAccurateIncome, RentField } from "./TaxInputs";
 
 const EMPLOYMENT_OPTIONS = [
   { value: "REGULAR", label: "정규직" },
@@ -102,10 +104,12 @@ export function BasicStep() {
             onChange={(monthlyNetIncome) => form.update((prev) => patch(prev, "income", { monthlyNetIncome }))}
           />
         </Field>
+        <MoreAccurateIncome form={form} />
       </FormSection>
 
       <FormSection title="지출" description="한 달 기준으로 넣어요. 합계로 넣어도, 항목별로 넣어도 돼요.">
         <ExpenseEditor form={form} kind="fixed" label="고정지출" hint="월세·관리비·통신비·보험료처럼 매달 거의 같은 돈." />
+        <RentField form={form} />
         <div className="border-t border-line" />
         <ExpenseEditor form={form} kind="variable" label="변동지출" hint="식비·쇼핑·여가처럼 달마다 달라지는 돈." />
       </FormSection>

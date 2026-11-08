@@ -107,6 +107,17 @@ describe("validate 목업", () => {
     expect(toFieldErrors(career)).toEqual({ "person.careerYears": "경력은 나이 − 15년을 넘을 수 없어요." });
   });
 
+  it("v1.7 오류 키: 서버처럼 @AssertTrue 이름으로 보내고, 화면에서는 세전 연봉 · 그중 월세 칸으로", async () => {
+    const gross = await fail(mocks.validate({ input: { income: { monthlyNetIncome: 2_500_000, annualGrossSalary: 20_000_000 } } }));
+    expect(gross.fieldErrors).toHaveProperty("income.grossConsistentWithNet");
+    expect(Object.keys(toFieldErrors(gross))).toEqual(["income.annualGrossSalary"]);
+
+    const rent = await fail(
+      mocks.validate({ input: { expenses: { fixed: { inputMode: "TOTAL", total: 400_000 }, monthlyRent: 500_000 } } }),
+    );
+    expect(toFieldErrors(rent)).toEqual({ "expenses.monthlyRent": "그중 월세는 고정지출보다 클 수 없어요" });
+  });
+
   it("빈 입력도 검사는 통과 (값이 있는 칸만 본다)", async () => {
     const { data } = await ok(mocks.validate({ step: "BASIC", input: {} }));
     expect(Object.values(data.summary).every((v) => v === null)).toBe(true);

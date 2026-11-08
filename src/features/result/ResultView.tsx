@@ -337,15 +337,23 @@ function Assumptions({ result, input }: { result: SimulateResult; input: Simulat
   const [meta, setMeta] = useState<MetaResult | null | "loading" | "error">(null);
   const fixed = resolvedExpenseTotal(input.expenses?.fixed);
   const variable = resolvedExpenseTotal(input.expenses?.variable);
+  const rent = input.expenses?.monthlyRent;
+  const gross = input.income?.annualGrossSalary;
   const loans = input.loans?.hasNoLoan ? [] : (input.loans?.items ?? []);
   const rows: [string, string][] = [
     ["기준 연월", input.startMonth ? formatYearMonth(input.startMonth) : "—"],
     [
       "나",
-      `${input.person?.age ?? "—"}세 · 경력 ${input.person?.careerYears ?? "—"}년 · ${input.person?.employmentType === "CONTRACT" ? "계약직" : "정규직"}`,
+      `${input.person?.age ?? "—"}세 · 경력 ${input.person?.careerYears ?? "—"}년 · ${input.person?.employmentType === "CONTRACT" ? "계약직" : "정규직"} · 무주택 세대주 ${input.person?.homelessHouseholder === false ? "아님" : "예"}`,
     ],
     ["월 실수령액", formatWon(input.income?.monthlyNetIncome) || "—"],
-    ["월 지출", fixed != null && variable != null ? `고정 ${formatWon(fixed)} · 변동 ${formatWon(variable)}` : "—"],
+    ["세전 연봉", gross != null ? formatWon(gross) : "넣지 않음 (월 실수령액으로 어림)"],
+    [
+      "월 지출",
+      fixed != null && variable != null
+        ? `고정 ${formatWon(fixed)}${rent ? ` (그중 월세 ${formatWon(rent)})` : ""} · 변동 ${formatWon(variable)}`
+        : "—",
+    ],
     [
       "가진 돈",
       input.assets ? `현금 ${formatWon(input.assets.cash)} · 예·적금 ${formatWon(input.assets.deposits)} · 투자 ${formatWon(input.assets.investments ?? 0)}` : "—",

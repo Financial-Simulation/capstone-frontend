@@ -4,15 +4,38 @@
 import type { Draft, ExpenseGroup, ExpenseItem, LoanItem, LoanType, SimulationInputDraft } from "@/lib/types";
 import { LOAN_DEFAULTS } from "@/config/policy";
 
-type Section = "person" | "income" | "assets" | "savingPlan" | "emergency" | "goal" | "loans";
+type Section = "person" | "income" | "expenses" | "assets" | "savingPlan" | "emergency" | "goal" | "loans";
 
-/** 묶음 하나의 칸 몇 개를 바꾼다 */
+/** 묶음 하나의 칸 몇 개를 바꾼다 (지출 묶음 안의 고정 · 변동은 patchExpense) */
 export function patch<K extends Section>(
   input: SimulationInputDraft,
   key: K,
   values: NonNullable<SimulationInputDraft[K]>,
 ): SimulationInputDraft {
   return { ...input, [key]: { ...(input[key] ?? {}), ...values } } as SimulationInputDraft;
+}
+
+/** 상품별 배분 3칸 (v1.7, savingPlan). 결과 화면 '어디에 얼마나'(4단계)에서 넣는다 */
+export const ALLOCATION_KEYS = ["policyMonthly", "housingMonthly", "pensionMonthly"] as const;
+export type AllocationKey = (typeof ALLOCATION_KEYS)[number];
+export type Allocation = Partial<Record<AllocationKey, number | null>>;
+
+/**
+ * 배분을 내 입력(simInput.v1)에 넣는다. null은 비움 → 서버 기본값
+ * (청년미래는 대상이면 월 저축액 안에서 한도까지, 청약 · 연금저축은 0). 04-E 예시 입력에는 넣지 않는다.
+ */
+export function setAllocation(input: SimulationInputDraft, allocation: Allocation): SimulationInputDraft {
+  return patch(input, "savingPlan", allocation);
+}
+
+/** 지금 입력의 배분 (비운 칸은 null) */
+export function allocationOf(input: SimulationInputDraft): Record<AllocationKey, number | null> {
+  const plan = input.savingPlan;
+  return {
+    policyMonthly: plan?.policyMonthly ?? null,
+    housingMonthly: plan?.housingMonthly ?? null,
+    pensionMonthly: plan?.pensionMonthly ?? null,
+  };
 }
 
 export type ExpenseKind = "fixed" | "variable";

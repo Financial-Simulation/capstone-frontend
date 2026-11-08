@@ -73,3 +73,19 @@ export const YOUTH_FUTURE_SAVING = {
 
 /** 시뮬레이션 경로 수. 결과가 오기 전 안내 문장에만 쓴다 (결과 화면은 /simulate의 paths). 출처: params.json simulation.paths */
 export const SIMULATION_PATHS = 2_000;
+
+/**
+ * 월세 세액공제 (v1.7). 돌려받는 세금은 서버가 연말정산으로 계산하고, 여기 값은 01-1 '그중 월세' 안내 문장에만 쓴다.
+ * 출처: 백엔드 engine/YearEndTax.java — 무주택 세대주 · 총급여 8,000만 원 이하면
+ *       min(연 월세, 1,000만 원) × 17% (총급여 5,500만 원 초과면 15%). /meta의 yearEndTax(근거 A)
+ */
+export const RENT_TAX_CREDIT = {
+  /** 총급여 이 값까지 공제 (원) */
+  maxGrossSalary: 80_000_000,
+  /** 공제받는 연 월세 한도 (원) */
+  annualRentCap: 10_000_000,
+  /** 공제율 %: 총급여 lowerRateFromGross 이하면 high, 넘으면 low */
+  highRate: 17,
+  lowRate: 15,
+  lowerRateFromGross: 55_000_000,
+} as const;

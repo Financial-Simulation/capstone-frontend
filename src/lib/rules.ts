@@ -24,14 +24,19 @@ export const MESSAGES = {
   age: "19~39 사이로 입력해 주세요",
   careerYears: "0~10년 사이로 입력해 주세요",
   monthlyNetIncome: "1만 원 ~ 3,000만 원 사이로 입력해 주세요",
+  annualGrossSalary: "0원 ~ 10억 원 사이로 입력해 주세요",
+  grossConsistentWithNet: "세전 연봉이 월 실수령액 × 12보다 작아요. 세금을 떼기 전 금액을 넣어 주세요",
   nonNegative: "0원 이상으로 입력해 주세요",
   name20: "20자 이내로 입력해 주세요",
   name30: "30자 이내로 입력해 주세요",
   amountRequired: "금액을 입력해 주세요",
   expenseTotalRange: "합계는 0원 ~ 3,000만 원 사이여야 해요",
+  rentWithinFixed: "그중 월세는 고정지출보다 클 수 없어요",
   investments: "0원 ~ 10억 원 사이로 입력해 주세요",
   cashAndDeposits: "현금과 예·적금을 합쳐 10억 원 이하로 입력해 주세요",
   monthlyAmount: "0원 ~ 3,000만 원 사이로 입력해 주세요",
+  allocationMonthly: "0원 ~ 50만 원 사이로 입력해 주세요",
+  pensionMonthly: "0원 ~ 150만 원 사이로 입력해 주세요 (연금계좌 한도 연 1,800만 원)",
   generalSavingRate: "0~10% 사이로 입력해 주세요",
   emergencyFirst: "0 / 100만 / 200만 / 300만 / 500만 원 중에서 골라 주세요",
   breakThreshold: "0원 ~ 1억 원 사이로 입력해 주세요",
@@ -52,11 +57,16 @@ export const LIMITS = {
   age: { min: 19, max: 39 },
   careerYears: { min: 0, max: 10 },
   monthlyNetIncome: { min: 10_000, max: 30_000_000 },
+  annualGrossSalary: { min: 0, max: 1_000_000_000 },
   expenseTotal: { min: 0, max: 30_000_000 },
+  monthlyRent: { min: 0 },
   cashAndDeposits: { min: 0, max: 1_000_000_000 },
   investments: { min: 0, max: 1_000_000_000 },
   monthlySaving: { min: 0, max: 30_000_000 },
   monthlyInvestment: { min: 0, max: 30_000_000 },
+  policyMonthly: { min: 0, max: 500_000 },
+  housingMonthly: { min: 0, max: 500_000 },
+  pensionMonthly: { min: 0, max: 1_500_000 },
   generalSavingRate: { min: 0, max: 10 },
   breakThreshold: { min: 0, max: 100_000_000 },
   loanPrincipal: { min: 1 },
@@ -98,8 +108,16 @@ export function checkFields(input: SimulationInputDraft): FieldErrorMap {
   if (outside(person?.age, 19, 39)) add("person.age", MESSAGES.age);
   if (outside(person?.careerYears, 0, 10)) add("person.careerYears", MESSAGES.careerYears);
 
-  if (outside(input.income?.monthlyNetIncome, 10_000, 30_000_000)) {
-    add("income.monthlyNetIncome", MESSAGES.monthlyNetIncome);
+  const income = input.income;
+  if (outside(income?.monthlyNetIncome, 10_000, 30_000_000)) add("income.monthlyNetIncome", MESSAGES.monthlyNetIncome);
+  if (outside(income?.annualGrossSalary, 0, 1_000_000_000)) add("income.annualGrossSalary", MESSAGES.annualGrossSalary);
+  // 세전 연봉 × 1.1 ≥ 월 실수령액 × 12 (서버는 정수로 gross × 11 ≥ net × 120). 화면 칸은 세전 연봉
+  if (
+    income?.annualGrossSalary != null &&
+    income.monthlyNetIncome != null &&
+    income.annualGrossSalary * 11 < income.monthlyNetIncome * 120
+  ) {
+    add("income.grossConsistentWithNet", MESSAGES.grossConsistentWithNet);
   }
 
   for (const key of ["fixed", "variable"] as const) {
@@ -118,6 +136,12 @@ export function checkFields(input: SimulationInputDraft): FieldErrorMap {
     }
   }
 
+  // 그중 월세: 고정지출 안에 든 돈이라 고정지출보다 클 수 없다. 화면 칸은 그중 월세
+  const rent = input.expenses?.monthlyRent;
+  const fixedTotal = resolvedExpenseTotal(input.expenses?.fixed);
+  if (outside(rent, 0)) add("expenses.monthlyRent", MESSAGES.nonNegative);
+  if (rent != null && fixedTotal != null && rent > fixedTotal) add("expenses.rentWithinFixed", MESSAGES.rentWithinFixed);
+
   const assets = input.assets;
   if (assets) {
     if (outside(assets.cash, 0)) add("assets.cash", MESSAGES.nonNegative);
@@ -133,6 +157,10 @@ export function checkFields(input: SimulationInputDraft): FieldErrorMap {
     if (outside(plan.monthlySaving, 0, 30_000_000)) add("savingPlan.monthlySaving", MESSAGES.monthlyAmount);
     if (outside(plan.generalSavingRate, 0, 10)) add("savingPlan.generalSavingRate", MESSAGES.generalSavingRate);
     if (outside(plan.monthlyInvestment, 0, 30_000_000)) add("savingPlan.monthlyInvestment", MESSAGES.monthlyAmount);
+    // 상품별 배분 (v1.7): 청년미래 · 청약 월 50만 원, 연금저축 월 150만 원까지
+    if (outside(plan.policyMonthly, 0, 500_000)) add("savingPlan.policyMonthly", MESSAGES.allocationMonthly);
+    if (outside(plan.housingMonthly, 0, 500_000)) add("savingPlan.housingMonthly", MESSAGES.allocationMonthly);
+    if (outside(plan.pensionMonthly, 0, 1_500_000)) add("savingPlan.pensionMonthly", MESSAGES.pensionMonthly);
     const first = plan.emergencyFirstAmount ?? 0;
     if (!(EMERGENCY_FIRST_OPTIONS as readonly number[]).includes(first)) {
       add("savingPlan.emergencyFirstAmountAllowed", MESSAGES.emergencyFirst);

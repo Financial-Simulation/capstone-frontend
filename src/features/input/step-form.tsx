@@ -56,6 +56,10 @@ export function focusFirstField(keys: string[]): boolean {
   });
   const near = exact ?? nodes.find((node) => keys.some((key) => errorTargets(key, node.dataset.field ?? "")));
   if (!near) return false;
+  // 접어 둔 '더 정확하게 넣기' 안의 칸이면 먼저 펼친다 (닫힌 details 안은 보이지도 포커스되지도 않는다)
+  for (let parent = near.parentElement; parent; parent = parent.parentElement) {
+    if (parent instanceof HTMLDetailsElement) parent.open = true;
+  }
   near.scrollIntoView({ block: "center", behavior: "smooth" });
   near.querySelector<HTMLElement>("input:not([type=hidden]), select, textarea, button")?.focus({ preventScroll: true });
   return true;

@@ -40,6 +40,16 @@ const BUSINESS_ERROR_FIELD: Record<string, string> = {
 
 const EVENT_ERROR_CODES = new Set(["EVENT4001", "EVENT4002", "EVENT4004"]);
 
+/** 여러 칸을 보는 검사(@AssertTrue)의 이름 → 오류를 보여 줄 칸 (SimulationInput.java) */
+const ASSERT_FIELD: Record<string, string> = {
+  "assets.cashAndDepositsInRange": "assets.cash",
+  "savingPlan.emergencyFirstAmountAllowed": "savingPlan.emergencyFirstAmount",
+  /** v1.7: 세전 연봉 × 1.1 ≥ 월 실수령액 × 12 */
+  "income.grossConsistentWithNet": "income.annualGrossSalary",
+  /** v1.7: 그중 월세 ≤ 고정지출 */
+  "expenses.rentWithinFixed": "expenses.monthlyRent",
+};
+
 /**
  * 서버 칸 경로 → 화면 칸 키.
  * 계산 API 본문의 "input." 접두사를 떼고, 여러 칸을 보는 검사(@AssertTrue)의 이름을 실제 칸으로 바꾼다.
@@ -49,9 +59,7 @@ export function normalizeFieldPath(path: string): string {
   if (/\.(resolvedTotalInRange|totalPresentWhenTotalMode)$/.test(p)) {
     return p.replace(/\.(resolvedTotalInRange|totalPresentWhenTotalMode)$/, ".total");
   }
-  if (p === "assets.cashAndDepositsInRange") return "assets.cash";
-  if (p === "savingPlan.emergencyFirstAmountAllowed") return "savingPlan.emergencyFirstAmount";
-  return p;
+  return ASSERT_FIELD[p] ?? p;
 }
 
 /** 예정된 일 오류가 몇 번째 카드인지 입력에서 다시 찾는다 */

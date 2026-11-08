@@ -9,7 +9,7 @@ function golden(key: string): SimulationInputDraft {
 }
 
 describe("정답 파일 입력은 모든 규칙을 통과한다", () => {
-  it.each(["S1", "S2", "S3", "E1", "E2", "E3", "E4", "E5"])("%s", (key) => {
+  it.each(["S1", "S2", "S3", "E1", "E2", "E3", "E4", "E5", "T1", "T2", "T3"])("%s", (key) => {
     const input = golden(key);
     expect(checkFields(input)).toEqual({});
     expect(checkCrossRules(input)).toBeNull();
@@ -69,6 +69,54 @@ describe("칸별 규칙 (COMMON400, 서버 경로와 문장)", () => {
       "loans.items[0].principal": MESSAGES.principalMin,
       "loans.items[0].annualRate": MESSAGES.annualRate,
       "loans.items[0].remainingMonths": MESSAGES.remainingRange,
+    });
+  });
+});
+
+describe("v1.7 칸: 세전 연봉 · 그중 월세 · 상품별 배분 (서버 경로와 문장)", () => {
+  it("세전 연봉 0~10억 원", () => {
+    expect(checkFields({ income: { annualGrossSalary: 1_000_000_001 } })).toEqual({
+      "income.annualGrossSalary": MESSAGES.annualGrossSalary,
+    });
+    expect(checkFields({ income: { annualGrossSalary: 1_000_000_000 } })).toEqual({});
+  });
+
+  it("세전 연봉 × 1.1 ≥ 월 실수령액 × 12 (@AssertTrue grossConsistentWithNet)", () => {
+    // 실수령 250만 → 세전 연봉 27,272,728원부터 통과 (서버처럼 정수로 gross × 11 ≥ net × 120)
+    expect(checkFields({ income: { monthlyNetIncome: 2_500_000, annualGrossSalary: 27_272_728 } })).toEqual({});
+    expect(checkFields({ income: { monthlyNetIncome: 2_500_000, annualGrossSalary: 27_272_727 } })).toEqual({
+      "income.grossConsistentWithNet": "세전 연봉이 월 실수령액 × 12보다 작아요. 세금을 떼기 전 금액을 넣어 주세요",
+    });
+    // 둘 중 하나가 비면 보지 않는다
+    expect(checkFields({ income: { annualGrossSalary: 1 } })).toEqual({});
+  });
+
+  it("그중 월세 ≤ 고정지출 (@AssertTrue rentWithinFixed), 합계로 · 항목별로 모두", () => {
+    const total = (monthlyRent: number) => ({
+      expenses: { fixed: { inputMode: "TOTAL" as const, total: 950_000 }, monthlyRent },
+    });
+    expect(checkFields(total(950_000))).toEqual({});
+    expect(checkFields(total(950_001))).toEqual({ "expenses.rentWithinFixed": MESSAGES.rentWithinFixed });
+    const detail = {
+      expenses: {
+        fixed: { inputMode: "DETAIL" as const, items: [{ name: "월세·관리비", amount: 500_000 }, { name: "통신비", amount: 60_000 }] },
+        monthlyRent: 600_000,
+      },
+    };
+    expect(checkFields(detail)).toEqual({ "expenses.rentWithinFixed": "그중 월세는 고정지출보다 클 수 없어요" });
+    // 고정지출을 아직 안 넣었으면 보지 않는다
+    expect(checkFields({ expenses: { monthlyRent: 500_000 } })).toEqual({});
+    expect(checkFields({ expenses: { monthlyRent: -1 } })).toEqual({ "expenses.monthlyRent": MESSAGES.nonNegative });
+  });
+
+  it("상품별 배분: 청년미래 · 청약 월 50만 원, 연금저축 월 150만 원까지", () => {
+    expect(checkFields({ savingPlan: { policyMonthly: 500_000, housingMonthly: 500_000, pensionMonthly: 1_500_000 } })).toEqual(
+      {},
+    );
+    expect(checkFields({ savingPlan: { policyMonthly: 500_001, housingMonthly: -1, pensionMonthly: 1_500_001 } })).toEqual({
+      "savingPlan.policyMonthly": MESSAGES.allocationMonthly,
+      "savingPlan.housingMonthly": "0원 ~ 50만 원 사이로 입력해 주세요",
+      "savingPlan.pensionMonthly": "0원 ~ 150만 원 사이로 입력해 주세요 (연금계좌 한도 연 1,800만 원)",
     });
   });
 });

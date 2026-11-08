@@ -13,6 +13,9 @@ describe("서버 칸 경로 → 화면 칸", () => {
     ["input.expenses.variable.totalPresentWhenTotalMode", "expenses.variable.total"],
     ["assets.cashAndDepositsInRange", "assets.cash"],
     ["input.savingPlan.emergencyFirstAmountAllowed", "savingPlan.emergencyFirstAmount"],
+    ["input.income.grossConsistentWithNet", "income.annualGrossSalary"],
+    ["expenses.rentWithinFixed", "expenses.monthlyRent"],
+    ["savingPlan.pensionMonthly", "savingPlan.pensionMonthly"],
     ["loans.items[0].principal", "loans.items[0].principal"],
     ["input.events[2].occurDate", "events[2].occurDate"],
   ])("%s → %s", (path, expected) => {
@@ -38,6 +41,18 @@ describe("toFieldErrors", () => {
       "expenses.fixed.resolvedTotalInRange": "합계는 0원 ~ 3,000만 원 사이여야 해요",
     });
     expect(toFieldErrors(error)).toEqual({ "expenses.fixed.total": "0원 이상으로 입력해 주세요" });
+  });
+
+  it("v1.7 오류 키 두 개 → 세전 연봉 · 그중 월세 칸 (같은 칸이면 범위 문장이 먼저)", () => {
+    const error = new ApiError("COMMON400", "잘못된 요청입니다.", 400, {
+      "input.expenses.rentWithinFixed": "그중 월세는 고정지출보다 클 수 없어요",
+      "input.income.annualGrossSalary": "0원 ~ 10억 원 사이로 입력해 주세요",
+      "input.income.grossConsistentWithNet": "세전 연봉이 월 실수령액 × 12보다 작아요. 세금을 떼기 전 금액을 넣어 주세요",
+    });
+    expect(toFieldErrors(error)).toEqual({
+      "expenses.monthlyRent": "그중 월세는 고정지출보다 클 수 없어요",
+      "income.annualGrossSalary": "0원 ~ 10억 원 사이로 입력해 주세요",
+    });
   });
 
   it("비즈니스 오류 → 정해진 칸", () => {

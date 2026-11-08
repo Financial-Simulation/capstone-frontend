@@ -70,6 +70,18 @@ describe("simInput.v1", () => {
     expect(loadInput(storage)).toEqual({ startMonth: "2026-10", person: { age: 27 } });
   });
 
+  it("v1.7 칸(세전 연봉 · 무주택 세대주 · 그중 월세 · 상품별 배분)도 그대로 저장하고 다시 읽는다", () => {
+    const { storage } = memoryStorage();
+    const draft = {
+      person: { age: 27, homelessHouseholder: false },
+      income: { monthlyNetIncome: 2_500_000, annualGrossSalary: 40_000_000 },
+      expenses: { monthlyRent: 500_000 },
+      savingPlan: { monthlySaving: 500_000, policyMonthly: 300_000, housingMonthly: 100_000, pensionMonthly: 100_000 },
+    };
+    saveInput(draft, storage, OCT_27);
+    expect(loadInput(storage)).toEqual({ startMonth: "2026-10", ...draft });
+  });
+
   it("깨진 값은 없는 것으로", () => {
     expect(loadInput(memoryStorage({ [INPUT_KEY]: "{oops" }).storage)).toBeNull();
     expect(loadInput(memoryStorage({ [INPUT_KEY]: "[1,2]" }).storage)).toBeNull();
