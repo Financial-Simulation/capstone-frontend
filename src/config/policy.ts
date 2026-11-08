@@ -67,6 +67,13 @@ export const YOUTH_FUTURE_SAVING = {
   matchMaxGrossSalary: 60_000_000,
   /** 월 납입 한도 (원). 배분을 비우면 min(월 저축액, 이 값) */
   monthlyLimit: 500_000,
+  /** 정부 지원금 % (일반형). 출처: params.json policy.match (0.06), /meta의 youthFutureSaving */
+  matchRate: 6,
+  /**
+   * 결과 '위험'의 정부 지원금(risks.policySaving.expectedSubsidy)을 세는 기간 (개월).
+   * 배분 추천 · 세금은 목표 시점까지라 숫자가 다를 수 있다 (명세서 v1.7 12.1, '팀과 정할 것' 4번)
+   */
+  riskSubsidyWindowMonths: 48,
   /** 세전 연봉을 비우면 총급여 = 월 실수령액 × 12 ÷ 이 값 */
   netToGrossRatio: 0.88,
   /**
@@ -99,14 +106,33 @@ export const RENT_TAX_CREDIT = {
 /** 이자소득세율 % (소득세 14% + 지방소득세 1.4%). 세금 카드 설명에만 쓴다. 출처: params.json policy.tax · housing.tax (0.154) */
 export const INTEREST_INCOME_TAX_RATE = 15.4;
 
-/** 주택청약종합저축. 세금 안내 문장에만 쓴다. 출처: params.json housing (claw_months 60), /meta의 housingSubscription */
+/**
+ * 주택청약종합저축. 세금 · 배분 안내 문장에만 쓴다 (계산은 서버).
+ * 출처: params.json housing (claw_months 60), engine/YearEndTax.java (무주택 세대주 · 총급여 7,000만 원 이하면
+ *       min(연 납입액, 300만 원) × 40% 소득공제), 월 한도는 SimulationInput.java, /meta의 housingSubscription
+ */
 export const HOUSING_SUBSCRIPTION = {
   /** 가입 후 이 햇수 안에 깨면 그동안 받은 소득공제분을 다시 낸다 */
   clawbackYears: 5,
+  /** 월 납입 한도 (원) */
+  monthlyLimit: 500_000,
+  /** 소득공제를 받는 연 납입액 한도 (원) */
+  deductionAnnualCap: 3_000_000,
+  /** 소득공제율 % */
+  deductionRate: 40,
 } as const;
 
-/** 연금저축. 세금 안내 문장에만 쓴다. 출처: params.json pension (early_tax 0.165), /meta의 pensionSaving */
+/**
+ * 연금저축. 세금 · 배분 안내 문장에만 쓴다 (계산은 서버).
+ * 출처: params.json pension (credit_cap_y 600 · early_tax 0.165), 월 한도는 SimulationInput.java(연금계좌 연 1,800만 원), /meta의 pensionSaving
+ */
 export const PENSION_SAVING = {
+  /** 이 나이 전에 꺼내면 기타소득세 */
+  withdrawalAge: 55,
   /** 55세 전에 꺼내면 내는 기타소득세 % */
   earlyWithdrawalTaxRate: 16.5,
+  /** 월 납입 한도 (원) */
+  monthlyLimit: 1_500_000,
+  /** 세액공제를 받는 연 납입액 한도 (원) */
+  creditAnnualCap: 6_000_000,
 } as const;

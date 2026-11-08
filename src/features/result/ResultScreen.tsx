@@ -12,6 +12,7 @@ import { ResultView } from "./ResultView";
 import { Computing, Empty, Failed, NotReady } from "./StateViews";
 import { useResult } from "./use-result";
 import { Button, LinkButton } from "@/components/ui";
+import { setAllocation } from "@/features/input/draft";
 import { useHydrated, useSimInput } from "@/lib/hooks";
 import { readiness } from "./result";
 import { STEPS, stepByKey } from "@/lib/steps";
@@ -20,7 +21,7 @@ import type { SimulationInput } from "@/lib/types";
 export function ResultScreen() {
   const router = useRouter();
   const hydrated = useHydrated();
-  const { input, clear } = useSimInput();
+  const { input, update, clear } = useSimInput();
   const [confirmReset, setConfirmReset] = useState(false);
 
   const ready = hydrated ? readiness(input) : null;
@@ -60,7 +61,15 @@ export function ResultScreen() {
         </div>
       </div>
 
-      <ResultView data={result.data} input={input ?? {}} />
+      <ResultView
+        data={result.data}
+        input={input ?? {}}
+        onApplyAllocation={(allocation) => {
+          // 내 입력의 배분을 바꾸면 결과 전체를 다시 계산한다 (계산 중 화면 → 새 결과, 위에서부터 보이게)
+          update((prev) => setAllocation(prev, allocation));
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-6">
         <Button disabled title="11/6에 만들어요">

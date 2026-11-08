@@ -2,7 +2,7 @@
 
 /**
  * 결과 본문 (04 결과 · 04-E 예시 결과가 같이 쓴다). 서버 응답을 그대로 보여 주기만 한다.
- *  첫 문장(headline) · 범위 그래프 · 1·3·5·10년 표 · 위험 카드 · 세금(04만) · 적금을 처음 깬 이유 · 이렇게 바꿔 보세요 · 입력값과 가정
+ *  첫 문장(headline) · 범위 그래프 · 1·3·5·10년 표 · 위험 카드 · 세금 · 어디에 얼마나(둘 다 04만) · 적금을 처음 깬 이유 · 이렇게 바꿔 보세요 · 입력값과 가정
  * v1.7 블록(세금 등)은 내 계획에만 붙인다. 04-E 예시는 example로 부르고 붙이지 않는다 (명세서 v1.7 9.1).
  */
 import { useState, type ReactNode } from "react";
@@ -24,12 +24,14 @@ import {
 } from "./result";
 import { resolvedExpenseTotal } from "@/lib/rules";
 import { INPUT_DEFAULTS, LOAN_DEFAULTS } from "@/config/policy";
-import type { MetaResult, ReverseResult, SimulateResult, SimulationInputDraft } from "@/lib/types";
+import type { MetaResult, ReverseResult, SimulateResult, SimulationInput, SimulationInputDraft } from "@/lib/types";
 import { formatDuration, formatYearMonth, monthsBetween } from "@/lib/year-month";
 import type { MockMatch } from "@/mocks/handlers";
 import { Badge } from "@/components/ui";
 import { BandChart, BandLegend } from "./BandChart";
 import { TaxSection } from "./TaxSection";
+import { AllocationSection } from "./AllocationSection";
+import type { MonthlyAllocation } from "./allocation";
 
 export interface ResultData {
   sim: ApiResult<SimulateResult>;
@@ -44,11 +46,14 @@ export function ResultView({
   data,
   input,
   example = false,
+  onApplyAllocation,
 }: {
   data: ResultData;
   input: SimulationInputDraft;
   /** 04-E 예시 결과: v1.7 블록(세금 등)을 붙이지 않는다 */
   example?: boolean;
+  /** '어디에 얼마나'의 '이 배분으로' (04 결과에서만: 내 입력의 배분을 바꾼다) */
+  onApplyAllocation?: (allocation: MonthlyAllocation) => void;
 }) {
   const result = data.sim.data;
   const tax = example ? null : taxView(result, input);
@@ -60,6 +65,14 @@ export function ResultView({
       <CheckpointTable result={result} />
       <RiskGrid cards={riskCards(result, data.policyReason)} />
       {tax && <TaxSection view={tax} />}
+      {tax && onApplyAllocation && (
+        <AllocationSection
+          result={result}
+          input={input as SimulationInput}
+          policyReason={data.policyReason}
+          onApply={onApplyAllocation}
+        />
+      )}
       <CauseBars result={result} />
       <Levers data={data} />
       <Assumptions result={result} input={input} />
