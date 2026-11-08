@@ -1,11 +1,11 @@
 /**
- * 정답 파일(engine/analysis_golden.json) 읽기와 '같은 입력' 찾기.
+ * 정답 파일(engine/analysis_golden.json v1.7) 읽기와 '같은 입력' 찾기.
  *
- * 8개 입력(S1~S3, E1~E5)마다 /simulate · preview · compare · reverse · robust 응답이 API 모양 그대로 들어 있다.
- * seed가 같아서 백엔드 /simulate가 나오면 숫자가 이 파일과 똑같아야 한다.
+ * 11개 입력(S1~S3 예시, E1~E5 경계, T1~T3 세금)마다 /simulate · preview · compare · reverse · robust ·
+ * allocations/recommend 응답이 API 모양 그대로 들어 있다. seed가 같아서 백엔드 숫자가 이 파일과 똑같아야 한다.
  *
  * '같은 입력'은 계산 엔진이 실제로 쓰는 값으로 비교한다. 이름·표시용 칸·입력 방식(합계/항목별)은 보지 않고,
- * 서버가 채우는 기본값(일반 적금 금리 3.03 등)은 채운 뒤 비교한다.
+ * 서버가 채우는 기본값(일반 적금 금리 3.03, 무주택 세대주 예, 청년미래 min(월 저축액, 50만 원) 등)은 채운 뒤 비교한다.
  *
  * 엔진은 기준 달부터 센 개월 수(t)만 쓴다 (구현 명세 5.3: '연초'도 t mod 12 = 0, 달력의 1월이 아니다).
  * 그래서 목표 · 예정된 일은 기준 달부터 몇 개월 뒤인지로 비교하고, 기준 달이 다르면 응답의 연월만 그만큼 옮긴다.
@@ -15,6 +15,7 @@ import type {
   Adjustments,
   CompareResult,
   PreviewResult,
+  RecommendResult,
   ReverseResult,
   RobustPlanResult,
   SimulateResult,
@@ -43,6 +44,7 @@ export interface GoldenCase {
   compare: CompareResult;
   reverse: ReverseResult;
   robust: GoldenRobust;
+  recommend: RecommendResult;
 }
 
 interface GoldenFile {
@@ -55,6 +57,9 @@ interface GoldenFile {
 export const GOLDEN = goldenData as unknown as GoldenFile;
 
 const n = (value: number | null | undefined): number | null => (value == null ? null : Number(value));
+
+/** 청년미래적금 월 한도. 배분을 비우면 min(월 저축액, 이 값)을 넣는다 (서버 InputValidationService · 엔진 policy.cap) */
+const POLICY_MONTHLY_LIMIT = 500_000;
 
 /** 엔진이 쓰는 값만 뽑은 비교용 문자열 */
 export function engineKey(input: SimulationInputDraft): string {
@@ -90,6 +95,9 @@ export function engineKey(input: SimulationInputDraft): string {
 
   const cash = input.assets?.cash;
   const deposits = input.assets?.deposits;
+  const save = n(input.savingPlan?.monthlySaving);
+  // 청년미래 배분을 비우면 월 저축액 전부 (한도까지)
+  const policyBase = n(input.savingPlan?.policyMonthly) ?? save;
 
   return JSON.stringify({
     started: start !== null,
@@ -101,7 +109,7 @@ export function engineKey(input: SimulationInputDraft): string {
     variable: resolvedExpenseTotal(input.expenses?.variable),
     cash0: cash == null || deposits == null ? null : cash + deposits,
     invest0: n(input.assets?.investments ?? INPUT_DEFAULTS.investments),
-    save: n(input.savingPlan?.monthlySaving),
+    save,
     generalRate: n(input.savingPlan?.generalSavingRate ?? INPUT_DEFAULTS.generalSavingRate),
     investMonthly: n(input.savingPlan?.monthlyInvestment ?? INPUT_DEFAULTS.monthlyInvestment),
     emergencyFirst: n(input.savingPlan?.emergencyFirstAmount ?? INPUT_DEFAULTS.emergencyFirstAmount),
@@ -110,6 +118,13 @@ export function engineKey(input: SimulationInputDraft): string {
     events,
     goal: n(input.goal?.targetAmount),
     goalMonths: offset(input.goal?.targetDate),
+    // v1.7 세금 칸 (비우면 서버 기본값)
+    gross: n(input.income?.annualGrossSalary),
+    rent: n(input.expenses?.monthlyRent ?? INPUT_DEFAULTS.monthlyRent),
+    homeless: input.person?.homelessHouseholder ?? INPUT_DEFAULTS.homelessHouseholder,
+    policy: policyBase === null ? null : Math.min(policyBase, POLICY_MONTHLY_LIMIT),
+    housing: n(input.savingPlan?.housingMonthly ?? INPUT_DEFAULTS.housingMonthly),
+    pension: n(input.savingPlan?.pensionMonthly ?? INPUT_DEFAULTS.pensionMonthly),
   });
 }
 

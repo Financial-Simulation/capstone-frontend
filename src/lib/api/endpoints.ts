@@ -14,8 +14,12 @@ import type {
   PresetsResult,
   PreviewRequest,
   PreviewResult,
+  RecommendRequest,
+  RecommendResult,
   RepaymentPreviewRequest,
   RepaymentPreviewResult,
+  ReportRequest,
+  ReportResult,
   ReverseRequest,
   ReverseResult,
   RobustJobResult,
@@ -124,6 +128,20 @@ export const api = {
       () => request("GET", `/robust/${encodeURIComponent(jobId)}`, undefined, options),
       (m) => m.robustJob(jobId),
     );
+  },
+
+  /** 배분 자동 추천: 청년미래 · 청약 · 연금저축 조합을 모두 계산해 가능성 최대 · 혜택 최대 배분 */
+  recommendAllocation(body: RecommendRequest, options?: RequestOptions) {
+    return call<RecommendResult>(
+      "recommend",
+      () => request("POST", "/allocations/recommend", body, options),
+      (m) => m.recommend(body),
+    );
+  },
+
+  /** 리포트 한 장에 들어갈 숫자 전부 (PDF는 화면이 인쇄로 만든다) */
+  report(body: ReportRequest, options?: RequestOptions) {
+    return call<ReportResult>("reports", () => request("POST", "/reports", body, options), (m) => m.report(body));
   },
 
   /** 근거·파라미터 */

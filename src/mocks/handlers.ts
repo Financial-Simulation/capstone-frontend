@@ -1,13 +1,16 @@
 /**
  * 목업 API. 엔드포인트마다 실제 API와 같은 모양을 돌려준다.
- *  - 계산 API(simulate · preview · compare · reverse · robust): 입력이 같은 정답 케이스. 없으면 S1을 돌려주고 exact=false
- *  - validate: 칸 규칙·교차 규칙·합계·경고를 서버처럼 흉내 낸다. 단, 대출 상환액은 계산하지 않는다(null)
+ *  - 계산 API(simulate · preview · compare · reverse · robust · recommend): 입력이 같은 정답 케이스(v1.7, 11개).
+ *    없으면 S1을 돌려주고 exact=false
+ *  - reports: 서버처럼 다른 목업 결과(simulate · reverse · compare · validate · meta)를 모아 만든다
+ *  - validate: 칸 규칙·교차 규칙·합계·경고·청년미래적금 판정을 서버처럼 흉내 낸다. 단, 대출 상환액은 계산하지 않는다(null)
  *  - repaymentPreview: 계산이라 목업이 없다 → MOCK_UNAVAILABLE
  *  - presets · examples · meta: 서버·params.json과 같은 고정값
  *
  * 화면은 실제 API와 똑같이 쓰고, 목업인지는 ApiResult.source로만 구분한다.
  */
 import type {
+  ComparePlanResult,
   CompareRequest,
   CompareResult,
   ExamplesResult,
@@ -15,8 +18,12 @@ import type {
   PresetsResult,
   PreviewRequest,
   PreviewResult,
+  RecommendRequest,
+  RecommendResult,
   RepaymentPreviewRequest,
   RepaymentPreviewResult,
+  ReportRequest,
+  ReportResult,
   ReverseRequest,
   ReverseResult,
   RobustJobResult,
@@ -36,7 +43,7 @@ import { checkCrossRules, checkFields, checkRequired, resolvedExpenseTotal } fro
 import examplesData from "./data/examples.json";
 import metaData from "./data/meta.json";
 import presetsData from "./data/presets.json";
-import { adjustmentsKey, findGoldenCase, goldenCaseByKey, shiftDates, type GoldenCase } from "./golden";
+import { GOLDEN, adjustmentsKey, findGoldenCase, goldenCaseByKey, shiftDates, type GoldenCase } from "./golden";
 import { isYearMonth, monthsBetween } from "@/lib/year-month";
 
 export interface MockMatch {
@@ -124,6 +131,51 @@ function toKoreanServer(won: number): string {
 
 const allPresent = (...values: (number | null | undefined)[]) => values.every((v) => v != null);
 
+// 청년미래적금 판정 (서버 InputValidationService v1.7과 같은 기준)
+const POLICY_MAX_AGE = 34;
+const POLICY_MAX_GROSS_SALARY = 75_000_000;
+const POLICY_MATCH_MAX_GROSS_SALARY = 60_000_000;
+const POLICY_MONTHLY_LIMIT = 500_000;
+
+/** 일반 적금으로 가는 돈: 월 저축액에서 청년미래 → 청약 → 연금저축 순서로 떼고 남는 돈 (엔진과 같은 규칙) */
+function generalRest(saving: number, policy: number, housing: number, pension: number): number {
+  const h = Math.min(housing, Math.max(saving - policy, 0));
+  const p = Math.min(pension, Math.max(saving - policy - h, 0));
+  return saving - policy - h - p;
+}
+
+function policySavingOf(input: SimulationInputDraft, warnings: ApiWarning[]): PolicySavingAllocation | null {
+  const age = input.person?.age;
+  const net = input.income?.monthlyNetIncome;
+  const saving = input.savingPlan?.monthlySaving;
+  if (age == null || net == null || saving == null) return null;
+
+  const gross = input.income?.annualGrossSalary ?? null;
+  const housing = input.savingPlan?.housingMonthly ?? 0;
+  const pension = input.savingPlan?.pensionMonthly ?? 0;
+  // 총급여: 세전 연봉을 넣었으면 그 값, 아니면 실수령액 × 12 ÷ 0.88 (소수 오차를 피하려고 양변에 0.88을 곱해 비교)
+  const grossOver = (limit: number) => (gross != null ? gross > limit : net * 12 * 100 > limit * 88);
+
+  let reason: string | null = null;
+  if (age > POLICY_MAX_AGE) reason = "만 34세를 넘어 청년미래적금 대상이 아니에요. 일반 적금으로 계산해요.";
+  else if (grossOver(POLICY_MAX_GROSS_SALARY)) {
+    reason = "총급여가 7,500만 원을 넘어 청년미래적금 대상이 아니에요. 일반 적금으로 계산해요.";
+  }
+  if (reason) {
+    warnings.push({ code: "INFO_POLICY_INELIGIBLE", message: reason });
+    return { eligible: false, reason, policyMonthly: 0, generalMonthly: generalRest(saving, 0, housing, pension) };
+  }
+  if (grossOver(POLICY_MATCH_MAX_GROSS_SALARY)) {
+    warnings.push({
+      code: "INFO_POLICY_NO_MATCH",
+      message: "총급여가 6,000만 원을 넘어 청년미래적금 정부 지원금은 없어요. 가입과 이자는 그대로예요.",
+    });
+  }
+  const cap = Math.min(input.savingPlan?.policyMonthly ?? POLICY_MONTHLY_LIMIT, POLICY_MONTHLY_LIMIT);
+  const policy = Math.min(saving, cap);
+  return { eligible: true, reason: null, policyMonthly: policy, generalMonthly: generalRest(saving, policy, housing, pension) };
+}
+
 export async function validate(request: ValidateRequest): Promise<MockReturn<ValidateResult>> {
   await wait(LOOKUP_DELAY_MS);
   const input = request.input ?? {};
@@ -164,22 +216,7 @@ export async function validate(request: ValidateRequest): Promise<MockReturn<Val
   };
 
   const warnings: ApiWarning[] = [];
-  let policySaving: PolicySavingAllocation | null = null;
-  const age = input.person?.age;
-  if (age != null && net != null && saving != null) {
-    let reason: string | null = null;
-    if (age > 34) reason = "만 34세를 넘어 청년미래적금 대상이 아니에요. 일반 적금으로 계산해요.";
-    else if (net * 12 * 100 > 75_000_000 * 88) {
-      reason = "총급여가 7,500만 원을 넘어 청년미래적금 대상이 아니에요. 일반 적금으로 계산해요.";
-    }
-    if (reason) {
-      warnings.push({ code: "INFO_POLICY_INELIGIBLE", message: reason });
-      policySaving = { eligible: false, reason, policyMonthly: 0, generalMonthly: saving };
-    } else {
-      const policy = Math.min(saving, 500_000);
-      policySaving = { eligible: true, reason: null, policyMonthly: policy, generalMonthly: saving - policy };
-    }
-  }
+  const policySaving = policySavingOf(input, warnings);
 
   if (allPresent(net, fixed, variable) && fixed! + variable! >= net!) {
     warnings.push({
@@ -238,7 +275,7 @@ export async function meta(): Promise<MockReturn<MetaResult>> {
   await wait(LOOKUP_DELAY_MS);
   return {
     data: clone(metaData as MetaResult),
-    match: { caseKey: null, exact: true, note: "params.json의 meta (근거 11개 항목)" },
+    match: { caseKey: null, exact: true, note: `params.json의 meta (모델 ${metaData.modelVersion}, 근거 ${metaData.parameters.length}개)` },
   };
 }
 
@@ -308,6 +345,13 @@ export async function reverse(request: ReverseRequest): Promise<MockReturn<Rever
   };
 }
 
+export async function recommend(request: RecommendRequest): Promise<MockReturn<RecommendResult>> {
+  await wait(CALC_DELAY_MS);
+  assertComputable(request.input);
+  const picked = pickCase(request.input);
+  return { data: answer(picked, picked.golden.recommend), match: matchOf(picked, picked.exact) };
+}
+
 // ===== 가능성 범위 (비동기 작업) =====
 
 /** 목업 작업이 끝나는 데 걸리는 시간 (실제는 몇 초) */
@@ -350,5 +394,76 @@ export async function robustJob(jobId: string): Promise<MockReturn<RobustJobResu
       message: done ? robust.message : null,
     },
     match: matchOf(job.picked, job.picked.exact),
+  };
+}
+
+// ===== 리포트 =====
+
+/** 서버 ReportService.DISCLAIMER와 같은 문장 */
+const REPORT_DISCLAIMER =
+  "이 결과는 입력값과 공공통계에 기반한 시뮬레이션이며 금융상품 추천이나 투자 권유가 아니에요.";
+
+/** 서울 시각 "YYYY-MM-DDTHH:mm:ss" (서버 generatedAt과 같은 모양) */
+function seoulNow(): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  })
+    .format(new Date())
+    .replace(" ", "T");
+}
+
+/** 서버처럼 simulate · reverse(상위 3개) · compare · validate · meta 결과를 한 장으로 모은다 */
+export async function report(request: ReportRequest): Promise<MockReturn<ReportResult>> {
+  if (request.seed != null && request.seed !== GOLDEN.seed) {
+    throw badRequest({ seed: `지금은 기본 seed(${GOLDEN.seed})만 쓸 수 있어요` });
+  }
+  const simulated = await simulate({ input: request.input });
+  const reversed = await reverse({ input: request.input });
+  let comparison: ComparePlanResult[] = [];
+  let comparisonExact = true;
+  if (request.plans && request.plans.length > 0) {
+    const compared = await compare({ input: request.input, plans: request.plans });
+    comparison = compared.data.plans;
+    comparisonExact = compared.match.exact;
+  }
+  const validated = await validate({ step: "ALL", input: request.input });
+  const meta = metaData as MetaResult;
+  const sim = simulated.data;
+  const exact = simulated.match.exact && comparisonExact;
+
+  return {
+    data: {
+      generatedAt: seoulNow(),
+      seed: GOLDEN.seed,
+      modelVersion: meta.modelVersion,
+      startMonth: sim.startMonth,
+      inputSummary: validated.data.summary,
+      headline: sim.headline,
+      goal: sim.goal,
+      forecast: { checkpoints: sim.checkpoints, deterministicAtGoal: sim.deterministic.atGoal },
+      risks: sim.risks,
+      causes: sim.causes,
+      tax: sim.tax!,
+      levers: reversed.data.levers.slice(0, 3),
+      comparison,
+      parameters: meta.parameters,
+      warnings: validated.data.warnings,
+      disclaimer: REPORT_DISCLAIMER,
+    },
+    match: {
+      ...simulated.match,
+      exact,
+      note:
+        simulated.match.exact && !comparisonExact
+          ? "정답 파일에 없는 비교 계획이 있어서 정답 파일의 비교 계획을 넣었어요"
+          : simulated.match.note,
+    },
   };
 }

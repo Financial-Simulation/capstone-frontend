@@ -48,11 +48,18 @@ export interface Person {
   careerYears: number;
   /** 비우면 REGULAR */
   employmentType?: EmploymentType;
+  /** 무주택 세대주 (v1.7, 선택). 비우면 true. 청약 소득공제 · 월세 세액공제 · 주택드림 비과세 조건 */
+  homelessHouseholder?: boolean | null;
 }
 
 export interface Income {
   /** 1만~3,000만 원 */
   monthlyNetIncome: number;
+  /**
+   * 세전 연봉 (v1.7, 선택) 0~10억 원. 비우면 서버가 월 실수령액 × 12 ÷ 0.88로 추정한다.
+   * 세전 연봉 × 1.1 ≥ 월 실수령액 × 12 (어기면 income.grossConsistentWithNet)
+   */
+  annualGrossSalary?: number | null;
 }
 
 export interface ExpenseItem {
@@ -71,6 +78,11 @@ export interface ExpenseGroup {
 export interface Expenses {
   fixed: ExpenseGroup;
   variable: ExpenseGroup;
+  /**
+   * 고정지출 중 월세 (v1.7, 선택) 0원 이상, 비우면 0. 월세 세액공제에만 쓰고 현금흐름에 다시 더하지 않는다.
+   * 고정지출보다 크면 expenses.rentWithinFixed
+   */
+  monthlyRent?: number | null;
 }
 
 export interface Assets {
@@ -91,6 +103,16 @@ export interface SavingPlan {
   monthlyInvestment?: number;
   /** 비우면 0 */
   emergencyFirstAmount?: EmergencyFirstAmount;
+  /*
+   * 상품별 배분 (v1.7, 선택, 결과 화면 '배분 바꿔 보기'). 월 저축액 안에서 청년미래 → 청약 → 연금저축 순서로 떼고
+   * 남는 돈이 일반 적금이다. 합이 월 저축액보다 크면 뒤 상품을 줄인다 (실제 배분은 응답의 allocation).
+   */
+  /** 청년미래적금 월 납입 0~50만 원. 비우면 min(월 저축액, 50만 원), 대상이 아니면 0 */
+  policyMonthly?: number | null;
+  /** 주택청약종합저축 월 납입 0~50만 원 (상품 약관 월 2만~50만, 0은 청약 없음). 비우면 0 */
+  housingMonthly?: number | null;
+  /** 연금저축 월 납입 0~150만 원 (연금계좌 한도 연 1,800만 원). 비우면 0 */
+  pensionMonthly?: number | null;
 }
 
 export interface Emergency {
@@ -195,13 +217,17 @@ export const EMERGENCY_FIRST_OPTIONS: readonly EmergencyFirstAmount[] = [
   0, 1_000_000, 2_000_000, 3_000_000, 5_000_000,
 ];
 
-/** 서버가 비운 칸에 넣는 기본값 */
+/** 서버가 비운 칸에 넣는 기본값 (청년미래적금 배분은 월 저축액에 따라 달라서 여기 없음) */
 export const INPUT_DEFAULTS = {
   employmentType: "REGULAR" as EmploymentType,
+  homelessHouseholder: true,
   investments: 0,
   generalSavingRate: 3.03,
   monthlyInvestment: 0,
   emergencyFirstAmount: 0 as EmergencyFirstAmount,
   breakThreshold: 500_000,
+  monthlyRent: 0,
+  housingMonthly: 0,
+  pensionMonthly: 0,
   goalName: "내 목표",
 } as const;

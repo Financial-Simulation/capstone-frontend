@@ -8,10 +8,12 @@
         "person": {
           "age": 27,
           "careerYears": 2,
-          "employmentType": "REGULAR"
+          "employmentType": "REGULAR",
+          "homelessHouseholder": true
         },
         "income": {
-          "monthlyNetIncome": 2500000
+          "monthlyNetIncome": 2500000,
+          "annualGrossSalary": null
         },
         "expenses": {
           "fixed": {
@@ -23,7 +25,8 @@
             "inputMode": "TOTAL",
             "items": [],
             "total": 950000
-          }
+          },
+          "monthlyRent": null
         },
         "assets": {
           "cash": 2000000,
@@ -34,7 +37,10 @@
           "monthlySaving": 500000,
           "generalSavingRate": 3.03,
           "monthlyInvestment": 0,
-          "emergencyFirstAmount": 0
+          "emergencyFirstAmount": 0,
+          "policyMonthly": null,
+          "housingMonthly": null,
+          "pensionMonthly": null
         },
         "emergency": {
           "breakThreshold": 500000
@@ -68,10 +74,12 @@
         "person": {
           "age": 24,
           "careerYears": 0,
-          "employmentType": "REGULAR"
+          "employmentType": "REGULAR",
+          "homelessHouseholder": true
         },
         "income": {
-          "monthlyNetIncome": 2300000
+          "monthlyNetIncome": 2300000,
+          "annualGrossSalary": null
         },
         "expenses": {
           "fixed": {
@@ -83,7 +91,8 @@
             "inputMode": "TOTAL",
             "items": [],
             "total": 800000
-          }
+          },
+          "monthlyRent": null
         },
         "assets": {
           "cash": 0,
@@ -94,7 +103,10 @@
           "monthlySaving": 500000,
           "generalSavingRate": 3.03,
           "monthlyInvestment": 0,
-          "emergencyFirstAmount": 0
+          "emergencyFirstAmount": 0,
+          "policyMonthly": null,
+          "housingMonthly": null,
+          "pensionMonthly": null
         },
         "emergency": {
           "breakThreshold": 500000
@@ -128,10 +140,12 @@
         "person": {
           "age": 36,
           "careerYears": 8,
-          "employmentType": "CONTRACT"
+          "employmentType": "CONTRACT",
+          "homelessHouseholder": true
         },
         "income": {
-          "monthlyNetIncome": 3200000
+          "monthlyNetIncome": 3200000,
+          "annualGrossSalary": null
         },
         "expenses": {
           "fixed": {
@@ -143,7 +157,8 @@
             "inputMode": "TOTAL",
             "items": [],
             "total": 1000000
-          }
+          },
+          "monthlyRent": null
         },
         "assets": {
           "cash": 15000000,
@@ -154,7 +169,10 @@
           "monthlySaving": 600000,
           "generalSavingRate": 3.03,
           "monthlyInvestment": 0,
-          "emergencyFirstAmount": 0
+          "emergencyFirstAmount": 0,
+          "policyMonthly": null,
+          "housingMonthly": null,
+          "pensionMonthly": null
         },
         "emergency": {
           "breakThreshold": 1000000

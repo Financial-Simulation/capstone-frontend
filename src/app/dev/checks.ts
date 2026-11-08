@@ -21,6 +21,13 @@ import { formatPercent, formatPercentPoint, formatWon } from "@/lib/format";
 /** 백엔드 /examples의 S1 (기본값까지 채워진 모양). 정답 파일 S1과 같은 입력이다 */
 export const EXAMPLE_S1 = examplesData.examples[0].input as unknown as SimulationInput;
 
+/** 정답 파일 T1 (v1.7 세금): S1 + 그중 월세 50만 원 + 배분 청년미래 30만 · 청약 10만 · 연금저축 10만 */
+const EXAMPLE_T1: SimulationInput = {
+  ...EXAMPLE_S1,
+  expenses: { ...EXAMPLE_S1.expenses, monthlyRent: 500_000 },
+  savingPlan: { ...EXAMPLE_S1.savingPlan, policyMonthly: 300_000, housingMonthly: 100_000, pensionMonthly: 100_000 },
+};
+
 export interface CheckErrorView {
   code: string;
   message: string;
@@ -251,6 +258,18 @@ export const CHECKS: Check[] = [
     verify: (d, r) => d.goal.probability === 58 && (r.source === "real" || r.mock?.exact === true),
   }),
   defineCheck({
+    id: "simulate-t1",
+    endpoint: "simulate",
+    title: "세금 (v1.7) · T1, S1 + 월세 50만 · 배분 30만/10만/10만",
+    expect: () => "목표 확률 66.1% · 돌려받는 세금 4,320,332원 · 세금 순이득 4,276,235원",
+    run: (signal) => api.simulate({ input: EXAMPLE_T1 }, { signal }),
+    summarize: (d) =>
+      d.tax
+        ? `목표 확률 ${formatPercent(d.goal.probability)} · 돌려받는 세금 ${formatWon(d.tax.refundTotal)} · 세금 순이득 ${formatWon(d.tax.netBenefit)}`
+        : `목표 확률 ${formatPercent(d.goal.probability)} · 세금(tax)이 없음 → v1.7 백엔드인지 확인`,
+    verify: (d) => d.goal.probability === 66.1 && d.tax?.netBenefit === 4_276_235,
+  }),
+  defineCheck({
     id: "preview-s1",
     endpoint: "preview",
     title: "조절 미리보기 · S1, 변동지출 95만 → 85만 원",
@@ -306,12 +325,39 @@ export const CHECKS: Check[] = [
     verify: (d) => d.status === "DONE" && d.probability?.median === 66.4,
   }),
   defineCheck({
+    id: "recommend-s1",
+    endpoint: "recommend",
+    title: "배분 추천 (v1.7) · S1",
+    expect: () => "혜택 최대: 청년미래 10만 · 청약 10만 · 연금저축 30만 원 → 57.4%, 세금 + 지원금 1,951,429원",
+    run: (signal) => api.recommendAllocation({ input: EXAMPLE_S1 }, { signal }),
+    summarize: (d) => {
+      const a = d.bestBenefit.allocation;
+      return `${d.evaluated}개 배분 계산 · 혜택 최대: 청년미래 ${formatWon(a.policyMonthly)} · 청약 ${formatWon(a.housingMonthly)} · 연금저축 ${formatWon(
+        a.pensionMonthly,
+      )} → ${formatPercent(d.bestBenefit.probability)}, ${formatWon(d.bestBenefit.totalBenefit)}`;
+    },
+    verify: (d) => d.bestBenefit.totalBenefit === 1_951_429 && d.bestBenefit.probability === 57.4,
+  }),
+  defineCheck({
+    id: "reports-s1",
+    endpoint: "reports",
+    title: "리포트 (v1.7) · S1, 비교 계획 1개",
+    expect: () => "모델 1.7 · 근거 15개 · 개선 포인트 3개 · 비교 2줄 (지금 계획 + 1개) · 세금 있음",
+    run: (signal) => api.report({ input: EXAMPLE_S1, plans: S1_PLANS.slice(0, 1), seed: null }, { signal }),
+    summarize: (d) =>
+      `모델 ${d.modelVersion} · 근거 ${d.parameters.length}개 · 개선 포인트 ${d.levers.length}개 · 비교 ${d.comparison.length}줄 · 세금 ${
+        d.tax ? "있음" : "없음"
+      } · ${d.generatedAt}`,
+    verify: (d) =>
+      d.modelVersion === "1.7" && d.parameters.length === 15 && d.levers.length === 3 && d.comparison.length === 2 && !!d.tax,
+  }),
+  defineCheck({
     id: "meta",
     endpoint: "meta",
     title: "근거·파라미터",
-    expect: () => "모델 1.6 · 2,000경로 · 근거 11개",
+    expect: () => "모델 1.7 · 2,000경로 · 근거 15개",
     run: (signal) => api.meta({ signal }),
     summarize: (d) => `모델 ${d.modelVersion} · ${d.paths.toLocaleString("ko-KR")}경로 · 근거 ${d.parameters.length}개`,
-    verify: (d) => d.paths === 2000 && d.parameters.length === 11,
+    verify: (d) => d.modelVersion === "1.7" && d.paths === 2000 && d.parameters.length === 15,
   }),
 ];

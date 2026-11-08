@@ -1,11 +1,12 @@
 /**
- * 계산 API의 요청·응답 (/simulate · /simulate/preview · /compare · /reverse · /robust · /meta).
- * 백엔드에 아직 없어서 engine/analysis_golden.json(정답 파일)과 노션 API 명세를 기준으로 했다.
- * 정답 파일에만 있는 값, 명세에만 있는 값은 선택(?) 필드로 두었다.
+ * 계산 API의 요청·응답
+ * (/simulate · /simulate/preview · /compare · /reverse · /robust · /allocations/recommend · /reports · /meta).
+ * 기준: v1.7 정답 파일(engine/analysis_golden.json, 11개 입력)과 API_CHANGES_v1.7.md, 노션 API 명세.
+ * 정답 파일에만 있는 값, 명세에만 있는 값, v1.7에서 생긴 응답 칸(v1.6 백엔드에는 없음)은 선택(?) 필드로 두었다.
  *
  * 단위: 금액은 원, 확률·비율은 % (소수 1자리), 연월은 "YYYY-MM". "모은 돈"은 대출 잔액을 빼지 않는다.
  */
-import type { ApiWarning } from "./api";
+import type { ApiWarning, ValidateSummary } from "./api";
 import type { EmergencyFirstAmount, PlannedEvent, SimulationInput, YearMonth } from "./input";
 
 /** 그 달 모은 돈의 5%·10%·50%·90% 분위 (p5 = 최악의 경우) */
@@ -97,6 +98,38 @@ export interface EventMarker {
   month: YearMonth;
 }
 
+/** 월 저축액을 실제로 나눈 결과 (원). 청년미래 → 청약 → 연금저축 순서로 떼고 남는 돈이 일반 적금 */
+export interface Allocation {
+  policyMonthly: number;
+  housingMonthly: number;
+  pensionMonthly: number;
+  generalMonthly: number;
+}
+
+/**
+ * 세금 (v1.7). 목표 시점까지, 미래 2,000개의 평균 (원).
+ * 돌려받는 세금은 청약 · 연금저축 · 월세가 없을 때와의 차이다 (매년 2월 연말정산).
+ */
+export interface TaxResult {
+  /** 돌려받는 세금 합계 */
+  refundTotal: number;
+  /** 돌려받는 세금 연평균 */
+  refundPerYear: number;
+  /** 낸 이자소득세 (일반 적금 · 청약 · 청년미래 일반해지) */
+  interestTax: number;
+  /** 청약을 5년 안에 해지해서 도로 낸 소득공제분 */
+  clawback: number;
+  /** 연금저축 중도 인출 기타소득세 16.5% */
+  pensionTax: number;
+  /** refundTotal − interestTax − clawback − pensionTax */
+  netBenefit: number;
+  /** 목표 시점까지 청약을 깰 확률 (%). 청약이 없으면 null */
+  housingBreakProbability: number | null;
+  /** 목표 시점까지 연금저축을 깰 확률 (%). 연금저축이 없으면 null */
+  pensionBreakProbability: number | null;
+  allocation: Allocation;
+}
+
 export interface SimulateResult {
   seed: number;
   paths: number;
@@ -113,6 +146,8 @@ export interface SimulateResult {
     policySaving: PolicySavingRisk;
   };
   causes: Causes;
+  /** v1.7부터 (v1.6 백엔드에는 없음) */
+  tax?: TaxResult;
   eventMarkers?: EventMarker[];
   warnings?: ApiWarning[];
 }
@@ -132,6 +167,12 @@ export interface Adjustments {
   goalTargetDate?: YearMonth;
   /** 목록 전체 교체 */
   events?: PlannedEvent[];
+  /** v1.7 배분 바꿔 보기 → savingPlan.policyMonthly */
+  policyMonthly?: number;
+  /** → savingPlan.housingMonthly */
+  housingMonthly?: number;
+  /** → savingPlan.pensionMonthly */
+  pensionMonthly?: number;
 }
 
 /** 변경 요약 한 줄 (Change.java) */
@@ -221,6 +262,12 @@ export interface ComparePlanResult {
   earlyTerminationProbability: number | null;
   expectedSubsidy: number | null;
   yearlyP50: number[];
+  /** v1.7: 목표 시점에 모은 돈 중간값 */
+  medianAtGoal?: number;
+  /** v1.7: 세금 순이득 (/simulate의 tax.netBenefit) */
+  taxNetBenefit?: number;
+  /** v1.7: 실제 월 배분 */
+  allocation?: Allocation;
 }
 
 export interface CompareResult {
@@ -327,6 +374,87 @@ export interface RobustJobResult {
   message: string | null;
 }
 
+// ===== POST /api/allocations/recommend (v1.7) =====
+
+export interface RecommendRequest {
+  input: SimulationInput;
+}
+
+/** 배분 하나를 같은 미래 2,000개로 계산한 결과. 세금 · 지원금은 목표 시점까지 평균 (원) */
+export interface AllocationOption {
+  allocation: Allocation;
+  /** 목표 시점에 목표 이상인 경로 수 */
+  hits: number;
+  probability: number;
+  /** 세금 순이득 (/simulate의 tax.netBenefit과 같은 계산) */
+  taxNetBenefit: number;
+  /** 청년미래적금 정부 지원금 */
+  subsidy: number;
+  /** taxNetBenefit + subsidy */
+  totalBenefit: number;
+  /** 청년미래적금을 일반해지할 확률. 청년미래에 넣지 않으면 null */
+  policyBreakProbability: number | null;
+  /** 지금 배분과의 확률 차이 (%p) */
+  diffFromBase: number;
+}
+
+/**
+ * 청년미래 0~50만(10만 간격) · 청약 0·10·25만 · 연금저축 0·10·20·30·50만 중 합이 월 저축액 이하인 배분을 모두 계산.
+ * 지원금은 목표 시점까지라 /simulate의 risks.policySaving.expectedSubsidy(48개월)와 다를 수 있다.
+ */
+export interface RecommendResult {
+  monthlySaving: number;
+  /** 계산한 배분 수 */
+  evaluated: number;
+  /** 지금 입력의 배분 */
+  current: AllocationOption;
+  /** 목표 달성 수가 가장 많은 배분 (같으면 totalBenefit이 큰 쪽) */
+  bestProbability: AllocationOption;
+  /** totalBenefit이 가장 큰 배분. 단 목표 달성 확률이 지금보다 2%p 넘게 줄지 않는 것 중에서 */
+  bestBenefit: AllocationOption;
+  /** 고른 규칙 (화면에 그대로) */
+  rule: string;
+}
+
+// ===== POST /api/reports (v1.7) =====
+
+export interface ReportRequest {
+  input: SimulationInput;
+  /** 0~3개. 보내면 comparison에 /compare와 같은 줄이 들어간다 */
+  plans?: PlanRequest[];
+  /** null 또는 20261007만 */
+  seed?: number | null;
+}
+
+/**
+ * 리포트 한 장에 들어갈 숫자 전부. 각 칸은 다른 API 결과 그대로다
+ * (전망 · 위험 · 원인 · 세금 = /simulate, levers = /reverse 상위 3개, comparison = /compare, parameters = /meta).
+ * PDF는 서버가 만들지 않는다. 화면이 인쇄용으로 그리고 브라우저 인쇄(PDF로 저장)를 쓴다.
+ */
+export interface ReportResult {
+  /** 서울 시각 "YYYY-MM-DDTHH:mm:ss" */
+  generatedAt: string;
+  seed: number;
+  modelVersion: string;
+  startMonth: YearMonth;
+  inputSummary: ValidateSummary;
+  headline: string;
+  goal: GoalResult;
+  forecast: {
+    checkpoints: Checkpoint[];
+    deterministicAtGoal: number;
+  };
+  risks: SimulateResult["risks"];
+  causes: Causes;
+  tax: TaxResult;
+  levers: Lever[];
+  /** plans를 안 보내면 빈 목록. 첫 줄은 '지금 계획' */
+  comparison: ComparePlanResult[];
+  parameters: MetaParameter[];
+  warnings: ApiWarning[];
+  disclaimer: string;
+}
+
 // ===== GET /api/meta =====
 
 /** A 법령·제도 / B 공공통계 직접 / C 공공통계를 모델로 변환 / D 보정 / E 가정 */
@@ -336,9 +464,12 @@ export interface MetaParameter {
   key: string;
   label: string;
   value: string;
-  grade: EvidenceGrade;
+  /** 두 등급이 섞이면 "D·E"처럼 온다 */
+  grade: EvidenceGrade | (string & {});
   source: string;
   asOf: string | null;
+  /** params.json에서 이 값이 있는 곳 (예: "params.unemp.exit_m") */
+  paths?: string[];
 }
 
 export interface MetaResult {
@@ -348,7 +479,8 @@ export interface MetaResult {
   horizonMonths: number;
   /** 사용자가 바꿀 수 있는 입력. 지금은 일반 적금 금리 하나 */
   editableInputs: string[];
-  gradeLegend?: Partial<Record<EvidenceGrade, string>>;
+  /** 등급 글자(A~E) → 뜻 */
+  gradeLegend?: Record<string, string>;
   parameters: MetaParameter[];
   validation?: Record<string, string>;
 }

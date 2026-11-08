@@ -8,16 +8,33 @@ function golden(key: string): SimulationInputDraft {
   return structuredClone(goldenCaseByKey(key)!.input) as SimulationInputDraft;
 }
 
-describe("정답 파일", () => {
-  it("8개 케이스, 결과 모양", () => {
-    expect(GOLDEN.cases.map((c) => c.key)).toEqual(["S1", "S2", "S3", "E1", "E2", "E3", "E4", "E5"]);
+describe("정답 파일 (v1.7)", () => {
+  it("11개 케이스, 결과 모양", () => {
+    expect(GOLDEN.cases.map((c) => c.key)).toEqual(["S1", "S2", "S3", "E1", "E2", "E3", "E4", "E5", "T1", "T2", "T3"]);
     expect(GOLDEN.seed).toBe(20261007);
     expect(GOLDEN.paths).toBe(2000);
     for (const c of GOLDEN.cases) {
       expect(c.simulate.bands).toHaveLength(121);
       expect(c.simulate.checkpoints.map((p) => p.afterMonths)).toEqual([12, 36, 60, 120]);
       expect(c.compare.plans[0].isBase).toBe(true);
+      // v1.7에서 생긴 응답
+      expect(c.simulate.tax?.allocation).toBeDefined();
+      expect(c.compare.plans[0].taxNetBenefit).toBe(c.simulate.tax?.netBenefit);
+      expect(c.recommend.current.allocation).toEqual(c.simulate.tax?.allocation);
     }
+  });
+
+  it("T1~T3은 세금 칸이 들어간 입력", () => {
+    const t1 = goldenCaseByKey("T1")!;
+    expect(t1.input.expenses.monthlyRent).toBe(500_000);
+    expect(t1.simulate.tax).toMatchObject({ refundTotal: 4_320_332, netBenefit: 4_276_235 });
+    // T3: 배분 합(65만)이 월 저축액(55만)보다 커서 뒤 상품(연금저축)을 줄였다
+    expect(goldenCaseByKey("T3")!.simulate.tax?.allocation).toEqual({
+      policyMonthly: 300_000,
+      housingMonthly: 200_000,
+      pensionMonthly: 50_000,
+      generalMonthly: 0,
+    });
   });
 
   it("S1은 명세 예시와 같다", () => {
@@ -30,9 +47,29 @@ describe("정답 파일", () => {
 });
 
 describe("같은 입력 찾기 (엔진이 쓰는 값으로)", () => {
-  it("각 케이스는 자기 자신을 찾는다 (8개 모두 다른 입력)", () => {
+  it("각 케이스는 자기 자신을 찾는다 (11개 모두 다른 입력)", () => {
     for (const c of GOLDEN.cases) expect(findGoldenCase(c.input)?.golden.key).toBe(c.key);
-    expect(new Set(GOLDEN.cases.map((c) => engineKey(c.input))).size).toBe(8);
+    expect(new Set(GOLDEN.cases.map((c) => engineKey(c.input))).size).toBe(11);
+  });
+
+  it("T1 = S1 + 그중 월세 50만 원 + 배분 (청년미래 30만 · 청약 10만 · 연금저축 10만)", () => {
+    const input = structuredClone(examplesData.examples[0].input) as SimulationInputDraft;
+    input.expenses!.monthlyRent = 500_000;
+    input.savingPlan = { ...input.savingPlan, policyMonthly: 300_000, housingMonthly: 100_000, pensionMonthly: 100_000 };
+    expect(findGoldenCase(input)?.golden.key).toBe("T1");
+  });
+
+  it("비워 둔 v1.7 칸은 서버 기본값으로 채워 비교한다", () => {
+    const input = golden("S1");
+    input.person!.homelessHouseholder = true;
+    input.expenses!.monthlyRent = 0;
+    // 청년미래를 비우면 min(월 저축액, 50만 원) = 50만, 청약 · 연금저축은 0
+    input.savingPlan = { ...input.savingPlan, policyMonthly: 500_000, housingMonthly: 0, pensionMonthly: 0 };
+    expect(findGoldenCase(input)?.golden.key).toBe("S1");
+
+    const withGross = golden("S1");
+    withGross.income!.annualGrossSalary = 40_000_000;
+    expect(findGoldenCase(withGross)).toBeNull();
   });
 
   it("백엔드 /examples의 S1~S3(기본값이 채워진 모양)도 같은 케이스", () => {

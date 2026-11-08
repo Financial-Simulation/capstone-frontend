@@ -22,6 +22,8 @@ export const ENDPOINTS = [
   "compare",
   "reverse",
   "robust",
+  "recommend",
+  "reports",
   "meta",
 ] as const;
 
@@ -39,6 +41,8 @@ export const ENDPOINT_LABELS: Record<Endpoint, string> = {
   compare: "POST /compare",
   reverse: "POST /reverse",
   robust: "POST /robust · GET /robust/{jobId}",
+  recommend: "POST /allocations/recommend",
+  reports: "POST /reports",
   meta: "GET /meta",
 };
 

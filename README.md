@@ -26,7 +26,7 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 - 설정(백엔드 주소 · 목업 스위치)은 아무것도 안 해도 기본값으로 돌아가요. 바꿀 때만 `.env.local`을 만들어 그 줄만 적어요.
   항목과 기본값은 `.env.example`, 코드에서 읽는 곳은 `src/config/env.ts` 하나예요.
 - 붙었는지 확인: `localhost:3000/dev` → API 점검 `전부 실행` (기본이 전부 real이에요).
-  11/8 v1.7 백엔드 기준 14개 중 13개 기대대로이고, 근거·파라미터(meta)만 점검 기준이 v1.6(모델 1.6 · 근거 11개)이라 달라요(실제는 모델 1.7 · 근거 15개).
+  v1.7 백엔드면 17개가 모두 기대대로예요 (세금 · 배분 추천 · 리포트 포함). v1.6 백엔드(GitHub main)에 붙이면 v1.7 점검 4개(세금 · 배분 추천 · 리포트 · meta)가 실패해요.
 - 브라우저는 `localhost:3000/api/*`만 부르고, 개발 서버가 `localhost:8080/api/*`로 넘겨요 (`next.config.ts`의 rewrites).
   백엔드에 CORS 설정이 없어도 붙는 이유예요. 백엔드 주소를 바꾸려면 `.env.local`에 `BACKEND_URL=…`을 적고 `npm run dev`를 다시 켜요.
 - 백엔드가 꺼져 있으면 "백엔드가 응답하지 않아요"가 나와요. 백엔드 없이 화면만 보려면 `.env.local`에 `NEXT_PUBLIC_API_MODE=all-mock`을 적거나 `/dev`에서 `전부 mock`을 눌러요.
@@ -61,8 +61,8 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 2. `.env.local`의 `NEXT_PUBLIC_API_MODE`: 예) `all-mock`, `robust=mock`, `all-mock,validate=real` (dev 서버를 다시 켜야 적용돼요)
 3. `/dev` 화면의 스위치: 이 브라우저에만 저장돼요 (`localStorage`의 `apiMode.dev`)
 
-mock은 팀 정답 파일(`src/mocks/data/analysis_golden.json`, `engine/analysis_golden.json`을 줄인 복사본)에서 **입력이 같은 케이스**(S1~S3, E1~E5)를 돌려줘요.
-'같은 입력'은 엔진이 쓰는 값으로 비교해요. 이름, 합계로/항목별로 같은 입력 방식 차이, 비워 둔 기본값(금리 등)은 같은 것으로 봐요.
+mock은 팀 정답 파일(`src/mocks/data/analysis_golden.json`, v1.7 `engine/analysis_golden.json`을 줄인 복사본)에서 **입력이 같은 케이스**(예시 S1~S3 · 경계 E1~E5 · 세금 T1~T3, 11개)를 돌려줘요.
+'같은 입력'은 엔진이 쓰는 값으로 비교해요. 이름, 합계로/항목별로 같은 입력 방식 차이, 비워 둔 기본값(금리 · 무주택 세대주 · 상품별 배분 등)은 같은 것으로 봐요.
 맞는 케이스가 없으면 S1 결과를 주고 `exact: false`로 표시해요. 화면은 `ApiResult.source`가 `"mock"`인지로 목업 배지를 띄우면 돼요.
 seed가 같아서 실제 API의 숫자도 정답 파일과 똑같아야 해요. `/dev`의 API 점검으로 바로 확인돼요.
 
@@ -88,6 +88,12 @@ try {
 | `GOAL4001` · `GOAL4002` | 목표 시점 칸 (`goal.targetDate`) |
 | `EVENT4001` · `EVENT4002` · `EVENT4004` | 문제가 있는 예정된 일 카드 (`events[1]`). 서버가 몇 번째인지 안 알려 줘서 입력에서 다시 찾아요 |
 | 그 밖의 오류 · 네트워크 · 백엔드 꺼짐 | 화면 위 안내 |
+
+v1.7에서 생긴 것 (타입은 `src/lib/types`):
+
+- API: `api.recommendAllocation({ input })` 배분 자동 추천, `api.report({ input, plans })` 리포트 한 장의 숫자 (PDF는 화면이 인쇄로 만들어요)
+- 입력(모두 선택): `income.annualGrossSalary` 세전 연봉 · `expenses.monthlyRent` 그중 월세 · `person.homelessHouseholder` 무주택 세대주 · `savingPlan.policyMonthly / housingMonthly / pensionMonthly` 상품별 배분
+- 응답: `/simulate`의 `tax`(돌려받는 세금 · 낸 세금 · 순이득 · 실제 배분), `/compare` 줄마다 `medianAtGoal` · `taxNetBenefit` · `allocation`. v1.6 백엔드에는 없어서 선택(?) 칸이에요.
 
 ## 입력 저장
 
@@ -181,7 +187,7 @@ src/
   config/
     env.ts             환경 설정을 읽는 곳 (백엔드 주소 · API 주소 · 목업 스위치, 목록과 기본값은 .env.example)
   lib/                 여러 기능이 같이 쓰는 것
-    types/             SimulationInput · ApiResponse · ValidateResponse · 결과 타입
+    types/             SimulationInput · ApiResponse · ValidateResponse · 결과 타입 (v1.7)
     api/               fetch 래퍼 · API 함수 · 오류 → 칸 · mock/real 스위치
     rules.ts           입력 규칙과 오류 문장 (백엔드 SimulationInput.java와 같게)
     form.ts            화면까지의 입력 · 오류 키

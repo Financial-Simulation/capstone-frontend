@@ -78,6 +78,25 @@ describe("validate 목업", () => {
     expect(data.warnings.map((w) => w.code)).toContain("INFO_POLICY_INELIGIBLE");
   });
 
+  it("v1.7 T2 (세전 6,500만 원): 가입은 되지만 지원금 없음 안내, 배분을 떼고 남는 돈이 일반 적금", async () => {
+    const { data } = await ok(mocks.validate({ step: "ALL", input: input("T2") }));
+    expect(data.policySaving).toEqual({ eligible: true, reason: null, policyMonthly: 500_000, generalMonthly: 0 });
+    expect(data.warnings.map((w) => w.code)).toContain("INFO_POLICY_NO_MATCH");
+  });
+
+  it("v1.7 세전 연봉을 넣으면 그 값으로 판정 (실수령액으로 추정하지 않음)", async () => {
+    const rich = input("S1");
+    rich.income.annualGrossSalary = 80_000_000;
+    const { data } = await ok(mocks.validate({ input: rich }));
+    expect(data.policySaving).toMatchObject({ eligible: false, policyMonthly: 0, generalMonthly: 500_000 });
+    expect(data.policySaving?.reason).toContain("7,500만 원");
+
+    const partial = input("S1");
+    partial.savingPlan = { ...partial.savingPlan, policyMonthly: 200_000, housingMonthly: 100_000 };
+    const split = await ok(mocks.validate({ input: partial }));
+    expect(split.data.policySaving).toEqual({ eligible: true, reason: null, policyMonthly: 200_000, generalMonthly: 200_000 });
+  });
+
   it("칸 오류 → COMMON400, 여러 칸 오류 → 그 코드", async () => {
     const tooYoung = await fail(mocks.validate({ input: { person: { age: 17 } } }));
     expect(tooYoung.code).toBe("COMMON400");
@@ -100,6 +119,17 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
     expect(match).toMatchObject({ caseKey: "S1", exact: true });
     expect(data.goal.probability).toBe(58);
     expect(data.warnings).toEqual([]);
+  });
+
+  it("simulate v1.7: T1 → 세금 (돌려받는 세금 · 순이득 · 실제 배분)", async () => {
+    const { data, match } = await ok(mocks.simulate({ input: input("T1") }));
+    expect(match).toMatchObject({ caseKey: "T1", exact: true });
+    expect(data.goal.probability).toBe(66.1);
+    expect(data.tax).toMatchObject({
+      refundTotal: 4_320_332,
+      netBenefit: 4_276_235,
+      allocation: { policyMonthly: 300_000, housingMonthly: 100_000, pensionMonthly: 100_000, generalMonthly: 0 },
+    });
   });
 
   it("10월에 S1 값을 넣어도 정답 S1 (날짜만 한 달 앞)", async () => {
@@ -170,6 +200,12 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
     );
     expect(match.exact).toBe(true);
     expect(data.plans.map((p) => p.name)).toEqual(["지금 계획", "A", "B", "C"]);
+    // v1.7: 줄마다 목표 시점 중간값 · 세금 순이득 · 배분
+    for (const plan of data.plans) {
+      expect(plan.medianAtGoal).toEqual(expect.any(Number));
+      expect(plan.taxNetBenefit).toEqual(expect.any(Number));
+      expect(plan.allocation?.policyMonthly).toEqual(expect.any(Number));
+    }
   });
 
   it("compare: 계획이 0개 · 4개면 SIM4003", async () => {
@@ -183,6 +219,39 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
     const at80 = await ok(mocks.reverse({ input: input("S1"), targetProbability: 80 }));
     expect(at80.match.exact).toBe(false);
     expect(at80.data.targetProbability).toBe(70);
+  });
+
+  it("recommend v1.7: S1 → 가능성 최대 · 혜택 최대 배분", async () => {
+    const { data, match } = await ok(mocks.recommend({ input: example("S1") }));
+    expect(match).toMatchObject({ caseKey: "S1", exact: true });
+    expect(data.evaluated).toBe(39);
+    expect(data.bestBenefit).toMatchObject({
+      allocation: { policyMonthly: 100_000, housingMonthly: 100_000, pensionMonthly: 300_000, generalMonthly: 0 },
+      probability: 57.4,
+      totalBenefit: 1_951_429,
+    });
+
+    const changed = input("S2");
+    changed.income.monthlyNetIncome += 10_000;
+    expect((await ok(mocks.recommend({ input: changed }))).match).toMatchObject({ caseKey: "S1", exact: false });
+  });
+
+  it("reports v1.7: simulate · reverse 상위 3개 · compare · meta를 한 장으로", async () => {
+    const plans = [{ name: "변동지출 85만 원", adjustments: { monthlyVariableExpense: 850_000 } }];
+    const { data, match } = await ok(mocks.report({ input: input("S1"), plans, seed: null }));
+    expect(match).toMatchObject({ caseKey: "S1", exact: true });
+    expect(data).toMatchObject({ seed: 20261007, modelVersion: "1.7", startMonth: "2026-11" });
+    expect(data.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+    expect(data.headline).toContain("4,440만 원");
+    expect(data.tax).toEqual(goldenCaseByKey("S1")!.simulate.tax);
+    expect(data.levers.length).toBeLessThanOrEqual(3);
+    expect(data.comparison.map((p) => p.name)).toEqual(["지금 계획", "변동지출 85만 원"]);
+    expect(data.parameters).toHaveLength(15);
+    expect(data.disclaimer).toContain("투자 권유가 아니에요");
+
+    const noPlans = await ok(mocks.report({ input: input("S1") }));
+    expect(noPlans.data.comparison).toEqual([]);
+    expect((await fail(mocks.report({ input: input("S1"), seed: 1 }))).fieldErrors).toHaveProperty(["seed"]);
   });
 
   it("robust: 시작 → 진행 중 → 3초 뒤 끝", async () => {
@@ -206,8 +275,9 @@ describe("고정값 목업", () => {
     expect((await ok(mocks.presets())).data.presets).toHaveLength(5);
     expect((await ok(mocks.examples())).data.examples.map((e) => e.key)).toEqual(["S1", "S2", "S3"]);
     const meta = (await ok(mocks.meta())).data;
+    expect(meta.modelVersion).toBe("1.7");
     expect(meta.paths).toBe(2000);
-    expect(meta.parameters).toHaveLength(11);
+    expect(meta.parameters).toHaveLength(15);
   });
 
   it("대출 상환액은 목업이 없다", async () => {

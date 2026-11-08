@@ -1,6 +1,6 @@
 /**
- * API 공통 모양과 지금 백엔드에 있는 4개 API의 요청·응답 (10/21 구현분).
- * 기준: capstone-backend의 DTO(…/dto/*.java), 노션 「선빈 api 명세서」.
+ * API 공통 모양과 입력 쪽 API(입력 검사 · 대출 상환액 · 프리셋 · 예시)의 요청·응답.
+ * 기준: v1.7 합본 백엔드의 DTO(…/dto/*.java)와 API_CHANGES_v1.7.md, 노션 「선빈 api 명세서」.
  */
 import type {
   EventType,
@@ -50,7 +50,9 @@ export type WarningCode =
   | "WARN_EXPENSE_OVER_INCOME"
   | "WARN_MONTHLY_SHORTFALL"
   | "WARN_GOAL_ALREADY_MET"
-  | "INFO_POLICY_INELIGIBLE";
+  | "INFO_POLICY_INELIGIBLE"
+  /** v1.7: 청년미래적금 가입은 되지만 총급여가 정부 지원금 기준을 넘음 */
+  | "INFO_POLICY_NO_MATCH";
 
 /** 계산을 막지 않는 경고·안내 (Warning.java) */
 export interface ApiWarning {
@@ -89,7 +91,7 @@ export interface PolicySavingAllocation {
   reason: string | null;
   /** 청년미래적금으로 넣는 돈 */
   policyMonthly: number;
-  /** 일반 적금으로 넣는 돈 */
+  /** 일반 적금으로 넣는 돈 (v1.7: 청년미래 → 청약 → 연금저축을 떼고 남는 돈) */
   generalMonthly: number;
 }
 
