@@ -15,26 +15,42 @@ JDK 24 같은 다른 버전만 있으면 백엔드가 "languageVersion=21을 찾
 npm install
 npm run dev                  # http://localhost:3000
 
-# 터미널 2: 백엔드
-cd <백엔드 폴더>/capstone-backend
+# 터미널 2: 백엔드 (DB · 환경변수 없이 받아서 켜기만 하면 돼요)
+git clone https://github.com/Financial-Simulation/capstone-backend.git   # 처음 한 번
+cd capstone-backend
 chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 ./gradlew bootRun            # http://localhost:8080, 'Started CapstoneServerApplication'이 보이면 켜진 것
 ```
 
-- 백엔드는 지금 **v1.7 합본**(세금 · 배분 추천 · 리포트 포함, 조민석 11/1)을 기준으로 개발해요. 팀 GitHub의 `capstone-backend` main에는 아직 v1.7이 합쳐지지 않았어요.
+- 백엔드는 **v1.7**(세금 · 배분 추천 · 리포트 포함, 조민석 11/1)이 있어야 해요. 받은 백엔드가 v1.7인지는 아래 '붙었는지 확인'(17개가 기대대로)으로 봐요.
   bootRun 진행 표시가 `80% EXECUTING`에서 멈춘 것처럼 보이는 건 서버가 켜져 있다는 뜻이에요. 끌 때는 Ctrl+C.
 - 설정(백엔드 주소 · 목업 스위치)은 아무것도 안 해도 기본값으로 돌아가요. 바꿀 때만 `.env.local`을 만들어 그 줄만 적어요.
   항목과 기본값은 `.env.example`, 코드에서 읽는 곳은 `src/config/env.ts` 하나예요.
 - 붙었는지 확인: `localhost:3000/dev` → API 점검 `전부 실행` (기본이 전부 real이에요).
   v1.7 백엔드면 17개가 모두 기대대로예요 (세금 · 배분 추천 · 리포트 포함). v1.6 백엔드(GitHub main)에 붙이면 v1.7 점검 4개(세금 · 배분 추천 · 리포트 · meta)가 실패해요.
 - 브라우저는 `localhost:3000/api/*`만 부르고, 개발 서버가 `localhost:8080/api/*`로 넘겨요 (`next.config.ts`의 rewrites).
-  백엔드에 CORS 설정이 없어도 붙는 이유예요. 백엔드 주소를 바꾸려면 `.env.local`에 `BACKEND_URL=…`을 적고 `npm run dev`를 다시 켜요.
+  그래서 백엔드의 CORS 설정(`app.cors.allowed-origins`)은 건드리지 않아도 돼요. 백엔드 주소를 바꾸려면 `.env.local`에 `BACKEND_URL=…`을 적고 `npm run dev`를 다시 켜요.
+  배포 빌드(`npm run build`)는 빌드할 때 이 주소가 정해져서, 바꾸면 다시 빌드해요.
+  CORS는 브라우저가 백엔드 주소를 바로 부를 때만 필요해요 (예: 예전 데모를 `localhost:5173`에서 띄울 때 → `./gradlew bootRun --args='--app.cors.allowed-origins=http://localhost:5173'`).
 - 백엔드가 꺼져 있으면 "백엔드가 응답하지 않아요"가 나와요. 백엔드 없이 화면만 보려면 `.env.local`에 `NEXT_PUBLIC_API_MODE=all-mock`을 적거나 `/dev`에서 `전부 mock`을 눌러요.
   계산이 5초 넘게 걸리면 '평소보다 오래 걸리고 있어요'가 붙고, 개발 서버의 프록시는 30초 안에 답이 없으면 끊어요 → '백엔드가 응답하지 않아요' + '다시 계산'.
 - 개발 서버에서는 화면 맨 아래 **개발 점검** 링크(`/dev`)로 API를 하나씩 보내 볼 수 있어요.
   `정답 파일 대조` → `전부 대조`: 정답 파일의 11개 입력을 기본 결과 · 미리보기 · 계획 비교 · 역산 · 배분 추천 API에 그대로 보내고 응답이 정답과 똑같은지 표로 봐요.
   v1.7 백엔드면 `같음 55 / 55`예요. 다르면 아래에 처음 다른 곳(예: `plans[1].probability: 정답 70.5 · 응답 70.4`)이 나와요.
   배포 빌드(`npm run build` · Vercel)에서는 `/dev`가 '없는 화면'이고 링크도 숨겨요. 배포 빌드에서도 열려면 `.env.local`에 `NEXT_PUBLIC_DEV_TOOLS=1`을 적고 다시 빌드해요.
+
+## 발표 데모 (노트북)
+
+발표는 노트북 한 대에서 백엔드와 프론트를 같이 켜서 해요. DB · 외부 서비스 · 인터넷이 필요 없어서 발표장 와이파이와 상관없어요 (글꼴도 컴퓨터에 있는 것을 써요).
+
+1. 전날: JDK 21 · Node 20.9 이상, 이 폴더에서 `npm install`. 개발 서버로 `/dev` → API 점검 `전부 실행`이 17개 모두 기대대로인지(백엔드 v1.7) 확인해요.
+2. 터미널 1: 백엔드 `./gradlew bootRun`
+3. 터미널 2: 프론트 `npm run build && npm start` → http://localhost:3000
+   개발 서버보다 빠르고 화면을 처음 열 때 멈칫하지 않아요. 백엔드 주소는 빌드할 때 정해져요 (기본 localhost:8080).
+4. 발표 직전: 내 결과와 예시 결과(`/example`)를 한 번씩 열어 둬요. 백엔드를 켜고 첫 계산이 가장 느려요.
+5. 예비: 백엔드 없이 도는 목업 사이트 https://capstone-flax-eight.vercel.app (정답 파일 숫자, '목업' 표시)와 녹화 영상
+
+화면 점검 목록은 [`docs/qa-checklist.md`](docs/qa-checklist.md)예요.
 
 ## VS Code
 
@@ -50,9 +66,7 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 ## 협업 (git)
 
 - 저장소: https://github.com/Financial-Simulation/capstone-frontend
-- `main`에는 PR로만 합쳐요. 작업은 브랜치에서 해요: `feat/…`(기능) · `fix/…` · `refactor/…` · `docs/…`
-- 커밋 메시지는 백엔드와 같은 형식이에요: `feat: …` · `fix: …` · `refactor: …` · `docs: …` · `test: …` · `chore: …`
-- PR을 올리기 전에 `npm run check`(타입 · 린트 · 테스트)가 통과해야 해요.
+- 브랜치 · 커밋 · PR 규칙과 코드 규칙은 [`CONTRIBUTING.md`](CONTRIBUTING.md)에 있어요. `main`에는 PR로만 합치고, PR 전에 `npm run check`가 통과해야 해요.
 - 리팩터링 · v1.7 반영 계획과 단계별 진행 상태: [`docs/refactor-plan.md`](docs/refactor-plan.md)
 
 ## 목업 스위치 (엔드포인트별 mock / real)
@@ -261,4 +275,5 @@ npm run build   # 배포용 빌드
 - 10/28 (완료): 00 시작 모달 · 입력 화면 01-1 · 01-2 · 02 · 03 (validate · repayment-preview · presets 실제 연동)
 - 10/29 (완료): 결과 04 · 예시 결과 04-E · 계산 중 · 계산 실패 · 주요 원인 · 이렇게 바꿔 보세요 · 발표용 캡처와 녹화
 - 10/30 (금): 중간 데모
-- 11/8 (0단계): VS Code 설정 · 팀 저장소 연결 · v1.7 백엔드로 실제 API 확인. 이후 단계는 `docs/refactor-plan.md`
+- 11/8 (0~5단계): VS Code · 팀 저장소, 하드코딩 걷어내기, 실제 API · 정답 파일 대조, v1.7 입력 · 세금 · 어디에 얼마나 · 가능성 범위 · 계획 바꿔 보기, 리포트
+- ~11/27 (6단계): 검증 · PR · 발표 데모 준비. 자세한 건 `docs/refactor-plan.md`
