@@ -2,7 +2,8 @@
 
 /**
  * 결과 본문 (04 결과 · 04-E 예시 결과가 같이 쓴다). 서버 응답을 그대로 보여 주기만 한다.
- *  첫 문장(headline) · 범위 그래프 · 1·3·5·10년 표 · 위험 카드 · 적금을 처음 깬 이유 · 이렇게 바꿔 보세요 · 입력값과 가정
+ *  첫 문장(headline) · 범위 그래프 · 1·3·5·10년 표 · 위험 카드 · 세금(04만) · 적금을 처음 깬 이유 · 이렇게 바꿔 보세요 · 입력값과 가정
+ * v1.7 블록(세금 등)은 내 계획에만 붙인다. 04-E 예시는 example로 부르고 붙이지 않는다 (명세서 v1.7 9.1).
  */
 import { useState, type ReactNode } from "react";
 import { api, type ApiResult } from "@/lib/api";
@@ -16,6 +17,7 @@ import {
   probabilityLevel,
   reverseLines,
   riskCards,
+  taxView,
   yearlyRows,
   type QuantileRow,
   type RiskCard,
@@ -27,6 +29,7 @@ import { formatDuration, formatYearMonth, monthsBetween } from "@/lib/year-month
 import type { MockMatch } from "@/mocks/handlers";
 import { Badge } from "@/components/ui";
 import { BandChart, BandLegend } from "./BandChart";
+import { TaxSection } from "./TaxSection";
 
 export interface ResultData {
   sim: ApiResult<SimulateResult>;
@@ -37,8 +40,18 @@ export interface ResultData {
   policyReason: string | null;
 }
 
-export function ResultView({ data, input }: { data: ResultData; input: SimulationInputDraft }) {
+export function ResultView({
+  data,
+  input,
+  example = false,
+}: {
+  data: ResultData;
+  input: SimulationInputDraft;
+  /** 04-E 예시 결과: v1.7 블록(세금 등)을 붙이지 않는다 */
+  example?: boolean;
+}) {
   const result = data.sim.data;
+  const tax = example ? null : taxView(result, input);
   return (
     <div className="space-y-6">
       <Hero result={result} />
@@ -46,6 +59,7 @@ export function ResultView({ data, input }: { data: ResultData; input: Simulatio
       <ChartCard result={result} input={input} />
       <CheckpointTable result={result} />
       <RiskGrid cards={riskCards(result, data.policyReason)} />
+      {tax && <TaxSection view={tax} />}
       <CauseBars result={result} />
       <Levers data={data} />
       <Assumptions result={result} input={input} />

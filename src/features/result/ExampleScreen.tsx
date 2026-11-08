@@ -104,7 +104,7 @@ export function ExampleScreen() {
         <Failed error={result.error} onRetry={result.retry} canFixInput={false} />
       ) : (
         <>
-          <ResultView data={result.data} input={example?.input ?? {}} />
+          <ResultView data={result.data} input={example?.input ?? {}} example />
           <div className="flex flex-wrap items-center gap-3 border-t border-line pt-6">
             <Button disabled title="11/6에 만들어요">
               계획 바꿔 보기 (11/6)

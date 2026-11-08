@@ -69,6 +69,12 @@ export const YOUTH_FUTURE_SAVING = {
   monthlyLimit: 500_000,
   /** 세전 연봉을 비우면 총급여 = 월 실수령액 × 12 ÷ 이 값 */
   netToGrossRatio: 0.88,
+  /**
+   * 우대형(중소기업 재직 · 신규 취업, 정부 지원금 두 배) 안내 기준 총급여 (원). 중소기업 여부를 묻지 않아서
+   * 계산하지 않고 안내만 한다 (명세서 v1.7 12.1). 출처: tax-addon.js 세금 블록 안내 문장 (v1.7)
+   */
+  preferentialIncumbentMaxGrossSalary: 36_000_000,
+  preferentialNewHireMaxGrossSalary: 60_000_000,
 } as const;
 
 /** 시뮬레이션 경로 수. 결과가 오기 전 안내 문장에만 쓴다 (결과 화면은 /simulate의 paths). 출처: params.json simulation.paths */
@@ -88,4 +94,19 @@ export const RENT_TAX_CREDIT = {
   highRate: 17,
   lowRate: 15,
   lowerRateFromGross: 55_000_000,
+} as const;
+
+/** 이자소득세율 % (소득세 14% + 지방소득세 1.4%). 세금 카드 설명에만 쓴다. 출처: params.json policy.tax · housing.tax (0.154) */
+export const INTEREST_INCOME_TAX_RATE = 15.4;
+
+/** 주택청약종합저축. 세금 안내 문장에만 쓴다. 출처: params.json housing (claw_months 60), /meta의 housingSubscription */
+export const HOUSING_SUBSCRIPTION = {
+  /** 가입 후 이 햇수 안에 깨면 그동안 받은 소득공제분을 다시 낸다 */
+  clawbackYears: 5,
+} as const;
+
+/** 연금저축. 세금 안내 문장에만 쓴다. 출처: params.json pension (early_tax 0.165), /meta의 pensionSaving */
+export const PENSION_SAVING = {
+  /** 55세 전에 꺼내면 내는 기타소득세 % */
+  earlyWithdrawalTaxRate: 16.5,
 } as const;
