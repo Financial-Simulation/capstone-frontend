@@ -12,11 +12,13 @@ import { useState } from "react";
 import { MoneyInput } from "@/components/MoneyInput";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Badge, Button, Card } from "@/components/ui";
+import { API_MODE_SPEC } from "@/config/env";
 import {
   API_BASE,
-  DEFAULT_MODE,
+  DEFAULT_SOURCE,
   ENDPOINTS,
   ENDPOINT_LABELS,
+  ENV_MODE,
   formatModeSpec,
   parseModeSpec,
   type ApiSource,
@@ -31,9 +33,6 @@ import type { SimulationInputDraft } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
 import { ApiChecks } from "./ApiChecks";
 import { EXAMPLE_S1 } from "./checks";
-
-/** .env.local의 NEXT_PUBLIC_API_MODE (빌드할 때 들어간 값) */
-const ENV_SPEC = process.env.NEXT_PUBLIC_API_MODE ?? "";
 
 export function DevPanel({ backendUrl }: { backendUrl: string }) {
   return (
@@ -79,15 +78,14 @@ function ScreenLinks() {
 function ModeSwitch() {
   const hydrated = useHydrated();
   const { override, modes, setOverride } = useApiModes();
-  const env = parseModeSpec(ENV_SPEC);
 
   const decidedBy = (endpoint: Endpoint) =>
-    override[endpoint] ? "이 브라우저" : env[endpoint] ? ".env.local" : "기본값";
+    override[endpoint] ? "이 브라우저" : ENV_MODE[endpoint] ? ".env.local" : "기본값";
 
   const setEndpoint = (endpoint: Endpoint, value: ApiSource) => {
     const next: ModeMap = { ...override };
-    // 기본값(.env 포함)과 같으면 덮어쓴 값을 지워 둔다
-    if (value === (env[endpoint] ?? DEFAULT_MODE[endpoint])) delete next[endpoint];
+    // 기본값(.env.local 포함)과 같으면 덮어쓴 값을 지워 둔다
+    if (value === (ENV_MODE[endpoint] ?? DEFAULT_SOURCE)) delete next[endpoint];
     else next[endpoint] = value;
     setOverride(next);
   };
@@ -100,8 +98,8 @@ function ModeSwitch() {
         <div>
           <h2 className="text-lg font-bold">목업 스위치</h2>
           <p className="mt-1 text-sm text-ink-soft">
-            mock은 정답 파일(analysis_golden.json)에서 입력이 같은 케이스를 돌려줘요. 바꾸면 바로 모든 화면에 적용되고, 이
-            브라우저에만 저장돼요.
+            기본은 전부 real이에요. mock은 정답 파일(analysis_golden.json)에서 입력이 같은 케이스를 돌려줘서, 백엔드 없이
+            화면만 볼 때 써요. 바꾸면 바로 모든 화면에 적용되고, 이 브라우저에만 저장돼요.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -168,7 +166,7 @@ function ModeSwitch() {
       </div>
       <p className="mt-3 text-xs text-muted">
         이 브라우저: <code>{hydrated ? spec || "(없음)" : ""}</code> · .env.local NEXT_PUBLIC_API_MODE:{" "}
-        <code>{ENV_SPEC || "(없음)"}</code>
+        <code>{API_MODE_SPEC || "(없음)"}</code>
       </p>
     </Card>
   );

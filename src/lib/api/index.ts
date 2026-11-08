@@ -3,7 +3,8 @@ export { ApiError, isApiError, toFieldErrors, formErrorMessage, fieldError, norm
 export {
   ENDPOINTS,
   ENDPOINT_LABELS,
-  DEFAULT_MODE,
+  DEFAULT_SOURCE,
+  ENV_MODE,
   MODE_OVERRIDE_KEY,
   currentModes,
   formatModeSpec,

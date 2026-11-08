@@ -2,18 +2,18 @@
  * fetch 래퍼: ApiResponse { isSuccess, code, message, result }를 풀어서 result만 돌려주고,
  * 실패하면 ApiError를 던진다.
  *
- * 주소는 같은 출처의 /api/* 이다. 개발 중에는 next.config.ts의 rewrites가 백엔드(BACKEND_URL)로 넘긴다.
- * (백엔드에 CORS 설정이 없어서 브라우저가 바로 :8080을 부르면 막힌다)
+ * 주소는 같은 출처의 /api/* 이다 (src/config/env.ts의 API_BASE). 개발 중에는 next.config.ts의 rewrites가
+ * 백엔드(BACKEND_URL)로 넘긴다. 백엔드에 CORS 설정이 없어서 브라우저가 백엔드 주소를 바로 부르면 막힌다.
  */
+import { API_BASE } from "@/config/env";
 import type { ApiResponse, FieldErrorMap } from "@/lib/types";
 import { ApiError } from "./errors";
 
-/** 다른 주소의 백엔드를 직접 부를 때만 바꾼다 (그때는 백엔드에서 CORS를 열어야 한다) */
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api";
+export { API_BASE };
 
 export const CLIENT_MESSAGES = {
   network: "서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.",
-  backendUnavailable: "백엔드가 응답하지 않아요. 백엔드(localhost:8080)가 켜져 있는지 확인해 주세요.",
+  backendUnavailable: "백엔드가 응답하지 않아요. 백엔드 서버가 켜져 있는지 확인해 주세요.",
   badResponse: "서버 응답을 읽지 못했어요. 잠시 후 다시 시도해 주세요.",
   unknown: "요청을 처리하지 못했어요.",
 } as const;

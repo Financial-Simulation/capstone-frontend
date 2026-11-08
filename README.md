@@ -13,7 +13,6 @@ JDK 24 같은 다른 버전만 있으면 백엔드가 "languageVersion=21을 찾
 ```bash
 # 터미널 1: 프론트 (이 폴더)
 npm install
-cp .env.example .env.local   # 처음 한 번만 (선택, 안 해도 기본값으로 돌아가요)
 npm run dev                  # http://localhost:3000
 
 # 터미널 2: 백엔드
@@ -24,11 +23,13 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 
 - 백엔드는 지금 **v1.7 합본**(세금 · 배분 추천 · 리포트 포함, 조민석 11/1)을 기준으로 개발해요. 팀 GitHub의 `capstone-backend` main에는 아직 v1.7이 합쳐지지 않았어요.
   bootRun 진행 표시가 `80% EXECUTING`에서 멈춘 것처럼 보이는 건 서버가 켜져 있다는 뜻이에요. 끌 때는 Ctrl+C.
-- 붙었는지 확인: `localhost:3000/dev` → 목업 스위치 `전부 real` → API 점검 `전부 실행`.
+- 설정(백엔드 주소 · 목업 스위치)은 아무것도 안 해도 기본값으로 돌아가요. 바꿀 때만 `.env.local`을 만들어 그 줄만 적어요.
+  항목과 기본값은 `.env.example`, 코드에서 읽는 곳은 `src/config/env.ts` 하나예요.
+- 붙었는지 확인: `localhost:3000/dev` → API 점검 `전부 실행` (기본이 전부 real이에요).
   11/8 v1.7 백엔드 기준 14개 중 13개 기대대로이고, 근거·파라미터(meta)만 점검 기준이 v1.6(모델 1.6 · 근거 11개)이라 달라요(실제는 모델 1.7 · 근거 15개).
 - 브라우저는 `localhost:3000/api/*`만 부르고, 개발 서버가 `localhost:8080/api/*`로 넘겨요 (`next.config.ts`의 rewrites).
-  백엔드에 CORS 설정이 없어도 붙는 이유예요. 백엔드 주소를 바꾸려면 `.env.local`의 `BACKEND_URL`을 고치고 `npm run dev`를 다시 켜요.
-- 백엔드가 꺼져 있으면 real API는 "백엔드가 응답하지 않아요"라고 나오고, 목업 API는 그대로 돌아가요.
+  백엔드에 CORS 설정이 없어도 붙는 이유예요. 백엔드 주소를 바꾸려면 `.env.local`에 `BACKEND_URL=…`을 적고 `npm run dev`를 다시 켜요.
+- 백엔드가 꺼져 있으면 "백엔드가 응답하지 않아요"가 나와요. 백엔드 없이 화면만 보려면 `.env.local`에 `NEXT_PUBLIC_API_MODE=all-mock`을 적거나 `/dev`에서 `전부 mock`을 눌러요.
 - 개발 서버에서는 화면 맨 아래 **개발 점검** 링크(`/dev`)로 API를 하나씩 보내 볼 수 있어요.
 
 ## VS Code
@@ -52,21 +53,18 @@ chmod +x gradlew             # 압축(zip)으로 받은 폴더면 처음 한 번
 
 ## 목업 스위치 (엔드포인트별 mock / real)
 
-| API | 기본값 (10/27) | 백엔드 |
-| --- | --- | --- |
-| `POST /inputs/validate` · `POST /loans/repayment-preview` · `GET /events/presets` · `GET /examples` | real | 있음 |
-| `POST /simulate` · `/simulate/preview` · `/compare` · `/reverse` · `/robust` · `GET /meta` | mock | 아직 없음 |
+기본은 **전부 실제 API(real)**예요 (11/8부터, 백엔드에 API가 다 있어요). 목업(mock)은 테스트와 오프라인(백엔드 없이 화면만 볼 때)용이에요.
 
 정하는 곳은 세 군데이고, 아래로 갈수록 먼저 적용돼요.
 
-1. `src/lib/api/mode.ts`의 `DEFAULT_MODE`: 백엔드에 API가 붙으면 그 줄만 `"real"`로 바꿔서 커밋해요.
-2. `.env.local`의 `NEXT_PUBLIC_API_MODE`: 예) `all-mock`, `simulate=real`, `all-mock,validate=real` (dev 서버를 다시 켜야 적용돼요)
+1. 기본값: 전부 real (`src/lib/api/mode.ts`의 `DEFAULT_SOURCE`)
+2. `.env.local`의 `NEXT_PUBLIC_API_MODE`: 예) `all-mock`, `robust=mock`, `all-mock,validate=real` (dev 서버를 다시 켜야 적용돼요)
 3. `/dev` 화면의 스위치: 이 브라우저에만 저장돼요 (`localStorage`의 `apiMode.dev`)
 
 mock은 팀 정답 파일(`src/mocks/data/analysis_golden.json`, `engine/analysis_golden.json`을 줄인 복사본)에서 **입력이 같은 케이스**(S1~S3, E1~E5)를 돌려줘요.
 '같은 입력'은 엔진이 쓰는 값으로 비교해요. 이름, 합계로/항목별로 같은 입력 방식 차이, 비워 둔 기본값(금리 등)은 같은 것으로 봐요.
 맞는 케이스가 없으면 S1 결과를 주고 `exact: false`로 표시해요. 화면은 `ApiResult.source`가 `"mock"`인지로 목업 배지를 띄우면 돼요.
-seed가 같아서 백엔드 `/simulate`가 붙으면 숫자가 정답 파일과 똑같아야 해요. `/dev`에서 real로 바꿔 돌려 보면 바로 확인돼요.
+seed가 같아서 실제 API의 숫자도 정답 파일과 똑같아야 해요. `/dev`의 API 점검으로 바로 확인돼요.
 
 ## API 쓰는 법
 
@@ -141,7 +139,7 @@ try {
 
 ## 정해 둔 것 (10/28 회의 '정할 것', 팀 확인 전 임시)
 
-1. 결과 화면은 `/simulate`가 붙을 때까지 정답 파일 목업 + '목업' 안내. 붙으면 `DEFAULT_MODE`의 simulate · reverse · meta만 `"real"`로.
+1. 결과 화면은 실제 API로 계산한다 (11/8, 기본을 전부 real로). 목업으로 볼 때만 '목업' 안내를 띄운다.
 2. 입력 검사 순서는 지금 구현대로(필수 칸은 프론트, '다음'마다 `/inputs/validate`). 오류 문장은 서버 것을 그대로 쓴다.
 3. CORS는 같은 도메인 프록시(Next 서버의 rewrites, `BACKEND_URL`). `next start`에서도 확인했다.
 4. 계산기 결과는 선이 아니라 두 점(목표 시점 · 10년 뒤). 월별 값이 API에 생기면 선으로 바꾼다.
@@ -161,6 +159,8 @@ src/
                        step-form.tsx ('다음' 흐름 · 경고 모달 · 0.3초 디바운스 API)
                        start-flow.tsx ('시뮬레이션 시작하기' · '내 정보로 시작하기'의 이어서 하기 모달)
     result/            ResultView(결과 본문) · BandChart(범위 그래프) · StateViews(계산 중 · 실패) · use-result
+  config/
+    env.ts             환경 설정을 읽는 곳 (백엔드 주소 · API 주소 · 목업 스위치, 목록과 기본값은 .env.example)
   lib/
     types/             SimulationInput · ApiResponse · ValidateResponse · 결과 타입
     api/               fetch 래퍼 · API 함수 · 오류 → 칸 · mock/real 스위치

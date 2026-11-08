@@ -1,14 +1,16 @@
 /**
  * 엔드포인트별 목업(mock) / 실제(real) 스위치.
  *
+ * 기본은 전부 실제 API다 (백엔드에 API가 다 있다). 목업은 테스트와 오프라인(백엔드 없이 화면만 볼 때)용이다.
+ *
  * 정하는 순서 (뒤가 이긴다)
- *  1. DEFAULT_MODE: 백엔드에 이미 있는 API는 real, 아직 없는 계산 API는 mock (10/27 기준)
- *  2. .env.local의 NEXT_PUBLIC_API_MODE (빌드할 때 들어감)
+ *  1. 기본값: 전부 real (DEFAULT_SOURCE)
+ *  2. .env.local의 NEXT_PUBLIC_API_MODE (src/config/env.ts가 읽음, 빌드할 때 들어감)
  *  3. 브라우저 localStorage의 apiMode.dev (개발 점검 화면 /dev 에서 바꿈, 새로고침해도 유지)
  *
- * 형식: "all-mock" · "all-real" · "simulate=real,preview=mock" (쉼표로 여러 개, all-*와 섞어도 됨)
- * /simulate가 백엔드에 붙으면 DEFAULT_MODE의 simulate만 'real'로 바꾸면 된다.
+ * 형식: "all-mock" · "all-real" · "simulate=mock,preview=mock" (쉼표로 여러 개, all-*와 섞어도 됨)
  */
+import { API_MODE_SPEC } from "@/config/env";
 
 export const ENDPOINTS = [
   "validate",
@@ -40,18 +42,8 @@ export const ENDPOINT_LABELS: Record<Endpoint, string> = {
   meta: "GET /meta",
 };
 
-export const DEFAULT_MODE: Record<Endpoint, ApiSource> = {
-  validate: "real",
-  repaymentPreview: "real",
-  presets: "real",
-  examples: "real",
-  simulate: "mock",
-  preview: "mock",
-  compare: "mock",
-  reverse: "mock",
-  robust: "mock",
-  meta: "mock",
-};
+/** 아무 데서도 정하지 않은 엔드포인트는 실제 API */
+export const DEFAULT_SOURCE: ApiSource = "real";
 
 export const MODE_OVERRIDE_KEY = "apiMode.dev";
 
@@ -85,7 +77,8 @@ export function formatModeSpec(map: ModeMap): string {
     .join(",");
 }
 
-const ENV_MODE = parseModeSpec(process.env.NEXT_PUBLIC_API_MODE);
+/** .env.local의 NEXT_PUBLIC_API_MODE로 정한 엔드포인트 (빌드할 때 정해짐) */
+export const ENV_MODE: ModeMap = parseModeSpec(API_MODE_SPEC);
 
 export function readModeOverride(): ModeMap {
   if (typeof window === "undefined") return {};
@@ -109,7 +102,7 @@ export function writeModeOverride(map: ModeMap | null): void {
 }
 
 export function resolveMode(endpoint: Endpoint, override: ModeMap = readModeOverride()): ApiSource {
-  return override[endpoint] ?? ENV_MODE[endpoint] ?? DEFAULT_MODE[endpoint];
+  return override[endpoint] ?? ENV_MODE[endpoint] ?? DEFAULT_SOURCE;
 }
 
 /** 지금 적용되는 전체 표 (개발 점검 화면용) */

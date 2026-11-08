@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_MODE, ENDPOINTS, currentModes, formatModeSpec, parseModeSpec, resolveMode } from "./mode";
+import { DEFAULT_SOURCE, ENDPOINTS, currentModes, formatModeSpec, parseModeSpec, resolveMode } from "./mode";
+
+const ALL_REAL = Object.fromEntries(ENDPOINTS.map((e) => [e, "real"]));
 
 describe("목업 스위치", () => {
-  it("기본값: 백엔드에 있는 4개만 real", () => {
-    const real = ENDPOINTS.filter((e) => DEFAULT_MODE[e] === "real");
-    expect(real).toEqual(["validate", "repaymentPreview", "presets", "examples"]);
+  it("기본값: 전부 실제 API (목업은 .env.local · /dev에서 켤 때만)", () => {
+    expect(DEFAULT_SOURCE).toBe("real");
+    expect(currentModes({})).toEqual(ALL_REAL);
   });
 
   it("all-mock · all-real", () => {
@@ -34,9 +36,9 @@ describe("목업 스위치", () => {
   });
 
   it("브라우저에서 바꾼 값이 기본값보다 먼저", () => {
-    expect(resolveMode("simulate", {})).toBe("mock");
-    expect(resolveMode("simulate", { simulate: "real" })).toBe("real");
-    expect(resolveMode("validate", { simulate: "real" })).toBe("real");
-    expect(currentModes({})).toEqual(DEFAULT_MODE);
+    expect(resolveMode("simulate", {})).toBe("real");
+    expect(resolveMode("simulate", { simulate: "mock" })).toBe("mock");
+    expect(resolveMode("validate", { simulate: "mock" })).toBe("real");
+    expect(currentModes(parseModeSpec("all-mock"))).toEqual(Object.fromEntries(ENDPOINTS.map((e) => [e, "mock"])));
   });
 });
