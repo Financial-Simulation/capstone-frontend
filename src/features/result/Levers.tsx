@@ -19,7 +19,7 @@ export function Levers({ data }: { data: ResultData }) {
             하나씩 바꿔 같은 미래 {data.sim.data.paths.toLocaleString("ko-KR")}개로 다시 계산했어요. 가능성이 많이 오르는 순서예요.
           </p>
           <ol className="mt-3 divide-y divide-line">
-            {leverRows(reverse).map((lever) => (
+            {leverRows(reverse.levers).map((lever) => (
               <li key={lever.type} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
                 <span className="font-medium">{lever.label}</span>
                 {lever.flat ? (

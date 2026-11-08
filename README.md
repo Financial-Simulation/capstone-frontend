@@ -139,6 +139,7 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 | `/input/goal` | 02 이름 · 금액 · 연월(기준 달부터 12~120개월만) · 입력 요약 | 완료 (validate) |
 | `/input/scenario` | 03 기본 상황 + 예정된 일 5종 (켜면 연월 · 금액 칸) | 완료 (presets · validate) |
 | `/result` | 04 결과 확인 · 계산 중 · 계산 실패 · 입력 없음 / 덜 끝남 · 가능성 범위 · 세금 · 어디에 얼마나 · 계획 바꿔 보기(04-2) | 완료 (simulate · reverse · validate · robust · compare · recommend · preview) |
+| `/report` | 04 리포트 저장: 한 장짜리 리포트 → '인쇄 · PDF로 저장'(브라우저 인쇄) | 완료 (reports · meta) |
 | `/example` | 04-E 예시 결과 (S1~S3, '예시 데이터로 계산한 결과예요' 배너) | 완료 (examples · simulate) |
 | `/dev` | 개발 점검 (목업 스위치 · API 점검 · 정답 파일 대조 · 저장값 · 금액 칸). 개발 서버에서만 (배포 빌드는 `NEXT_PUBLIC_DEV_TOOLS=1`일 때만) | 완료 |
 
@@ -163,6 +164,8 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 - 가능성 범위 (`features/result/RobustSection.tsx` · `robust.ts`): '가능성 범위 계산'을 누르면 `POST /robust`로 작업을 맡기고 1.5초마다 `GET /robust/{jobId}`로 진행률을 물어 범위를 띠로 그린다 (`lib/api/robust.ts`의 `runRobust`, 계획 바꿔 보기도 같이 쓴다). 화면을 떠나면 묻기를 멈춘다.
 - 계획 바꿔 보기 04-2 (`features/plan/PlanSection.tsx` · `plan.ts`): 맨 아래 '계획 바꿔 보기'로 펼친다. 값 7개(변동 · 고정지출, 월 저축액, 버틸 금액, 목표 금액 · 시점, 비상금 먼저)를 바꿔 '바꾼 계획 미리보기'(`POST /simulate/preview`), 최대 3개 담아(`simPlans.v1`) '담은 계획 비교'(`POST /compare`), '가정을 바꿔도 결론이 같은지 보기'(`POST /robust`의 plans). 내 입력은 바꾸지 않는다.
 - 어디에 얼마나 (v1.7, `features/tax/AllocationSection.tsx` · `allocation.ts`): 월 저축액을 청년미래 · 청약 · 연금저축으로 나눠 '지금 계획과 비교하기'(`POST /compare`), '가장 좋은 배분 찾기'(`POST /allocations/recommend`). '이 배분으로'는 내 입력의 배분(`savingPlan.policyMonthly` 등)을 바꾸고 결과 전체를 다시 계산한다. 04-E 예시에는 붙이지 않는다.
+- 리포트 저장 (`features/report/ReportScreen.tsx` · `ReportPaper.tsx` · `report.ts`): 위쪽 '리포트 저장' → `/report`. 내 입력과 담은 계획(`simPlans.v1`)으로 `POST /reports`를 불러 한 장으로 그린다 (입력 요약 · 목표 · 앞으로 모을 돈 · 위험 · 세금 · 개선 포인트 · 담은 계획 비교 · 근거 · 유의사항).
+  '인쇄 · PDF로 저장'은 브라우저 인쇄(대상: 'PDF로 저장')이고, 인쇄할 때는 머리글 · 버튼을 빼고(`print:hidden`) A4로 나온다 (`globals.css`의 `@page`). 04-E 예시에는 없다.
 - 서버 값을 화면용으로 고르는 건 `features/result/result.ts`(계산하지 않고 고르기 · 문장 · 색 기준만, 세금 · 배분 · 계획은 그 폴더의 `tax.ts` · `allocation.ts` · `plan.ts`), 눈금과 그래프 위 라벨 자리(선 · 점 · 다른 라벨과 겹치지 않는 곳, 없으면 계산기 라벨은 생략)는 `features/result/chart.ts`.
 - 그래프: 범위(아래 10%~위 10%)는 옅은 면, 중간값 · 최악의 경우(하위 5%)는 선, 목표 금액 · 목표 시점은 점선, 계산기 결과는 두 점(목표 시점 · 10년 뒤), 예정된 일은 입력의 occurDate로 ◆.
   마우스 · 손가락 · 화살표 키(Shift는 1년씩, Home/End)로 달을 옮기면 툴팁, '표로 보기'에 해마다 값.
@@ -218,7 +221,9 @@ src/
     plan/              계획 바꿔 보기 04-2 (04 결과에만)
       PlanSection · plan.ts
                        값 7개 미리보기 · 담은 계획 비교 · 결론이 같은지
-    (report 폴더는 5단계에 생겨요)
+    report/            리포트 저장 (/report, 인쇄 · PDF)
+      ReportScreen · ReportPaper · report.ts · use-report
+                       버튼 줄 · 한 장짜리 리포트(인쇄용) · 보여 줄 값 고르기 · POST /reports
   components/
     Header.tsx         모든 화면 위 머리글 · 아래 꼬리글
     ui/                공용 부품: index.tsx(Button · LinkButton · Card · FormSection · Badge)

@@ -59,3 +59,15 @@
     outline-offset: 2px;
   }
 }
+
+/* 인쇄 (리포트 저장 → 'PDF로 저장'): A4, 흰 바탕. 머리글 · 꼬리글 · 버튼은 print:hidden으로 뺀다 */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  body {
+    background: #fff;
+  }
+}

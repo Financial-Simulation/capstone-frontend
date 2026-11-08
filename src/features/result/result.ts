@@ -222,8 +222,9 @@ export interface LeverRow {
   flat: boolean;
 }
 
-export function leverRows(reverse: ReverseResult): LeverRow[] {
-  return reverse.levers.map((lever) => ({
+/** /reverse의 levers (리포트는 상위 3개) */
+export function leverRows(levers: Lever[]): LeverRow[] {
+  return levers.map((lever) => ({
     type: lever.type,
     label: lever.label,
     probability: formatPercent(lever.probability),

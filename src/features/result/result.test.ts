@@ -99,7 +99,7 @@ describe("주요 원인 · 이렇게 바꿔 보세요", () => {
   });
 
   it("S1 levers: 변동지출 10만 원 줄이기 → 70.5% (+12.5%p), 저축 줄이기는 거의 차이 없음", () => {
-    const rows = leverRows(golden("S1").reverse);
+    const rows = leverRows(golden("S1").reverse.levers);
     expect(rows[0]).toMatchObject({ label: "변동지출을 월 10만 원 줄이기", probability: "70.5%", diff: "+12.5%p", flat: false });
     expect(rows.at(-1)).toMatchObject({ type: "REDUCE_SAVING", flat: true });
   });

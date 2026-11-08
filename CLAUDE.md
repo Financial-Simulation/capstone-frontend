@@ -15,6 +15,7 @@
 - 입력 화면은 `useStepForm(step)`(features/input/step-form.tsx)의 `error(path)` · `touch(path)` · `update`와 `<Field path=…>`를 써요. '다음' 흐름(필수 칸 → validate → 경고 모달)은 거기에 있어요.
 - 입력을 고칠 때는 `src/features/input/draft.ts`의 순수 함수(`patch`, `setLoanType` …)를 `update((prev) => …)`에 넘겨요.
 - 음수 기호는 U+2212 "−", 반올림은 HALF_UP (구현 명세 7.6).
-- 결과 화면은 `useResult(input)`(features/result/use-result.ts)으로 부르고, 본문 블록 순서는 `ResultView.tsx`, 보여 줄 값은 블록마다 순수 함수에서 고른다 (새로 계산하지 않음): 결과 `features/result/result.ts` · 가능성 범위 `robust.ts` · 세금 `features/tax/tax.ts` · 어디에 얼마나 `features/tax/allocation.ts` · 계획 바꿔 보기 `features/plan/plan.ts`. 그래프 눈금 · 라벨 자리는 `features/result/chart.ts`. 숫자 카드는 `<StatCard>`, 비교 표의 차이는 `compareDiff` + `<DiffText>`(components/ui/Stat.tsx).
+- 결과 화면은 `useResult(input)`(features/result/use-result.ts)으로 부르고, 본문 블록 순서는 `ResultView.tsx`, 보여 줄 값은 블록마다 순수 함수에서 고른다 (새로 계산하지 않음): 결과 `features/result/result.ts` · 가능성 범위 `robust.ts` · 세금 `features/tax/tax.ts` · 어디에 얼마나 `features/tax/allocation.ts` · 계획 바꿔 보기 `features/plan/plan.ts` · 리포트 `features/report/report.ts`. 그래프 눈금 · 라벨 자리는 `features/result/chart.ts`. 숫자 카드는 `<StatCard>`, 비교 표의 차이는 `compareDiff` + `<DiffText>`(components/ui/Stat.tsx).
+- 리포트(`/report`)는 브라우저 인쇄로 PDF를 만든다. 인쇄에서 빼야 하는 것(머리글 · 버튼 · 안내)에는 `print:hidden`, 종이 크기는 `globals.css`의 `@page`.
 - 04-E 예시 결과는 예시 값을 `simInput.v1`에 넣지 않는다 (내 입력을 바꾸지 않음). 입력을 시작하는 버튼은 `useStartFlow()`(features/input/start-flow.tsx)를 쓰고, 저장값은 그 모달에서 '새로 시작'을 고를 때만 지운다.
 - 확인: `npm run check` (타입·린트·테스트), `npm run build`. 화면에서는 `/dev`의 API 점검.

@@ -30,6 +30,7 @@ export const STEPS: readonly StepDef[] = [
 export const ROUTES = {
   start: "/",
   result: "/result",
+  report: "/report",
   example: "/example",
   dev: "/dev",
 } as const;

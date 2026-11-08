@@ -4,6 +4,7 @@
  * 04 결과 확인. 이 브라우저에 저장된 입력(simInput.v1)으로 계산한다.
  * 입력이 덜 끝났으면 그 화면으로 안내하고, 계산 중에는 '계산 중'(5초가 넘으면 오래 걸린다는 안내),
  * 실패하면 입력 칸 문제는 '입력 확인하기', 백엔드 꺼짐 · 서버 오류는 '다시 계산'.
+ * 위쪽 '리포트 저장'은 같은 입력 · 담은 계획으로 한 장짜리 리포트(/report)를 연다 (인쇄 · PDF).
  */
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -16,7 +17,7 @@ import { Button, LinkButton } from "@/components/ui";
 import { setAllocation } from "@/features/input/draft";
 import { useHydrated, useSimInput } from "@/lib/hooks";
 import { readiness } from "./result";
-import { STEPS, stepByKey } from "@/lib/steps";
+import { ROUTES, STEPS, stepByKey } from "@/lib/steps";
 import type { SimulationInput } from "@/lib/types";
 
 export function ResultScreen() {
@@ -63,6 +64,9 @@ export function ResultScreen() {
           </LinkButton>
           <LinkButton href={stepByKey("EVENTS").href} variant="secondary" size="sm">
             시나리오 바꾸기
+          </LinkButton>
+          <LinkButton href={ROUTES.report} variant="secondary" size="sm">
+            리포트 저장
           </LinkButton>
           <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>
             새로 시작
