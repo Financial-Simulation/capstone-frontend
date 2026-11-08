@@ -6,9 +6,10 @@
  * 실패하면 입력 칸 문제는 '입력 확인하기', 백엔드 꺼짐 · 서버 오류는 '다시 계산'.
  */
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { ResultView } from "./ResultView";
+import { PLAN_SECTION_ID } from "./PlanSection";
 import { Computing, Empty, Failed, NotReady } from "./StateViews";
 import { useResult } from "./use-result";
 import { Button, LinkButton } from "@/components/ui";
@@ -23,6 +24,14 @@ export function ResultScreen() {
   const hydrated = useHydrated();
   const { input, update, clear } = useSimInput();
   const [confirmReset, setConfirmReset] = useState(false);
+  // '계획 바꿔 보기'(04-2): 맨 아래 버튼으로 펼치고 그 자리로 옮긴다
+  const [planOpen, setPlanOpen] = useState(false);
+  const [planScroll, setPlanScroll] = useState(0);
+  useEffect(() => {
+    if (planScroll === 0) return;
+    document.getElementById(PLAN_SECTION_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("plan-title")?.focus({ preventScroll: true });
+  }, [planScroll]);
 
   const ready = hydrated ? readiness(input) : null;
   const result = useResult(ready?.ok && input ? (input as SimulationInput) : null);
@@ -69,11 +78,18 @@ export function ResultScreen() {
           update((prev) => setAllocation(prev, allocation));
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
+        planOpen={planOpen}
+        onPlanClose={() => setPlanOpen(false)}
       />
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-6">
-        <Button disabled title="11/6에 만들어요">
-          계획 바꿔 보기 (11/6)
+        <Button
+          onClick={() => {
+            setPlanOpen(true);
+            setPlanScroll((n) => n + 1);
+          }}
+        >
+          계획 바꿔 보기
         </Button>
         <LinkButton href={STEPS[0].href} variant="secondary">
           입력 수정

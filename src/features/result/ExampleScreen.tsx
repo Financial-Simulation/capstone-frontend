@@ -106,9 +106,6 @@ export function ExampleScreen() {
         <>
           <ResultView data={result.data} input={example?.input ?? {}} example />
           <div className="flex flex-wrap items-center gap-3 border-t border-line pt-6">
-            <Button disabled title="11/6에 만들어요">
-              계획 바꿔 보기 (11/6)
-            </Button>
             <Button variant="secondary" onClick={start}>
               내 정보로 시작하기
             </Button>

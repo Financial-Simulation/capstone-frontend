@@ -126,7 +126,7 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 | `/input/assets` | 01-2 현금 · 예적금 · 대출 카드(상환액 미리보기) · 월 저축액 · 매달 남는 돈 · 청년미래적금 안내 · 선택 입력 | 완료 (validate · repayment-preview) |
 | `/input/goal` | 02 이름 · 금액 · 연월(기준 달부터 12~120개월만) · 입력 요약 | 완료 (validate) |
 | `/input/scenario` | 03 기본 상황 + 예정된 일 5종 (켜면 연월 · 금액 칸) | 완료 (presets · validate) |
-| `/result` | 04 결과 확인 · 계산 중 · 계산 실패 · 입력 없음 / 덜 끝남 | 완료 (simulate · reverse · validate) |
+| `/result` | 04 결과 확인 · 계산 중 · 계산 실패 · 입력 없음 / 덜 끝남 · 가능성 범위 · 세금 · 어디에 얼마나 · 계획 바꿔 보기(04-2) | 완료 (simulate · reverse · validate · robust · compare · recommend · preview) |
 | `/example` | 04-E 예시 결과 (S1~S3, '예시 데이터로 계산한 결과예요' 배너) | 완료 (examples · simulate) |
 | `/dev` | 개발 점검 (목업 스위치 · API 점검 · 정답 파일 대조 · 저장값 · 금액 칸) | 완료 |
 
@@ -146,9 +146,10 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
   같은 입력 · 같은 seed면 같은 결과라서 화면에 다시 들어오면 다시 불러도 숫자가 같다 (`features/result/use-result.ts`).
 - 상태: 입력 없음 → 시작 안내 / 필수 칸이 빠짐 → 그 단계로 가기 / 계산 중('취소' → 03, 5초가 넘으면 '평소보다 오래 걸리고 있어요') /
   계산 실패: 서버가 입력 칸을 문제 삼으면 '입력 확인하기'(그 단계로), 백엔드 꺼짐 · 응답 없음 · 서버 오류면 '다시 계산'만 (`result.ts`의 `failure`). 04-E는 늘 '다시 계산'.
-- 본문 순서 (`features/result/ResultView.tsx`): 첫 문장(API의 headline 그대로) → 가능성 범위(04만) → 범위 그래프 → 1·3·5·10년 표 → 위험 카드 5장 → 세금 → 어디에 얼마나(둘 다 04만) → 적금을 처음 깬 이유 4가지(합 100%) → 이렇게 바꿔 보세요 → 내 입력값과 적용 가정(펼치면 `GET /meta`).
+- 본문 순서 (`features/result/ResultView.tsx`): 첫 문장(API의 headline 그대로) → 가능성 범위(04만) → 범위 그래프 → 1·3·5·10년 표 → 위험 카드 5장 → 세금 → 어디에 얼마나(둘 다 04만) → 적금을 처음 깬 이유 4가지(합 100%) → 이렇게 바꿔 보세요 → 계획 바꿔 보기(펼쳤을 때) → 내 입력값과 적용 가정(펼치면 `GET /meta`).
 - 세금 (v1.7, `TaxSection.tsx` · `result.ts`의 `taxView`): `/simulate`의 `tax`로 카드 5장(매년 · 목표 시점까지 돌려받는 세금, 낸 이자소득세, 해지로 다시 낸 세금, 순이득)과 안내 문장. 금액은 모두 서버 값이고, 화면에서 세율표로 계산하지 않는다 ('내는 세금 연 약 n만 원'은 서버가 값을 주면 넣는다). 04-E 예시에는 붙이지 않는다.
 - 가능성 범위 (`RobustSection.tsx` · `robust.ts`): '가능성 범위 계산'을 누르면 `POST /robust`로 작업을 맡기고 1.5초마다 `GET /robust/{jobId}`로 진행률을 물어 범위를 띠로 그린다. 화면을 떠나면 묻기를 멈춘다.
+- 계획 바꿔 보기 04-2 (`PlanSection.tsx` · `plan.ts`): 맨 아래 '계획 바꿔 보기'로 펼친다. 값 7개(변동 · 고정지출, 월 저축액, 버틸 금액, 목표 금액 · 시점, 비상금 먼저)를 바꿔 '바꾼 계획 미리보기'(`POST /simulate/preview`), 최대 3개 담아(`simPlans.v1`) '담은 계획 비교'(`POST /compare`), '가정을 바꿔도 결론이 같은지 보기'(`POST /robust`의 plans). 내 입력은 바꾸지 않는다.
 - 어디에 얼마나 (v1.7, `AllocationSection.tsx` · `allocation.ts`): 월 저축액을 청년미래 · 청약 · 연금저축으로 나눠 '지금 계획과 비교하기'(`POST /compare`), '가장 좋은 배분 찾기'(`POST /allocations/recommend`). '이 배분으로'는 내 입력의 배분(`savingPlan.policyMonthly` 등)을 바꾸고 결과 전체를 다시 계산한다. 04-E 예시에는 붙이지 않는다.
 - 서버 값을 화면용으로 고르는 건 `features/result/result.ts`(계산하지 않고 고르기 · 문장 · 색 기준만), 눈금과 그래프 위 라벨 자리(선 · 점 · 다른 라벨과 겹치지 않는 곳, 없으면 계산기 라벨은 생략)는 `features/result/chart.ts`.
 - 그래프: 범위(아래 10%~위 10%)는 옅은 면, 중간값 · 최악의 경우(하위 5%)는 선, 목표 금액 · 목표 시점은 점선, 계산기 결과는 두 점(목표 시점 · 10년 뒤), 예정된 일은 입력의 occurDate로 ◆.

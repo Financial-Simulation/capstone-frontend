@@ -3,8 +3,8 @@
 /**
  * 결과 본문 (04 결과 · 04-E 예시 결과가 같이 쓴다). 서버 응답을 그대로 보여 주기만 한다.
  *  첫 문장(headline) · 가능성 범위 · 범위 그래프 · 1·3·5·10년 표 · 위험 카드 · 세금 · 어디에 얼마나 · 적금을 처음 깬 이유 ·
- *  이렇게 바꿔 보세요 · 입력값과 가정
- * v1.7 블록(가능성 범위 · 세금 · 어디에 얼마나)은 내 계획에만 붙인다. 04-E 예시는 example로 부르고 붙이지 않는다 (명세서 v1.7 9.1).
+ *  이렇게 바꿔 보세요 · 계획 바꿔 보기(펼쳤을 때) · 입력값과 가정
+ * v1.7 블록(가능성 범위 · 세금 · 어디에 얼마나 · 계획 바꿔 보기)은 내 계획에만 붙인다. 04-E 예시는 example로 부르고 붙이지 않는다 (명세서 v1.7 9.1).
  */
 import { useState, type ReactNode } from "react";
 import { api, type ApiResult } from "@/lib/api";
@@ -33,6 +33,7 @@ import { BandChart, BandLegend } from "./BandChart";
 import { TaxSection } from "./TaxSection";
 import { AllocationSection } from "./AllocationSection";
 import { RobustSection } from "./RobustSection";
+import { PlanSection } from "./PlanSection";
 import type { MonthlyAllocation } from "./allocation";
 
 export interface ResultData {
@@ -49,6 +50,8 @@ export function ResultView({
   input,
   example = false,
   onApplyAllocation,
+  planOpen = false,
+  onPlanClose,
 }: {
   data: ResultData;
   input: SimulationInputDraft;
@@ -56,6 +59,9 @@ export function ResultView({
   example?: boolean;
   /** '어디에 얼마나'의 '이 배분으로' (04 결과에서만: 내 입력의 배분을 바꾼다) */
   onApplyAllocation?: (allocation: MonthlyAllocation) => void;
+  /** '계획 바꿔 보기'(04-2)를 펼쳤는지. 맨 아래 버튼은 ResultScreen에 있다 */
+  planOpen?: boolean;
+  onPlanClose?: () => void;
 }) {
   const result = data.sim.data;
   const tax = example ? null : taxView(result, input);
@@ -78,6 +84,7 @@ export function ResultView({
       )}
       <CauseBars result={result} />
       <Levers data={data} />
+      {!example && planOpen && onPlanClose && <PlanSection input={input as SimulationInput} onClose={onPlanClose} />}
       <Assumptions result={result} input={input} />
     </div>
   );

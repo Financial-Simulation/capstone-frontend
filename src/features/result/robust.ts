@@ -4,7 +4,7 @@
  */
 import { api } from "@/lib/api";
 import { formatPercent } from "@/lib/format";
-import type { RobustJobResult, SimulationInput } from "@/lib/types";
+import type { PlanRequest, RobustJobResult, SimulationInput } from "@/lib/types";
 
 /** 진행률을 묻는 간격 (명세서 v1.7 9.2) */
 export const ROBUST_POLL_MS = 1_500;
@@ -35,19 +35,22 @@ export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 /**
  * 작업을 맡기고 끝날 때까지 진행률을 묻는다. 화면을 떠나면(signal) 바로 멈춘다.
+ * plans를 보내면 계획마다 결론이 몇 번 유지되는지도 계산한다 ('계획 바꿔 보기').
  * wait · now는 시험에서 바꿔 끼운다.
  */
 export async function runRobust(
   input: SimulationInput,
   options: {
     signal?: AbortSignal;
+    /** 0~3개 */
+    plans?: PlanRequest[];
     onProgress: (progress: number) => void;
     wait?: (ms: number, signal?: AbortSignal) => Promise<void>;
     now?: () => number;
   },
 ): Promise<RobustJobResult> {
-  const { signal, onProgress, wait = sleep, now = () => Date.now() } = options;
-  const start = await api.startRobust({ input, plans: [] }, { signal });
+  const { signal, plans = [], onProgress, wait = sleep, now = () => Date.now() } = options;
+  const start = await api.startRobust({ input, plans }, { signal });
   onProgress(0);
   const deadline = now() + ROBUST_TIMEOUT_MS;
   for (;;) {
