@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { goldenCaseByKey } from "@/mocks/golden";
+import { ApiError, CLIENT_MESSAGES } from "@/lib/api";
 import type { SimulationInputDraft } from "@/lib/types";
 import {
   causeRows,
   checkpointRows,
   eventMarks,
+  failure,
   leverRows,
   probabilityLevel,
   reverseLines,
@@ -121,5 +123,27 @@ describe("예정된 일 표시 (입력의 occurDate)", () => {
       { months: 36, label: "자동차" },
     ]);
     expect(eventMarks({ events: [] })).toEqual([]);
+  });
+});
+
+describe("계산하지 못했을 때 (입력 확인하기 / 다시 계산)", () => {
+  it("입력 칸 오류 → 그 칸이 있는 입력 화면", () => {
+    const common400 = new ApiError("COMMON400", "입력값이 올바르지 않습니다.", 400, { "input.person.age": "나이는 19세 이상이어야 해요." });
+    expect(failure(common400)).toEqual({ kind: "input", step: "BASIC", message: "나이는 19세 이상이어야 해요." });
+    expect(failure(new ApiError("GOAL4001", "목표 시점은 시작 달 이후여야 해요.", 400))).toMatchObject({ kind: "input", step: "GOAL" });
+    expect(failure(new ApiError("EVENT4002", "예정된 일은 시뮬레이션 기간 안이어야 해요.", 400))).toMatchObject({
+      kind: "input",
+      step: "EVENTS",
+    });
+  });
+
+  it("백엔드 꺼짐 · 연결 실패 · 서버 오류 → 다시 계산 (입력 화면으로 보내지 않음)", () => {
+    expect(failure(new ApiError("BACKEND_UNAVAILABLE", CLIENT_MESSAGES.backendUnavailable, 500))).toEqual({
+      kind: "retry",
+      message: CLIENT_MESSAGES.backendUnavailable,
+    });
+    expect(failure(new ApiError("NETWORK", CLIENT_MESSAGES.network, null))).toMatchObject({ kind: "retry" });
+    expect(failure(new ApiError("COMMON500", "서버 에러, 관리자에게 문의 바랍니다.", 500))).toMatchObject({ kind: "retry" });
+    expect(failure(new Error("boom"))).toMatchObject({ kind: "retry", message: expect.stringContaining("다시 시도") });
   });
 });

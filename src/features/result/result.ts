@@ -18,6 +18,7 @@ import type {
   YearMonth,
 } from "@/lib/types";
 import { YOUTH_FUTURE_SAVING } from "@/config/policy";
+import { formErrorMessage, toFieldErrors } from "@/lib/api";
 import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint } from "@/lib/format";
 import { normalizeErrors, stepOfPath } from "@/lib/form";
 import { checkCrossRules, checkFields, checkRequired } from "@/lib/rules";
@@ -299,4 +300,20 @@ export function readiness(input: SimulationInputDraft | null): Readiness {
   const cross = checkCrossRules(input);
   if (cross) return { ok: false, reason: "incomplete", step: CROSS_RULE_STEP[cross.code] ?? "BASIC", message: cross.message };
   return { ok: true };
+}
+
+// ===== 계산하지 못했을 때 =====
+
+export type Failure =
+  /** 서버가 입력 칸을 문제 삼았다 → 그 칸이 있는 입력 화면으로 ('입력 확인하기') */
+  | { kind: "input"; step: StepKey; message: string }
+  /** 백엔드 꺼짐 · 응답 없음 · 서버 오류 → 같은 입력으로 '다시 계산' */
+  | { kind: "retry"; message: string | null };
+
+/** 계산 실패를 화면 안내로. 입력을 고쳐야 하는 오류인지, 다시 시도하면 되는 오류인지 가른다 */
+export function failure(error: unknown): Failure {
+  const fields = toFieldErrors(error);
+  const first = Object.keys(fields)[0];
+  if (first) return { kind: "input", step: stepOfPath(first) ?? "BASIC", message: fields[first] };
+  return { kind: "retry", message: formErrorMessage(error) };
 }

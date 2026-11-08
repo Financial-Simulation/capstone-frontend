@@ -4,8 +4,9 @@
  * 개발 점검 화면 (/dev). 데모 화면이 아니라 우리끼리 확인하는 곳이다.
  *  1. 목업 스위치: 엔드포인트마다 mock / real (이 브라우저에만 저장, 새로고침해도 유지)
  *  2. API 점검: 프록시 → 백엔드, ApiResponse 풀기, 오류 → 칸 오류 변환, 목업 ↔ 정답 파일
- *  3. 저장값: simInput.v1 · simProgress.v1 · simPlans.v1, 단계 표시 미리보기
- *  4. 금액 칸 연습
+ *  3. 정답 파일 대조: 11개 입력 × 5개 API의 응답이 정답 파일과 똑같은지
+ *  4. 저장값: simInput.v1 · simProgress.v1 · simPlans.v1, 단계 표시 미리보기
+ *  5. 금액 칸 연습
  */
 import Link from "next/link";
 import { useState } from "react";
@@ -32,6 +33,7 @@ import { ROUTES, STEPS, finishedSteps } from "@/lib/steps";
 import type { SimulationInputDraft } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
 import { ApiChecks } from "./ApiChecks";
+import { GoldenCompare } from "./GoldenCompare";
 import { EXAMPLE_S1 } from "./checks";
 
 export function DevPanel({ backendUrl }: { backendUrl: string }) {
@@ -49,6 +51,7 @@ export function DevPanel({ backendUrl }: { backendUrl: string }) {
       </div>
       <ModeSwitch />
       <ApiChecks />
+      <GoldenCompare />
       <StorageViewer />
       <MoneyPlayground />
     </div>

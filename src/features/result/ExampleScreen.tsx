@@ -101,7 +101,7 @@ export function ExampleScreen() {
       {!list || result.status === "computing" || result.status === "idle" ? (
         <Computing />
       ) : result.status === "failed" || !result.data ? (
-        <Failed error={result.error} onRetry={result.retry} />
+        <Failed error={result.error} onRetry={result.retry} canFixInput={false} />
       ) : (
         <>
           <ResultView data={result.data} input={example?.input ?? {}} />
