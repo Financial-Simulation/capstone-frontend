@@ -88,6 +88,12 @@ export const YOUTH_FUTURE_SAVING = {
 export const SIMULATION_PATHS = 2_000;
 
 /**
+ * 가능성 범위(/robust)에서 가정값을 바꿔 다시 계산하는 횟수. 계산을 맡기기 전 안내 문장에만 쓴다
+ * (결과는 /robust 응답의 trials). 출처: params.json robust.trials
+ */
+export const ROBUST_TRIALS = 60;
+
+/**
  * 월세 세액공제 (v1.7). 돌려받는 세금은 서버가 연말정산으로 계산하고, 여기 값은 01-1 '그중 월세' 안내 문장에만 쓴다.
  * 출처: 백엔드 engine/YearEndTax.java — 무주택 세대주 · 총급여 8,000만 원 이하면
  *       min(연 월세, 1,000만 원) × 17% (총급여 5,500만 원 초과면 15%). /meta의 yearEndTax(근거 A)
