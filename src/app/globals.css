@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/*
+ * 색은 와이어플로 10/26 수정본에 맞췄다.
+ * bg-canvas · text-ink · border-line · bg-primary 처럼 Tailwind 클래스로 쓴다.
+ */
+@theme {
+  --color-canvas: #f2f3f5;
+  --color-surface: #ffffff;
+  --color-ink: #1e2026;
+  --color-ink-soft: #5b616b;
+  --color-muted: #6b7280;
+  --color-line: #d9dce1;
+  --color-line-strong: #b4b8c0;
+
+  --color-primary: #1559b8;
+  --color-primary-strong: #0f4a9c;
+  --color-primary-soft: #e8f1fd;
+
+  --color-danger: #b42323;
+  --color-danger-line: #d96b6b;
+  --color-danger-soft: #fcecec;
+  --color-warn: #b56a12;
+  --color-warn-line: #e0a050;
+  --color-warn-soft: #fff6ea;
+  --color-info-line: #5b8fd6;
+  --color-system-soft: #f5f8fd;
+  --color-mock: #6a3fd0;
+  --color-mock-soft: #f0eaff;
+
+  /* 달성 가능성 '높음' (70% 이상). 글자에 써도 4.5:1 이상 */
+  --color-good: #17703f;
+  --color-good-line: #5fb383;
+  --color-good-soft: #e9f6ee;
+
+  /* 그래프: 중간값·범위는 primary, 최악의 경우(하위 5%)는 주황 (validate_palette.js 통과) */
+  --color-series-2: #eb6834;
+
+  --font-sans: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* base 층에 둬야 outline-none 같은 유틸리티 클래스가 이긴다 (층 밖 규칙은 유틸리티보다 세다) */
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    word-break: keep-all;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}

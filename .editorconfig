@@ -1,0 +1,13 @@
+# 편집기가 달라도 같은 모양으로 저장되게 (VS Code는 EditorConfig 확장 필요)
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
