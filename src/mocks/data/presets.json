@@ -1,0 +1,68 @@
+{
+  "presets": [
+    {
+      "presetKey": "INDEPENDENCE",
+      "name": "독립",
+      "basis": "가정값, 사용자가 고침",
+      "events": [
+        {
+          "eventType": "MOVE",
+          "deposit": 5000000,
+          "monthlyChange": 450000,
+          "amount": 800000
+        }
+      ]
+    },
+    {
+      "presetKey": "JEONSE_MOVE",
+      "name": "전세 이사",
+      "basis": "가정값, 사용자가 고침",
+      "events": [
+        {
+          "eventType": "MOVE",
+          "deposit": 10000000,
+          "monthlyChange": -300000,
+          "amount": 1500000
+        }
+      ]
+    },
+    {
+      "presetKey": "WEDDING",
+      "name": "결혼 비용",
+      "basis": "가정값, 사용자가 고침",
+      "events": [
+        {
+          "eventType": "ONE_TIME",
+          "amount": 8000000
+        }
+      ]
+    },
+    {
+      "presetKey": "JOB_CHANGE",
+      "name": "이직",
+      "basis": "가정값, 사용자가 고침",
+      "events": [
+        {
+          "eventType": "JOB_CHANGE",
+          "incomeChangeRate": 10.0,
+          "gapMonths": 2
+        }
+      ]
+    },
+    {
+      "presetKey": "CAR",
+      "name": "자동차",
+      "basis": "가정값, 사용자가 고침",
+      "events": [
+        {
+          "eventType": "ONE_TIME",
+          "amount": 5000000
+        },
+        {
+          "eventType": "SPEND_CHANGE",
+          "monthlyChange": 300000
+        }
+      ]
+    }
+  ]
+}

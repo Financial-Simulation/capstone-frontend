@@ -1,0 +1,203 @@
+{
+  "examples": [
+    {
+      "key": "S1",
+      "label": "27세 개발자",
+      "input": {
+        "startMonth": "2026-11",
+        "person": {
+          "age": 27,
+          "careerYears": 2,
+          "employmentType": "REGULAR",
+          "homelessHouseholder": true
+        },
+        "income": {
+          "monthlyNetIncome": 2500000,
+          "annualGrossSalary": null
+        },
+        "expenses": {
+          "fixed": {
+            "inputMode": "TOTAL",
+            "items": [],
+            "total": 950000
+          },
+          "variable": {
+            "inputMode": "TOTAL",
+            "items": [],
+            "total": 950000
+          },
+          "monthlyRent": null
+        },
+        "assets": {
+          "cash": 2000000,
+          "deposits": 0,
+          "investments": 0
+        },
+        "savingPlan": {
+          "monthlySaving": 500000,
+          "generalSavingRate": 3.03,
+          "monthlyInvestment": 0,
+          "emergencyFirstAmount": 0,
+          "policyMonthly": null,
+          "housingMonthly": null,
+          "pensionMonthly": null
+        },
+        "emergency": {
+          "breakThreshold": 500000
+        },
+        "loans": {
+          "hasNoLoan": false,
+          "items": [
+            {
+              "name": "학자금대출",
+              "loanType": "STUDENT",
+              "principal": 12000000,
+              "annualRate": 1.9,
+              "remainingMonths": 96,
+              "repaymentType": "EQUAL_PAYMENT"
+            }
+          ]
+        },
+        "goal": {
+          "name": "5년 뒤 3,000만 원",
+          "targetAmount": 30000000,
+          "targetDate": "2031-11"
+        },
+        "events": []
+      }
+    },
+    {
+      "key": "S2",
+      "label": "24세 첫 직장",
+      "input": {
+        "startMonth": "2026-11",
+        "person": {
+          "age": 24,
+          "careerYears": 0,
+          "employmentType": "REGULAR",
+          "homelessHouseholder": true
+        },
+        "income": {
+          "monthlyNetIncome": 2300000,
+          "annualGrossSalary": null
+        },
+        "expenses": {
+          "fixed": {
+            "inputMode": "TOTAL",
+            "items": [],
+            "total": 850000
+          },
+          "variable": {
+            "inputMode": "TOTAL",
+            "items": [],
+            "total": 800000
+          },
+          "monthlyRent": null
+        },
+        "assets": {
+          "cash": 0,
+          "deposits": 0,
+          "investments": 0
+        },
+        "savingPlan": {
+          "monthlySaving": 500000,
+          "generalSavingRate": 3.03,
+          "monthlyInvestment": 0,
+          "emergencyFirstAmount": 0,
+          "policyMonthly": null,
+          "housingMonthly": null,
+          "pensionMonthly": null
+        },
+        "emergency": {
+          "breakThreshold": 500000
+        },
+        "loans": {
+          "hasNoLoan": false,
+          "items": [
+            {
+              "name": "학자금대출",
+              "loanType": "STUDENT",
+              "principal": 8000000,
+              "annualRate": 1.7,
+              "remainingMonths": 120,
+              "repaymentType": "EQUAL_PAYMENT"
+            }
+          ]
+        },
+        "goal": {
+          "name": "3년 뒤 1,500만 원",
+          "targetAmount": 15000000,
+          "targetDate": "2029-11"
+        },
+        "events": []
+      }
+    },
+    {
+      "key": "S3",
+      "label": "36세 계약직, 이사 예정",
+      "input": {
+        "startMonth": "2026-11",
+        "person": {
+          "age": 36,
+          "careerYears": 8,
+          "employmentType": "CONTRACT",
+          "homelessHouseholder": true
+        },
+        "income": {
+          "monthlyNetIncome": 3200000,
+          "annualGrossSalary": null
+        },
+        "expenses": {
+          "fixed": {
+            "inputMode": "TOTAL",
+            "items": [],
+            "total": 1100000
+          },
+          "variable": {
+            "inputMode": "TOTAL",
+            "items": [],
+            "total": 1000000
+          },
+          "monthlyRent": null
+        },
+        "assets": {
+          "cash": 15000000,
+          "deposits": 0,
+          "investments": 0
+        },
+        "savingPlan": {
+          "monthlySaving": 600000,
+          "generalSavingRate": 3.03,
+          "monthlyInvestment": 0,
+          "emergencyFirstAmount": 0,
+          "policyMonthly": null,
+          "housingMonthly": null,
+          "pensionMonthly": null
+        },
+        "emergency": {
+          "breakThreshold": 1000000
+        },
+        "loans": {
+          "hasNoLoan": true,
+          "items": []
+        },
+        "goal": {
+          "name": "5년 뒤 5,000만 원",
+          "targetAmount": 50000000,
+          "targetDate": "2031-11"
+        },
+        "events": [
+          {
+            "presetKey": "JEONSE_MOVE",
+            "name": "전세 이사",
+            "eventType": "MOVE",
+            "occurDate": "2027-11",
+            "deposit": 10000000,
+            "monthlyChange": -300000,
+            "amount": 1500000
+          }
+        ]
+      }
+    }
+  ]
+}

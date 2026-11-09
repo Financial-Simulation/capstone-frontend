@@ -1,0 +1,26 @@
+{
+  // 프로젝트에 깔린 TypeScript를 써요 (팀원마다 버전이 달라지지 않게)
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // 저장할 때 ESLint가 고칠 수 있는 것만 고쳐요 (코드 모양을 통째로 바꾸는 자동 포맷은 쓰지 않아요)
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  // Tailwind v4 문법(@theme 등)을 CSS 오류로 보지 않게
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+
+  // 검색에서 빌드 결과와 큰 정답 파일은 빼요
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "src/mocks/data/*.json": true
+  }
+}

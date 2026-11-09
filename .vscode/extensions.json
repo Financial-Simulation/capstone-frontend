@@ -1,0 +1,9 @@
+{
+  // 이 폴더를 열면 VS Code가 아래 확장을 설치하라고 안내해요
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "humao.rest-client",
+    "editorconfig.editorconfig"
+  ]
+}
