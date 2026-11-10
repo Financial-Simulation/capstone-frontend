@@ -32,6 +32,7 @@ import type {
   RobustStartResult,
   SimulateRequest,
   SimulateResult,
+  StoryResult,
   SimulationInputDraft,
   ApiWarning,
   ValidateRequest,
@@ -309,6 +310,18 @@ export async function simulate(request: SimulateRequest): Promise<MockReturn<Sim
     data: { ...answer(picked, picked.golden.simulate), warnings: validated.warnings },
     match: matchOf(picked, picked.exact),
   };
+}
+
+/**
+ * 데모 '미래 다시 보기': 정답 파일 입력 11개로 백엔드 /simulate/story를 부른 응답(data/story.json).
+ * 파일이 커서(약 1.8MB) 이 목업을 쓸 때만 내려받는다.
+ */
+export async function story(request: SimulateRequest): Promise<MockReturn<StoryResult>> {
+  await wait(CALC_DELAY_MS);
+  assertComputable(request.input);
+  const picked = pickCase(request.input);
+  const data = (await import("./data/story.json")).default as unknown as { cases: Record<string, StoryResult> };
+  return { data: answer(picked, data.cases[picked.golden.key]), match: matchOf(picked, picked.exact) };
 }
 
 export async function preview(request: PreviewRequest): Promise<MockReturn<PreviewResult>> {

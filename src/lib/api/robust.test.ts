@@ -45,7 +45,7 @@ describe("가능성 범위 작업 (맡기고 1.5초마다 묻기)", () => {
     });
     expect(progress).toEqual([0, 40, 80, 100]);
     expect(waits).toEqual([ROBUST_POLL_MS, ROBUST_POLL_MS, ROBUST_POLL_MS]);
-    expect(job.probability).toEqual({ median: 66.4, low: 51.4, high: 83.4 });
+    expect(job.probability).toEqual({ median: 66.4, low: 51.4, high: 83.5 });
     expect(fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${url}`)).toEqual([
       "POST /api/robust",
       "GET /api/robust/job-1",

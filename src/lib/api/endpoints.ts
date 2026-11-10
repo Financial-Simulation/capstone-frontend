@@ -27,6 +27,7 @@ import type {
   RobustStartResult,
   SimulateRequest,
   SimulateResult,
+  StoryResult,
   ValidateRequest,
   ValidateResult,
 } from "@/lib/types";
@@ -142,6 +143,11 @@ export const api = {
   /** 리포트 한 장에 들어갈 숫자 전부 (PDF는 화면이 인쇄로 만든다) */
   report(body: ReportRequest, options?: RequestOptions) {
     return call<ReportResult>("reports", () => request("POST", "/reports", body, options), (m) => m.report(body));
+  },
+
+  /** 데모 '미래 다시 보기': 상위 5% · 가운데 · 하위 5% 미래를 달마다 (요청은 /simulate와 같다) */
+  story(body: SimulateRequest, options?: RequestOptions) {
+    return call<StoryResult>("story", () => request("POST", "/simulate/story", body, options), (m) => m.story(body));
   },
 
   /** 근거·파라미터 */

@@ -5,9 +5,27 @@
 import type { ReactNode } from "react";
 import { DiffText } from "@/components/ui/Stat";
 import { PLAN_COMPARE_HEADERS } from "@/features/plan/plan";
-import type { MoneyCell, ReportCell, ReportView } from "./report";
+import { BandChart, BandLegend } from "@/features/result/BandChart";
+import { CauseBars } from "@/features/result/RiskSections";
+import { eventMarks, reverseLines } from "@/features/result/result";
+import { taxView } from "@/features/tax/tax";
+import type { ReverseResult, SimulateResult, SimulationInputDraft } from "@/lib/types";
+import { GLOSSARY, type MoneyCell, type ReportCell, type ReportView } from "./report";
 
-export function ReportPaper({ view }: { view: ReportView }) {
+/**
+ * detail: 같은 입력 · 같은 seed로 부른 /simulate · /reverse (결과 화면과 같은 숫자). 있으면 그래프 · 세금 안내 ·
+ * 적금을 처음 깬 이유 막대 · 70% 역산 문장을 더한다 (자세한 결과 역할, 멘토 피드백 11/10). 못 받으면 빼고 그린다.
+ */
+export function ReportPaper({
+  view,
+  detail,
+}: {
+  view: ReportView;
+  detail?: { sim: SimulateResult | null; reverse: ReverseResult | null; input: SimulationInputDraft };
+}) {
+  const sim = detail?.sim ?? null;
+  const notes = sim && detail ? (taxView(sim, detail.input)?.notes ?? []) : [];
+  const events = detail ? eventMarks(detail.input) : [];
   return (
     <article className="mx-auto max-w-[820px] rounded-xl border border-line bg-surface p-5 text-sm leading-relaxed sm:p-8 print:max-w-none print:rounded-none print:border-0 print:p-0">
       <header>
@@ -38,11 +56,25 @@ export function ReportPaper({ view }: { view: ReportView }) {
             </tr>
           ))}
         </Table>
+        {sim && (
+          <div className="mt-4 break-inside-avoid">
+            <BandLegend hasEvents={events.length > 0} />
+            <div className="mt-2">
+              <BandChart result={sim} events={events} />
+            </div>
+          </div>
+        )}
       </Section>
 
       <Section title="위험">
         <Cells cells={view.risks} />
-        <p className="mt-3">{view.causes}</p>
+        {sim ? (
+          <div className="mt-3 [&>section]:border-0 [&>section]:p-0">
+            <CauseBars result={sim} />
+          </div>
+        ) : (
+          <p className="mt-3">{view.causes}</p>
+        )}
         {view.notes.length > 0 && (
           <ul className="mt-1 list-disc pl-5 text-ink-soft">
             {view.notes.map((note) => (
@@ -55,6 +87,13 @@ export function ReportPaper({ view }: { view: ReportView }) {
       <Section title="세금 (목표 시점까지 평균)">
         <Cells cells={view.tax} />
         <p className="mt-3">{view.allocation}</p>
+        {notes.length > 0 && (
+          <ul className="mt-2 list-disc pl-5 text-ink-soft">
+            {notes.map((note) => (
+              <li key={note.key}>{note.text}</li>
+            ))}
+          </ul>
+        )}
       </Section>
 
       <Section title="이렇게 바꿔 보세요 (상위 3개)">
@@ -67,6 +106,16 @@ export function ReportPaper({ view }: { view: ReportView }) {
             </tr>
           ))}
         </Table>
+        {detail?.reverse && (
+          <div className="mt-3 rounded-lg bg-canvas px-4 py-3 print:bg-transparent print:px-0">
+            <p className="font-semibold">가능성 {detail.reverse.targetProbability}%에 닿으려면</p>
+            <ul className="mt-1 list-disc pl-5 text-ink-soft">
+              {reverseLines(detail.reverse).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Section>
 
       {view.comparison.length > 0 && (
@@ -103,6 +152,17 @@ export function ReportPaper({ view }: { view: ReportView }) {
           ))}
         </Table>
         {view.gradeLegend && <p className="mt-2 text-xs text-ink-soft">{view.gradeLegend}</p>}
+      </Section>
+
+      <Section title="용어 풀이">
+        <dl className="mt-3 space-y-2">
+          {GLOSSARY.map((g) => (
+            <div key={g.term} className="break-inside-avoid sm:grid sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-3">
+              <dt className="font-semibold">{g.term}</dt>
+              <dd className="text-ink-soft">{g.meaning}</dd>
+            </div>
+          ))}
+        </dl>
       </Section>
 
       <p className="mt-6 break-inside-avoid border-t border-line pt-4 font-semibold">{view.disclaimer}</p>

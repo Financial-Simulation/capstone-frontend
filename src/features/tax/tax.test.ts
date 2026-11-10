@@ -14,9 +14,9 @@ describe("세금 블록 (/simulate의 tax, 숫자는 모두 서버 값)", () => 
     expect(t1.cards.map((c) => [c.title, c.value])).toEqual([
       ["매년 돌려받는 세금", "86만 4,066원"],
       ["목표 시점까지 돌려받는 세금", "432만 332원"],
-      ["낸 이자소득세", "3만 6,606원"],
+      ["낸 이자소득세", "3만 6,573원"],
       ["해지로 다시 낸 세금", "7,491원"],
-      ["세금으로 본 순이득", "427만 6,235원"],
+      ["세금으로 본 순이득", "427만 6,268원"],
     ]);
     expect(t1.cards[3].detail).toBe("청약 추징 823원 · 연금 6,668원");
     expect(t1.cards[4].tone).toBe("good");
@@ -38,7 +38,7 @@ describe("세금 블록 (/simulate의 tax, 숫자는 모두 서버 값)", () => 
 
   it("S1: 상품 · 월세가 없으면 순이득은 음수(빨강)이고 월세 · 상품 안내", () => {
     const s1 = view("S1");
-    expect(s1.cards[4]).toMatchObject({ value: "−4만 6,687원", tone: "danger" });
+    expect(s1.cards[4]).toMatchObject({ value: "−4만 6,625원", tone: "danger" });
     expect(s1.notes.map((n) => n.key)).toEqual(["preferential", "rent", "noProducts"]);
     expect(s1.notes[1].link).toEqual({ href: "/input/basic#f-expenses-monthlyRent", label: "그중 월세 넣기" });
   });

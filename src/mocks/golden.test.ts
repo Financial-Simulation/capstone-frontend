@@ -27,7 +27,7 @@ describe("정답 파일 (v1.7)", () => {
   it("T1~T3은 세금 칸이 들어간 입력", () => {
     const t1 = goldenCaseByKey("T1")!;
     expect(t1.input.expenses.monthlyRent).toBe(500_000);
-    expect(t1.simulate.tax).toMatchObject({ refundTotal: 4_320_332, netBenefit: 4_276_235 });
+    expect(t1.simulate.tax).toMatchObject({ refundTotal: 4_320_332, netBenefit: 4_276_268 });
     // T3: 배분 합(65만)이 월 저축액(55만)보다 커서 뒤 상품(연금저축)을 줄였다
     expect(goldenCaseByKey("T3")!.simulate.tax?.allocation).toEqual({
       policyMonthly: 300_000,

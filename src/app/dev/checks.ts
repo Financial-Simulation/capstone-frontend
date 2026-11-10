@@ -303,7 +303,7 @@ export const CHECKS: Check[] = [
     id: "robust-s1",
     endpoint: "robust",
     title: "가능성 범위 · S1 (작업 시작 → 1초마다 확인)",
-    expect: () => "중앙값 66.4% (51.4%~83.4%)",
+    expect: () => "중앙값 66.4% (51.4%~83.5%)",
     run: async (signal, onProgress) => {
       const start = await api.startRobust({ input: EXAMPLE_S1, plans: S1_PLANS.slice(0, 1) }, { signal });
       onProgress(`작업 ${start.data.jobId} 시작`);

@@ -43,12 +43,12 @@ describe("리포트 한 장 (POST /reports, 숫자는 서버 값 그대로)", ()
       ["정부 지원금 (4년 안)", "57만 40원"],
     ]);
     expect(view.causes).toBe("적금을 처음 깬 이유: 실직 직후 21.9% · 실업 장기화 0.0% · 급한 지출 75.9% · 매달 부족 2.2%");
-    expect(view.tax.at(-1)).toEqual({ label: "세금으로 본 순이득", value: "−4만 6,687원" });
+    expect(view.tax.at(-1)).toEqual({ label: "세금으로 본 순이득", value: "−4만 6,625원" });
     expect(view.allocation).toBe("월 배분: 청년미래 50만 원 · 청약 0원 · 연금 0원 · 일반 0원");
     expect(view.levers).toEqual([
       { label: "변동지출을 월 10만 원 줄이기", probability: "70.5%", diff: "+12.5%p" },
       { label: "목표 시점을 1년 늦추기", probability: "69.7%", diff: "+11.7%p" },
-      { label: "목표 금액을 10% 낮추기", probability: "64.3%", diff: "+6.3%p" },
+      { label: "목표 금액을 10% 낮추기", probability: "64.4%", diff: "+6.4%p" },
     ]);
     // 결과 화면 '계획 바꿔 보기'의 비교 표와 같은 줄
     expect(view.comparison.map((r) => [r.name, r.probability, r.diff?.text ?? null])).toEqual([

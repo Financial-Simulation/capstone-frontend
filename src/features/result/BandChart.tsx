@@ -3,6 +3,7 @@
 /**
  * 04 범위 그래프: 지금부터 10년(0~120개월) 동안 모은 돈의 분포.
  *  - 범위(아래 10%~위 10%)는 옅은 면, 중간값은 선, 최악의 경우(하위 5%)는 주황 선
+ *  - 화면 글자는 쉬운 말로: 범위 '10번 중 8번은 이 안' · 중간값 '보통이면' · 하위 5% '많이 안 풀리면' · 계산기 결과 '계획대로만 가면'
  *  - 목표 금액(가로 점선)과 목표 시점(세로 점선), 계산기 결과는 두 점(목표 시점 · 10년 뒤)
  *  - 예정된 일은 입력의 occurDate로 아래쪽에 ◆
  *  - 마우스 · 손가락 · 화살표 키로 달을 옮기면 그달의 값을 보여 준다 (표로 보기에도 같은 값)
@@ -90,7 +91,7 @@ export function BandChart({ result, events = [] }: { result: SimulateResult; eve
   ];
 
   // 계산기 라벨: 점의 오른쪽 위 · 왼쪽 위(중간값 선이 점 아래일 때) → 아래 → 옆. 깨끗한 자리가 없으면 안 그린다(범례 · 툴팁에 있다)
-  const calcText = `계산기 ${formatManwon(det.atGoal)}`;
+  const calcText = `계획대로 ${formatManwon(det.atGoal)}`;
   const calcW = textWidth(calcText);
   const up = [place(goalX + 7, calcY - 9, "start", calcW), place(goalX - 7, calcY - 9, "end", calcW)];
   const down = [place(goalX + 7, calcY + 18, "start", calcW), place(goalX - 7, calcY + 18, "end", calcW)];
@@ -139,7 +140,7 @@ export function BandChart({ result, events = [] }: { result: SimulateResult; eve
   };
 
   const summary = goalBand
-    ? `모은 돈 범위 그래프. 목표 시점(${formatYearMonth(goalBand.month)})의 중간값 ${formatManwon(goalBand.p50)}, 아래 10% ${formatManwon(goalBand.p10)}, 위 10% ${formatManwon(goalBand.p90)}, 최악의 경우 ${formatManwon(goalBand.p5)}. 화살표 키로 달을 옮겨 볼 수 있어요.`
+    ? `모은 돈 범위 그래프. 목표 시점(${formatYearMonth(goalBand.month)})에 보통이면 ${formatManwon(goalBand.p50)}, 안 풀리면 ${formatManwon(goalBand.p10)}, 잘 풀리면 ${formatManwon(goalBand.p90)}, 많이 안 풀리면 ${formatManwon(goalBand.p5)}. 화살표 키로 달을 옮겨 볼 수 있어요.`
     : "모은 돈 범위 그래프";
 
   // 툴팁: 가리킨 달의 오른쪽(자리가 없으면 왼쪽)에, 그래프 밖으로 나가지 않게
@@ -258,15 +259,15 @@ export function BandChart({ result, events = [] }: { result: SimulateResult; eve
           </p>
           <div className="mt-1.5 grid grid-cols-[0.75rem_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 whitespace-nowrap">
             {/* 그래프에서 보이는 위아래 순서 그대로 (1·3·5·10년 표와 같은 이름) */}
-            <TooltipRow mark={<span className="block h-2.5 w-3 rounded-sm bg-primary/20" />} value={formatManwon(activeBand.p90)} label="위 10%" />
-            <TooltipRow mark={<span className="block h-0.5 w-3 rounded-full bg-primary" />} value={formatManwon(activeBand.p50)} label="중간값" />
-            <TooltipRow mark={<span className="block h-2.5 w-3 rounded-sm bg-primary/20" />} value={formatManwon(activeBand.p10)} label="아래 10%" />
-            <TooltipRow mark={<span className="block h-0.5 w-3 rounded-full bg-series-2" />} value={formatManwon(activeBand.p5)} label="최악의 경우" />
+            <TooltipRow mark={<span className="block h-2.5 w-3 rounded-sm bg-primary/20" />} value={formatManwon(activeBand.p90)} label="잘 풀리면" />
+            <TooltipRow mark={<span className="block h-0.5 w-3 rounded-full bg-primary" />} value={formatManwon(activeBand.p50)} label="보통이면" />
+            <TooltipRow mark={<span className="block h-2.5 w-3 rounded-sm bg-primary/20" />} value={formatManwon(activeBand.p10)} label="안 풀리면" />
+            <TooltipRow mark={<span className="block h-0.5 w-3 rounded-full bg-series-2" />} value={formatManwon(activeBand.p5)} label="많이 안 풀리면" />
             {(active === gm || active === last) && (
               <TooltipRow
                 mark={<span className="block size-2.5 rounded-full border-2 border-ink" />}
                 value={formatManwon(active === gm ? det.atGoal : det.at120)}
-                label="계산기 결과"
+                label="계획대로만 가면"
               />
             )}
           </div>
@@ -337,11 +338,11 @@ export function BandLegend({ hasEvents }: { hasEvents: boolean }) {
   );
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
-      {item(<span aria-hidden className="inline-block h-0.5 w-4 bg-primary" />, "중간값 (미래의 절반)")}
-      {item(<span aria-hidden className="inline-block h-2.5 w-4 rounded-sm bg-primary/15" />, "범위 (아래 10%~위 10%)")}
-      {item(<span aria-hidden className="inline-block h-0.5 w-4 bg-series-2" />, "최악의 경우 (하위 5%)")}
+      {item(<span aria-hidden className="inline-block h-0.5 w-4 bg-primary" />, "보통이면")}
+      {item(<span aria-hidden className="inline-block h-2.5 w-4 rounded-sm bg-primary/15" />, "10번 중 8번은 이 안")}
+      {item(<span aria-hidden className="inline-block h-0.5 w-4 bg-series-2" />, "많이 안 풀리면 (20번 중 1번)")}
       {item(<span aria-hidden className="inline-block w-4 border-t-2 border-dashed border-ink-soft" />, "목표 금액 · 목표 시점")}
-      {item(<span aria-hidden className="inline-block size-2.5 rounded-full border-2 border-ink" />, "계산기 결과 (실직·급한 지출이 없을 때)")}
+      {item(<span aria-hidden className="inline-block size-2.5 rounded-full border-2 border-ink" />, "계획대로만 가면 (실직·급한 지출 없이)")}
       {hasEvents && item(<span aria-hidden className="inline-block size-2 rotate-45 bg-warn" />, "예정된 일")}
     </ul>
   );

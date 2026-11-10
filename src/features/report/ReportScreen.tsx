@@ -9,6 +9,7 @@ import { Button, LinkButton } from "@/components/ui";
 import { planLabels, planRequests } from "@/features/plan/plan";
 import { MockNote } from "@/features/result/Hero";
 import { Computing, Empty, Failed, NotReady } from "@/features/result/StateViews";
+import { useResult } from "@/features/result/use-result";
 import { readiness } from "@/features/result/result";
 import { useHydrated, useSavedPlans, useSimInput } from "@/lib/hooks";
 import { ROUTES } from "@/lib/steps";
@@ -23,6 +24,8 @@ export function ReportScreen() {
   const { plans: basket } = useSavedPlans();
   const ready = hydrated ? readiness(input) : null;
   const report = useReport(ready?.ok && input ? (input as SimulationInput) : null, planRequests(basket));
+  // 그래프 · 세금 안내 · 70% 역산: 결과 화면과 같은 /simulate · /reverse (같은 입력 · 같은 seed라 숫자가 같다). 못 받아도 리포트는 그린다
+  const detail = useResult(ready?.ok && input ? (input as SimulationInput) : null);
 
   if (!ready) return <Computing />;
   if (!ready.ok) return ready.reason === "empty" ? <Empty /> : <NotReady step={ready.step} message={ready.message} />;
@@ -35,7 +38,7 @@ export function ReportScreen() {
       <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
           <p className="text-sm font-semibold text-primary">04</p>
-          <p className="text-2xl font-bold tracking-tight">리포트 저장</p>
+          <p className="text-2xl font-bold tracking-tight">자세한 결과 (리포트)</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => window.print()}>인쇄 · PDF로 저장</Button>
@@ -51,7 +54,10 @@ export function ReportScreen() {
           : "결과 화면의 ‘계획 바꿔 보기’에서 계획을 담으면 비교도 함께 들어가요."}
       </p>
       {report.result.source === "mock" && <MockNote match={report.result.mock} />}
-      <ReportPaper view={view} />
+      <ReportPaper
+        view={view}
+        detail={{ sim: detail.data?.sim.data ?? null, reverse: detail.data?.reverse?.data ?? null, input: input ?? {} }}
+      />
     </div>
   );
 }
