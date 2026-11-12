@@ -99,11 +99,11 @@ describe("가장 좋은 배분 찾기 (/allocations/recommend, 서버 값 그대
     ]);
     expect(cards[0]).toMatchObject({
       allocation: "청년미래 50만 원 · 청약 0원 · 연금 0원 · 일반 0원",
-      benefit: "세금 순이득 −4만 6,687원 + 정부 지원금 75만 6,098원 = 70만 9,411원",
+      benefit: "세금 순이득 −4만 6,625원 + 정부 지원금 75만 7,949원 = 71만 1,324원",
       apply: null,
     });
     expect(cards[2].apply).toEqual(alloc(100_000, 100_000, 300_000));
-    expect(cards[2].benefit).toBe("세금 순이득 176만 2,052원 + 정부 지원금 18만 9,377원 = 195만 1,429원");
+    expect(cards[2].benefit).toBe("세금 순이득 176만 2,063원 + 정부 지원금 18만 9,870원 = 195만 1,933원");
   });
 
   it("설명: 서버 규칙 문장 + 지원금 기간이 다르다는 안내 (위험 카드는 4년)", () => {
@@ -126,7 +126,7 @@ describe("지금 계획과 비교 표 (/compare, 서버 값 그대로)", () => {
     ]);
     expect(rows[0]).toMatchObject({
       allocation: ["청년미래 30만 원", "청약 10만 원 · 연금 10만 원", "일반 0원"],
-      taxNetBenefit: "427만 6,235원",
+      taxNetBenefit: "427만 6,268원",
       earlyTermination: "16.8%",
       medianAtGoal: "3,766만 원",
     });

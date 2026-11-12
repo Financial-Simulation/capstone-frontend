@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 결과 화면 '어디에 얼마나' (세금 아래, 명세서 v1.7 9.2). 월 저축액을 상품별로 나눠 보고
+ * 결과 화면 '상품별로 나눠 보기' (예전 이름 '어디에 얼마나', 맨 아래 버튼으로 펼친다, 명세서 v1.7 9.2). 월 저축액을 상품별로 나눠 보고
  *  - 지금 계획과 비교하기: POST /compare (바꾼 배분 + 예시 배분, 최대 3개)
  *  - 가장 좋은 배분 찾기: POST /allocations/recommend
  *  - 이 배분으로: 내 입력(simInput.v1)의 배분을 바꾼다 → 결과 전체를 새로고침 없이 다시 계산 (tax-addon.js는 새로고침)
@@ -81,7 +81,7 @@ export function AllocationSection({
   return (
     <section aria-labelledby="alloc-title" className="rounded-xl border border-line bg-surface p-5">
       <h2 id="alloc-title" className="text-base font-bold">
-        어디에 얼마나
+        상품별로 나눠 보기
       </h2>
       <p className="mt-1 text-sm text-ink-soft">
         월 저축액 {formatKoreanWon(saving)}을 상품별로 나눠 봐요. 같은 미래 {result.paths.toLocaleString("ko-KR")}개로 목표 달성

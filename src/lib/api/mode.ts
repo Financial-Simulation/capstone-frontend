@@ -25,6 +25,7 @@ export const ENDPOINTS = [
   "recommend",
   "reports",
   "meta",
+  "story",
 ] as const;
 
 export type Endpoint = (typeof ENDPOINTS)[number];
@@ -44,6 +45,7 @@ export const ENDPOINT_LABELS: Record<Endpoint, string> = {
   recommend: "POST /allocations/recommend",
   reports: "POST /reports",
   meta: "GET /meta",
+  story: "POST /simulate/story (데모)",
 };
 
 /** 아무 데서도 정하지 않은 엔드포인트는 실제 API */

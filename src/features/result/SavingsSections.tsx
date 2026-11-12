@@ -15,8 +15,8 @@ export function ChartCard({ result, input }: { result: SimulateResult; input: Si
     <section className="rounded-xl border border-line bg-surface p-5">
       <h2 className="text-base font-bold">앞으로 모을 돈</h2>
       <p className="mt-1 text-sm text-ink-soft">
-        실직·급한 지출·물가·연봉이 서로 다르게 펼쳐지는 미래 {result.paths.toLocaleString("ko-KR")}개를 계산했어요. 그래프를
-        누르거나 화살표 키로 달을 옮기면 그달의 값을 보여 드려요.
+        실직·급한 지출·물가·연봉이 달라지는 {result.paths.toLocaleString("ko-KR")}가지 경우를 계산해서, 모은 돈이 어디쯤 있을지
+        보여 드려요. 그래프를 누르면 그달의 값을 볼 수 있어요.
       </p>
       <div className="mt-4">
         <BandLegend hasEvents={events.length > 0} />

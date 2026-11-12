@@ -145,7 +145,7 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
     expect(data.goal.probability).toBe(66.1);
     expect(data.tax).toMatchObject({
       refundTotal: 4_320_332,
-      netBenefit: 4_276_235,
+      netBenefit: 4_276_268,
       allocation: { policyMonthly: 300_000, housingMonthly: 100_000, pensionMonthly: 100_000, generalMonthly: 0 },
     });
   });
@@ -258,7 +258,7 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
     expect(data.bestBenefit).toMatchObject({
       allocation: { policyMonthly: 100_000, housingMonthly: 100_000, pensionMonthly: 300_000, generalMonthly: 0 },
       probability: 57.4,
-      totalBenefit: 1_951_429,
+      totalBenefit: 1_951_933,
     });
 
     const changed = input("S2");
@@ -294,7 +294,7 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
 
     await vi.advanceTimersByTimeAsync(3_000);
     const done = await ok(mocks.robustJob(start.data.jobId));
-    expect(done.data).toMatchObject({ status: "DONE", progress: 100, probability: { median: 66.4, low: 51.4, high: 83.4 } });
+    expect(done.data).toMatchObject({ status: "DONE", progress: 100, probability: { median: 66.4, low: 51.4, high: 83.5 } });
 
     expect((await fail(mocks.robustJob("nope"))).code).toBe("JOB404");
   });

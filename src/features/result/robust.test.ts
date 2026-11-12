@@ -7,14 +7,14 @@ const golden = (key: string) => goldenCaseByKey(key)!;
 const done = (key: string): RobustJobResult => ({ jobId: "job-1", status: "DONE", progress: 100, ...golden(key).robust });
 
 describe("띠 그림과 문장 (서버 값 그대로)", () => {
-  it("S1: 51.4%~83.4%, 지금 58.0%", () => {
+  it("S1: 51.4%~83.5%, 지금 58.0%", () => {
     expect(robustView(done("S1"), 58)).toEqual({
       low: 51.4,
-      high: 83.4,
+      high: 83.5,
       current: 58,
-      message: "가정을 60가지로 바꿔 다시 계산하면 대부분 51%~83% 사이예요. 정확한 한 숫자보다 이 범위를 봐 주세요.",
-      detail: "60번의 가운데 값 66.4%, 95% 범위 51.4%~83.4%. 파란 띠가 이 범위예요.",
-      label: "가능성 범위 51.4%~83.4%, 지금 결과 58.0%",
+      message: "가정을 60가지로 바꿔 다시 계산하면 대부분 51%~84% 사이예요. 정확한 한 숫자보다 이 범위를 봐 주세요.",
+      detail: "60번의 가운데 값 66.4%, 95% 범위 51.4%~83.5%. 파란 띠가 이 범위예요.",
+      label: "가능성 범위 51.4%~83.5%, 지금 결과 58.0%",
       markerAlign: "center",
     });
   });

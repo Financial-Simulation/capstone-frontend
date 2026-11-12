@@ -486,3 +486,68 @@ export interface MetaResult {
   parameters: MetaParameter[];
   validation?: Record<string, string>;
 }
+
+// ===== POST /api/simulate/story (데모 '미래 다시 보기') =====
+
+export type StoryKind = "BEST" | "MIDDLE" | "WORST";
+
+export type StoryEvent =
+  | "JOB_LOSS"
+  | "REHIRE"
+  | "SHOCK"
+  | "PLANNED"
+  | "REFUND"
+  | "BREAK_GENERAL"
+  | "BREAK_HOUSING"
+  | "BREAK_POLICY"
+  | "BREAK_POLICY_SPECIAL"
+  | "BREAK_PENSION"
+  | "MATURE_POLICY"
+  | "REJOIN_POLICY"
+  | "OVERDRAFT"
+  | "DEBT_CLEARED"
+  | "GOAL_REACHED";
+
+/** 한 달 (원). balances의 청약 · 연금저축은 지금 깨면 받는 세후 금액, overdraft는 빌린 돈 */
+export interface StoryMonth {
+  /** 지금부터 몇 달 뒤 상태 (1~120, bands의 칸 번호) */
+  afterMonths: number;
+  /** 그 일이 일어난 달 */
+  month: YearMonth;
+  employed: boolean;
+  unemploymentBenefit: boolean;
+  events: StoryEvent[];
+  salary: number;
+  income: number;
+  living: number;
+  shock: number;
+  planned: number;
+  loan: number;
+  refund: number;
+  subsidy: number;
+  received: number;
+  taxPaid: number;
+  deposits: { policy: number; housing: number; pension: number; general: number; invest: number };
+  balances: { cash: number; overdraft: number; policy: number; housing: number; pension: number; general: number; invest: number; deposit: number };
+  total: number;
+  /** 그해 물가 상승률 (%) */
+  inflation: number;
+}
+
+export interface Story {
+  kind: StoryKind;
+  quantile: number;
+  path: number;
+  atGoal: number;
+  reached: boolean;
+  months: StoryMonth[];
+}
+
+export interface StoryResult {
+  seed: number;
+  paths: number;
+  startMonth: YearMonth;
+  goalMonths: number;
+  targetAmount: number;
+  stories: Story[];
+}

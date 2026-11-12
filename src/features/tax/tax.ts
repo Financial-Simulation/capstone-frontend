@@ -131,7 +131,7 @@ export function taxView(result: SimulateResult, input: SimulationInputDraft): Ta
   if (allocation.housingMonthly === 0 && allocation.pensionMonthly === 0 && tax.refundTotal === 0) {
     notes.push({
       key: "noProducts",
-      text: "지금 계획에는 세금을 돌려받는 상품이 없어요. 아래 '어디에 얼마나'에서 청약·연금저축을 넣어 비교해 보세요.",
+      text: "지금 계획에는 세금을 돌려받는 상품이 없어요. 결과 아래 '상품별로 나눠 보기'에서 청약·연금저축을 넣어 비교해 보세요.",
     });
   }
 
