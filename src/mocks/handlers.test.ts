@@ -300,10 +300,46 @@ describe("계산 목업: 입력이 같은 정답 케이스", () => {
   });
 });
 
+describe("혜택 목업 (/benefits): 백엔드 BenefitServiceTest 정답", () => {
+  it("T1 · 질문 답 없음 → 중소기업 소득세 감면은 '확인해 보세요' + 물어볼 것", async () => {
+    const { data, match } = await ok(mocks.benefits({ input: input("T1") }));
+    expect(match).toMatchObject({ caseKey: "T1", exact: true });
+    expect(data.probability).toBe(66.1);
+    const sme = data.items.find((i) => i.key === "smeTaxRelief")!;
+    expect(sme).toMatchObject({ status: "CHECK", ask: ["sme", "hireMonth"] });
+    expect(data.items.find((i) => i.key === "youthRent")!.status).toBe("NO");
+  });
+
+  it("T1 · 예시대로 다 답함 → FULL 정답, 받을 수 있어요가 위", async () => {
+    const eligibility = {
+      livingApart: true,
+      sme: true,
+      hireMonth: "2026-03",
+      taxReliefNow: false,
+      militaryMonths: 0,
+      parentsIncomeLow: true,
+      rentDeposit: 10_000_000,
+      monthlyTransit: 60_000,
+    } as const;
+    const { data, match } = await ok(mocks.benefits({ input: input("T1"), eligibility }));
+    expect(match.exact).toBe(true);
+    expect(data.items[0]).toMatchObject({ key: "smeTaxRelief", status: "YES" });
+    expect(data.items[0].effect!.diff).toBeGreaterThan(0);
+  });
+
+  it("다른 답이나 바꾼 계획은 답 없는 정답 + 안내", async () => {
+    const { match } = await ok(mocks.benefits({ input: input("T1"), eligibility: { sme: false } }));
+    expect(match).toMatchObject({ exact: false });
+    expect(match.note).toContain("답을 비운 결과");
+    const adjusted = await ok(mocks.benefits({ input: input("T1"), adjustments: { monthlySaving: 400_000 } }));
+    expect(adjusted.match.note).toContain("바꾼 계획");
+  });
+});
+
 describe("고정값 목업", () => {
   it("presets · examples · meta", async () => {
     expect((await ok(mocks.presets())).data.presets).toHaveLength(5);
-    expect((await ok(mocks.examples())).data.examples.map((e) => e.key)).toEqual(["S1", "S2", "S3"]);
+    expect((await ok(mocks.examples())).data.examples.map((e) => e.key)).toEqual(["S1", "S2", "S3", "S4"]);
     const meta = (await ok(mocks.meta())).data;
     expect(meta.modelVersion).toBe("1.7");
     expect(meta.paths).toBe(2000);

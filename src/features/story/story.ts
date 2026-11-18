@@ -1,5 +1,5 @@
 /**
- * 데모 '미래 다시 보기'(/story)에 보여 줄 값 (순수 함수). 숫자는 모두 서버(/simulate/story) 값이고,
+ * 결과 그래프 위 '미래 다시 보기'(ChartPanel)에 보여 줄 값 (순수 함수). 숫자는 모두 서버(/simulate/story) 값이고,
  * 여기서는 사건 이름 · 설명 문장 · 변수 줄을 고르기만 한다 (새로 계산하지 않음).
  */
 import { formatManwon, formatWon } from "@/lib/format";

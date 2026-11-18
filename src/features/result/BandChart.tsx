@@ -36,7 +36,33 @@ function useElementWidth(ref: RefObject<HTMLElement | null>): number | null {
   return width;
 }
 
-export function BandChart({ result, events = [] }: { result: SimulateResult; events?: EventMark[] }) {
+/**
+ * 미래 다시 보기 (그래프 위 '최상 · 중간 · 최악' 버튼): 고른 미래 하나를 지금 달까지 굵은 선으로 덧그린다.
+ * full은 그 미래 10년 전체 값(눈금을 미리 정해 재생 중에 움직이지 않게), shown은 지금까지 그릴 값 (index = 몇 달 뒤).
+ */
+export interface StoryOverlay {
+  full: number[];
+  shown: number[];
+  tone: "good" | "primary" | "danger";
+  marks: { months: number; value: number; tone: "good" | "bad" | "info" }[];
+}
+
+const OVERLAY_STROKE = { good: "stroke-good", primary: "stroke-primary", danger: "stroke-danger" } as const;
+const OVERLAY_FILL = { good: "fill-good", primary: "fill-primary", danger: "fill-danger" } as const;
+const MARK_FILL = { good: "fill-good", bad: "fill-danger", info: "fill-info-line" } as const;
+
+export function BandChart({
+  result,
+  events = [],
+  ghost,
+  story,
+}: {
+  result: SimulateResult;
+  events?: EventMark[];
+  /** 계획을 바꿨을 때 지금 계획의 중간값 (회색 점선) */
+  ghost?: SimulateResult["bands"];
+  story?: StoryOverlay;
+}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const width = useElementWidth(wrapRef);
   const [active, setActive] = useState<number | null>(null);
@@ -49,7 +75,15 @@ export function BandChart({ result, events = [] }: { result: SimulateResult; eve
   const target = result.goal.targetAmount;
   const det = result.deterministic;
 
-  const values = [...bands.flatMap((b) => [b.p5, b.p90]), target, det.atGoal, det.at120, 0];
+  const values = [
+    ...bands.flatMap((b) => [b.p5, b.p90]),
+    target,
+    det.atGoal,
+    det.at120,
+    0,
+    ...(ghost ?? []).map((b) => b.p50),
+    ...(story?.full ?? []),
+  ];
   const scale = niceTicks(Math.min(...values), Math.max(...values), narrow ? 4 : 5);
   const plotW = Math.max(10, (width ?? 0) - MARGIN.left - MARGIN.right);
   const plotH = height - MARGIN.top - MARGIN.bottom;
@@ -198,12 +232,22 @@ export function BandChart({ result, events = [] }: { result: SimulateResult; eve
             </text>
           ))}
 
-          {/* 범위 (아래 10%~위 10%) */}
-          <path d={area} className="fill-primary/12" />
+          {/* 범위 (아래 10%~위 10%). 미래 다시 보기 중에는 옅게 */}
+          <path d={area} className={story ? "fill-primary/6" : "fill-primary/12"} />
           {/* 최악의 경우 (하위 5%) */}
-          <path d={line((b) => b.p5)} fill="none" className="stroke-series-2" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={line((b) => b.p5)} fill="none" className="stroke-series-2" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={story ? 0.3 : 1} />
           {/* 중간값 */}
-          <path d={line((b) => b.p50)} fill="none" className="stroke-primary" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={line((b) => b.p50)} fill="none" className="stroke-primary" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" opacity={story ? 0.3 : 1} />
+          {/* 지금 계획의 중간값 (계획을 바꿨을 때) */}
+          {ghost && (
+            <path
+              d={ghost.map((b, m) => `${m === 0 ? "M" : "L"}${x(m).toFixed(1)},${y(b.p50).toFixed(1)}`).join("")}
+              fill="none"
+              className="stroke-muted"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+            />
+          )}
 
           {/* 목표 금액 (기준선이라 점선) */}
           <line x1={MARGIN.left} x2={MARGIN.left + plotW} y1={y(target)} y2={y(target)} className="stroke-ink-soft" strokeWidth={1.5} strokeDasharray="5 4" />
@@ -225,6 +269,30 @@ export function BandChart({ result, events = [] }: { result: SimulateResult; eve
           ].map(({ m, v }) => (
             <circle key={m} cx={x(m)} cy={y(v)} r={5} className="fill-surface stroke-ink" strokeWidth={2} />
           ))}
+
+          {/* 미래 다시 보기: 고른 미래를 지금 달까지 */}
+          {story && story.shown.length > 0 && (
+            <g pointerEvents="none">
+              <path
+                d={story.shown.map((v, m) => `${m === 0 ? "M" : "L"}${x(m).toFixed(1)},${y(v).toFixed(1)}`).join("")}
+                fill="none"
+                className={OVERLAY_STROKE[story.tone]}
+                strokeWidth={3}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              {story.marks.map((mark) => (
+                <circle key={`${mark.months}-${mark.tone}`} cx={x(mark.months)} cy={y(mark.value)} r={4.5} className={`${MARK_FILL[mark.tone]} stroke-surface`} strokeWidth={1.5} />
+              ))}
+              <circle
+                cx={x(story.shown.length - 1)}
+                cy={y(story.shown[story.shown.length - 1])}
+                r={6.5}
+                className={`${OVERLAY_FILL[story.tone]} stroke-surface`}
+                strokeWidth={2}
+              />
+            </g>
+          )}
 
           {/* 라벨: 선 위에 바탕을 깔고 쓴다 (자리는 위에서 골랐다) */}
           <ChartLabel label={goalLabel} text={goalText} bold chip={false} />

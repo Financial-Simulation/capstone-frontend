@@ -10,9 +10,12 @@
  * 화면은 실제 API와 똑같이 쓰고, 목업인지는 ApiResult.source로만 구분한다.
  */
 import type {
+  BenefitsRequest,
+  BenefitsResult,
   ComparePlanResult,
   CompareRequest,
   CompareResult,
+  Eligibility,
   ExamplesResult,
   MetaResult,
   PlanRequest,
@@ -102,6 +105,7 @@ function withoutAdjustments(plan: ComparePlanResult): ComparePlanResult {
 }
 
 const FALLBACK_NOTE = "정답 파일에 같은 입력이 없어 S1 결과를 보여 줘요";
+const ADJUSTED_NOTE = "목업은 바꾼 계획을 계산하지 못해 지금 계획 결과를 보여 줘요";
 
 interface Picked {
   golden: GoldenCase;
@@ -308,7 +312,8 @@ export async function simulate(request: SimulateRequest): Promise<MockReturn<Sim
   const { data: validated } = await validate({ step: "ALL", input: request.input });
   return {
     data: { ...answer(picked, picked.golden.simulate), warnings: validated.warnings },
-    match: matchOf(picked, picked.exact),
+    // 정답 파일에는 바꾼 계획의 결과 전체가 없어서 지금 계획 결과를 그대로 돌려준다
+    match: request.adjustments ? matchOf(picked, false, ADJUSTED_NOTE) : matchOf(picked, picked.exact),
   };
 }
 
@@ -321,7 +326,47 @@ export async function story(request: SimulateRequest): Promise<MockReturn<StoryR
   assertComputable(request.input);
   const picked = pickCase(request.input);
   const data = (await import("./data/story.json")).default as unknown as { cases: Record<string, StoryResult> };
-  return { data: answer(picked, data.cases[picked.golden.key]), match: matchOf(picked, picked.exact) };
+  return {
+    data: answer(picked, data.cases[picked.golden.key]),
+    match: request.adjustments ? matchOf(picked, false, ADJUSTED_NOTE) : matchOf(picked, picked.exact),
+  };
+}
+
+/**
+ * 받을 수 있는 혜택: 백엔드 BenefitServiceTest가 만든 정답(data/benefits_golden.json).
+ * 정답 파일 입력 11개 × (질문에 답 없음 · 질문에 다 답함(FULL)). 답이 다르면 답 없는 쪽을 보여 준다.
+ */
+const BENEFITS_FULL: Eligibility = {
+  livingApart: true,
+  sme: true,
+  hireMonth: "2026-03",
+  taxReliefNow: false,
+  militaryMonths: 0,
+  parentsIncomeLow: true,
+  rentDeposit: 10_000_000,
+  monthlyTransit: 60_000,
+};
+const BENEFITS_OTHER_NOTE = "목업은 질문 답을 모두 비웠거나 모두 예시대로 채운 경우만 있어서, 답을 비운 결과를 보여 줘요";
+
+function eligibilityKind(e: Eligibility | undefined): "EMPTY" | "FULL" | "OTHER" {
+  const filled = Object.entries(e ?? {}).filter(([, v]) => v !== null && v !== undefined && v !== "");
+  if (filled.length === 0) return "EMPTY";
+  const full = Object.entries(BENEFITS_FULL);
+  return filled.length === full.length && full.every(([k, v]) => (e as Record<string, unknown>)[k] === v) ? "FULL" : "OTHER";
+}
+
+export async function benefits(request: BenefitsRequest): Promise<MockReturn<BenefitsResult>> {
+  await wait(CALC_DELAY_MS / 2);
+  assertComputable(request.input);
+  const picked = pickCase(request.input);
+  const kind = eligibilityKind(request.eligibility);
+  const key = picked.golden.key + (kind === "FULL" ? "_FULL" : "");
+  const file = (await import("./data/benefits_golden.json")).default as unknown as {
+    cases: { key: string; benefits: BenefitsResult }[];
+  };
+  const found = file.cases.find((c) => c.key === key)!;
+  const note = request.adjustments ? ADJUSTED_NOTE : kind === "OTHER" ? BENEFITS_OTHER_NOTE : undefined;
+  return { data: answer(picked, found.benefits), match: matchOf(picked, picked.exact && !note, note) };
 }
 
 export async function preview(request: PreviewRequest): Promise<MockReturn<PreviewResult>> {

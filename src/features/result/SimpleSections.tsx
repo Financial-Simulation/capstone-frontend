@@ -1,10 +1,9 @@
 /**
- * 간단한 결과 화면(04 첫 화면) 블록: 결론 · 조심할 점과 받는 혜택 · 이렇게 하면 좋아져요.
- * 문장은 simple.ts가 서버 값에서 고른다. 자세한 숫자는 ResultView의 '숫자 더 보기'와 리포트에 있다.
+ * 결과 화면 첫 블록: 결론(SimpleHero) · 그래프 밑 조심할 점(CautionStrip). 문장은 simple.ts가 서버 값에서 고른다.
+ * 계획을 바꾸면(막대) 바꾼 계획의 결과로 보여 주고, 지금 계획과의 차이를 한 줄 붙인다.
  */
 import { LEVEL_LABELS } from "./result";
-import { benefits, cautions, outOfTen, simpleActions, simpleSummary, type Caution } from "./simple";
-import type { ResultData } from "./use-result";
+import { cautions, outOfTen, simpleSummary, type Caution } from "./simple";
 import type { SimulateResult } from "@/lib/types";
 
 const LEVEL_STYLES = {
@@ -13,8 +12,8 @@ const LEVEL_STYLES = {
   low: { box: "border-danger-line bg-danger-soft/50", badge: "bg-danger-soft text-danger", bar: "bg-danger" },
 } as const;
 
-/** 결론: "5년 뒤 3,000만 원, 10번 중 7번쯤은 모을 수 있어요" + 10칸 막대 */
-export function SimpleHero({ result }: { result: SimulateResult }) {
+/** 결론: "5년 뒤 3,000만 원, 10번 중 7번쯤은 모을 수 있어요" + 10칸 막대. base가 있으면 '바꾼 계획' 표시 */
+export function SimpleHero({ result, base }: { result: SimulateResult; base?: SimulateResult | null }) {
   const s = simpleSummary(result);
   const style = LEVEL_STYLES[s.level];
   const filled = outOfTen(result.goal.probability);
@@ -23,6 +22,11 @@ export function SimpleHero({ result }: { result: SimulateResult }) {
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-sm font-semibold text-ink-soft">{s.goal}</p>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${style.badge}`}>{LEVEL_LABELS[s.level]}</span>
+        {base && (
+          <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary">
+            바꾼 계획 · 지금 계획은 {Math.round(base.goal.probability)}%
+          </span>
+        )}
       </div>
       <h1 className="mt-2 text-2xl font-bold leading-snug tracking-tight text-ink sm:text-3xl">
         {s.chance} <span className="align-middle text-base font-semibold text-ink-soft">({s.percent})</span>
@@ -41,82 +45,24 @@ export function SimpleHero({ result }: { result: SimulateResult }) {
   );
 }
 
-const CAUTION_STYLES: Record<Caution["tone"], string> = {
-  danger: "before:bg-danger",
-  warn: "before:bg-warn",
-  info: "before:bg-info-line",
+const CAUTION_DOT: Record<Caution["tone"], string> = {
+  danger: "bg-danger",
+  warn: "bg-warn",
+  info: "bg-info-line",
 };
 
-/** 조심할 점(2~3개) · 받는 혜택(세금 · 지원금) */
-export function SimpleNotes({ result }: { result: SimulateResult }) {
-  const list = cautions(result);
-  const good = benefits(result);
+/** 조심할 점: 그래프 바로 밑에 작은 줄 2~3개 (멘토 피드백 11/16) */
+export function CautionStrip({ result }: { result: SimulateResult }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <section className="rounded-xl border border-line bg-surface p-5">
-        <h2 className="text-base font-bold">조심할 점</h2>
-        <ul className="mt-3 space-y-3">
-          {list.map((c) => (
-            <li
-              key={c.key}
-              className={`relative pl-4 text-[15px] leading-relaxed before:absolute before:left-0 before:top-1.5 before:h-[calc(100%-0.75rem)] before:w-1 before:rounded-full ${CAUTION_STYLES[c.tone]}`}
-            >
-              {c.text}
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section className="rounded-xl border border-line bg-surface p-5">
-        <h2 className="text-base font-bold">받는 혜택</h2>
-        {good.length > 0 ? (
-          <ul className="mt-3 space-y-3">
-            {good.map((line) => (
-              <li
-                key={line}
-                className="relative pl-4 text-[15px] leading-relaxed before:absolute before:left-0 before:top-1.5 before:h-[calc(100%-0.75rem)] before:w-1 before:rounded-full before:bg-good"
-              >
-                {line}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-3 text-[15px] text-ink-soft">
-            지금 계획에는 세금을 돌려받거나 정부 지원금을 받는 상품이 없어요. 아래 &lsquo;상품별로 나눠 보기&rsquo;에서 넣어 볼 수 있어요.
-          </p>
-        )}
-      </section>
-    </div>
-  );
-}
-
-/** 이렇게 하면 좋아져요: 가능성이 많이 오르는 것 3개 */
-export function SimpleActions({ data }: { data: ResultData }) {
-  const reverse = data.reverse?.data;
-  const actions = reverse ? simpleActions(reverse.levers, reverse.currentProbability) : [];
-  return (
-    <section className="rounded-xl border border-line bg-surface p-5">
-      <h2 className="text-base font-bold">이렇게 하면 좋아져요</h2>
-      {!reverse ? (
-        <p className="mt-2 text-sm text-muted">{data.reversePending ? "하나씩 바꿔 다시 계산하는 중…" : "바꿔 볼 것을 계산하지 못했어요."}</p>
-      ) : actions.length === 0 ? (
-        <p className="mt-2 text-[15px] text-ink-soft">하나만 바꿔서 크게 달라지는 것은 없어요. 아래 &lsquo;계획 바꿔 보기&rsquo;에서 여러 가지를 함께 바꿔 볼 수 있어요.</p>
-      ) : (
-        <ol className="mt-3 space-y-2">
-          {actions.map((a, i) => (
-            <li key={a.type} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-canvas px-4 py-3">
-              <span className="flex items-center gap-3 font-semibold">
-                <span aria-hidden className="grid size-6 place-items-center rounded-full bg-primary text-xs text-white">
-                  {i + 1}
-                </span>
-                {a.label}
-              </span>
-              <span className="text-sm">
-                → <span className="font-semibold">{a.chance}</span> <span className="font-semibold text-good">({a.change})</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
+    <section aria-label="조심할 점" className="rounded-xl border border-line bg-surface px-5 py-3">
+      <ul className="space-y-1.5 text-sm">
+        {cautions(result).map((c) => (
+          <li key={c.key} className="flex gap-2">
+            <span aria-hidden className={`mt-1.5 size-2 shrink-0 rounded-full ${CAUTION_DOT[c.tone]}`} />
+            <span>{c.text}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 04-E 예시 결과. GET /examples의 S1~S3 중 하나로 /simulate를 부른다.
+ * 04-E 예시 결과. GET /examples의 S1~S4 중 하나로 /simulate를 부른다 (S4는 혜택 질문 답도 같이 와서 /benefits에 보낸다).
  * 내 입력(simInput.v1)은 바꾸지 않는다: 예시 값은 내 입력으로 옮기지 않고, '내 정보로 시작하기'는
  * 00 '시뮬레이션 시작하기'와 같은 흐름(저장값이 있으면 '이어서 할까요?')으로 01-1에 간다.
  * 위쪽에 '예시 데이터로 계산한 결과예요' 배너가 항상 있다 (파란 안내색. 보라색은 목업 표시에만).
@@ -105,7 +105,7 @@ export function ExampleScreen() {
         <Failed error={result.error} onRetry={result.retry} canFixInput={false} />
       ) : (
         <>
-          <ResultView data={result.data} input={example?.input ?? {}} example />
+          <ResultView data={result.data} input={example?.input ?? {}} example exampleEligibility={example?.eligibility} />
           <div className="flex flex-wrap items-center gap-3 border-t border-line pt-6">
             <Button variant="secondary" onClick={start}>
               내 정보로 시작하기

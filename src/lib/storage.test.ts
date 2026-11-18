@@ -10,6 +10,7 @@ import {
   loadInput,
   loadPlans,
   loadProgress,
+  parseEligibility,
   parsePlans,
   saveInput,
   savePlans,
@@ -152,3 +153,14 @@ describe("simPlans.v1 · simProgress.v1", () => {
     expect([...data.keys()]).toEqual(["apiMode.dev"]);
   });
 });
+
+describe("simEligibility.v1", () => {
+  it("아는 칸 · 맞는 타입만 남긴다", () => {
+    expect(parseEligibility(null)).toEqual({});
+    expect(
+      parseEligibility({ livingApart: true, sme: "yes", hireMonth: "2026-3", militaryMonths: 24, rentDeposit: -1, other: 1 }),
+    ).toEqual({ livingApart: true, militaryMonths: 24 });
+    expect(parseEligibility({ hireMonth: "2026-03", monthlyTransit: 60_000 })).toEqual({ hireMonth: "2026-03", monthlyTransit: 60_000 });
+  });
+});
+
