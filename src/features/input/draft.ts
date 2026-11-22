@@ -19,17 +19,6 @@ export function patch<K extends Section>(
 export const ALLOCATION_KEYS = ["policyMonthly", "housingMonthly", "pensionMonthly"] as const;
 export type AllocationKey = (typeof ALLOCATION_KEYS)[number];
 
-/**
- * 배분을 내 입력(simInput.v1)에 넣는다. 넘긴 칸만 바꾸고, null은 비움 → 서버 기본값
- * (청년미래는 대상이면 월 저축액 안에서 한도까지, 청약 · 연금저축은 0). 04-E 예시 입력에는 넣지 않는다.
- */
-export function setAllocation(
-  input: SimulationInputDraft,
-  allocation: Partial<Record<AllocationKey, number | null>>,
-): SimulationInputDraft {
-  return patch(input, "savingPlan", allocation);
-}
-
 export type ExpenseKind = "fixed" | "variable";
 
 /** 와이어플로 01-1 '항목별로 입력'의 기본 항목 */

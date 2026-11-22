@@ -4,16 +4,14 @@
  * 계산은 서버가 하고, 여기서는 바꾼 값을 고르고 서버 결과에 이름을 붙인다.
  */
 import { EMERGENCY_FIRST_OPTIONS, INPUT_DEFAULTS } from "@/config/policy";
-import { PROBABILITY_GOOD, compareDiff, type CompareDiff } from "@/features/result/result";
+import { compareDiff, type CompareDiff } from "@/features/result/result";
 import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint, MINUS } from "@/lib/format";
 import { LIMITS, resolvedExpenseTotal } from "@/lib/rules";
 import type {
   Adjustments,
   CompareResult,
-  ComparisonMetric,
   EmergencyFirstAmount,
   PlanRequest,
-  PreviewResult,
   RobustJobResult,
   SimulationInput,
   YearMonth,
@@ -33,15 +31,6 @@ export interface PlanValues {
 
 export type PlanKey = keyof PlanValues;
 export type MoneyPlanKey = Exclude<PlanKey, "goalTargetDate" | "emergencyFirstAmount">;
-
-/** 금액 칸 (tax-addon.js와 같은 순서 · 안내) */
-export const PLAN_MONEY_FIELDS: readonly { key: MoneyPlanKey; label: string; hint: string }[] = [
-  { key: "monthlyVariableExpense", label: "월 변동지출", hint: "식비·쇼핑·여가" },
-  { key: "monthlyFixedExpense", label: "월 고정지출", hint: "월세·통신비·보험료" },
-  { key: "monthlySaving", label: "월 저축액", hint: "적금·청약·연금에 넣는 돈 합계" },
-  { key: "breakThreshold", label: "버틸 금액", hint: "마이너스가 이만큼 넘으면 적금을 깨요" },
-  { key: "goalTargetAmount", label: "목표 금액", hint: "" },
-];
 
 /** 담은 계획 이름에 쓰는 짧은 이름 */
 const SHORT: Record<PlanKey, string> = {
@@ -92,11 +81,17 @@ function valueText(key: PlanKey, value: unknown): string {
   return formatKoreanWon(value as number);
 }
 
-/** "변동지출 85만 원 · 목표 시점 2032년 11월" (담은 계획 이름, 20자를 넘을 수 있다 → 서버에는 planRequests로) */
+/** 배분 막대 (Adjustments의 이름 그대로) */
+const ALLOCATION_SHORT = { policyMonthly: "청년미래", housingMonthly: "청약", pensionMonthly: "연금저축" } as const;
+
+/** "변동지출 85만 원 · 목표 시점 2032년 11월 · 청약 20만 원" (담은 계획 이름, 20자를 넘을 수 있다 → 서버에는 planRequests로) */
 export function describeChanges(adjustments: Adjustments): string {
-  return PLAN_KEYS.filter((key) => key in adjustments)
-    .map((key) => `${SHORT[key]} ${valueText(key, (adjustments as Record<string, unknown>)[key])}`)
-    .join(" · ");
+  const values = adjustments as Record<string, unknown>;
+  const plan = PLAN_KEYS.filter((key) => key in adjustments).map((key) => `${SHORT[key]} ${valueText(key, values[key])}`);
+  const allocation = (Object.keys(ALLOCATION_SHORT) as (keyof typeof ALLOCATION_SHORT)[])
+    .filter((key) => key in adjustments)
+    .map((key) => `${ALLOCATION_SHORT[key]} ${formatKoreanWon(values[key] as number)}`);
+  return [...plan, ...allocation].join(" · ");
 }
 
 /** max자를 넘으면 앞 max−1자 + "…" */
@@ -143,63 +138,6 @@ export const EMERGENCY_CHOICES = EMERGENCY_FIRST_OPTIONS.map((value) => ({
   value,
   label: value ? `${formatKoreanWon(value)} 모은 뒤 적금` : "바로 적금 시작",
 }));
-
-/** 칸 아래 '지금 …' */
-export function baseHint(key: PlanKey, base: PlanValues, hint = ""): string {
-  const now =
-    key === "emergencyFirstAmount"
-      ? base.emergencyFirstAmount
-        ? `${formatKoreanWon(base.emergencyFirstAmount)} 모은 뒤 적금`
-        : "바로 적금 시작"
-      : valueText(key, base[key]);
-  return `지금 ${now}${hint ? ` · ${hint}` : ""}`;
-}
-
-// ===== 미리보기 (/simulate/preview) =====
-
-const METRIC_LABELS: Record<ComparisonMetric, string> = {
-  PROBABILITY: "목표 달성 가능성",
-  DEBT_PROBABILITY: "빚질 가능성",
-  WORST_CASE_AT_GOAL: "최악의 경우 (하위 5%)",
-  EARLY_TERMINATION: "청년미래적금 중도해지",
-  EXPECTED_SUBSIDY: "정부 지원금",
-};
-const PERCENT_METRICS: ComparisonMetric[] = ["PROBABILITY", "DEBT_PROBABILITY", "EARLY_TERMINATION"];
-
-function signedManwon(value: number): string {
-  return value > 0 ? `+${formatManwon(value)}` : formatManwon(value);
-}
-
-const reach70 = (date: YearMonth | null) => `${PROBABILITY_GOOD}%가 되는 때 ${date ? formatYearMonth(date) : "10년 안에 없음"}`;
-
-export interface PreviewView {
-  current: { probability: string; detail: string };
-  adjusted: { title: string; probability: string; detail: string; tone: "good" | "danger" | "default" };
-  rows: { metric: ComparisonMetric; label: string; current: string; adjusted: string; diff: string }[];
-}
-
-export function previewView(preview: PreviewResult, adjustments: Adjustments): PreviewView {
-  const diff = preview.table.find((row) => row.metric === "PROBABILITY")?.diff ?? 0;
-  const meaningful = preview.significance.meaningful;
-  const fmt = (metric: ComparisonMetric, value: number | null) =>
-    value == null ? "—" : PERCENT_METRICS.includes(metric) ? formatPercent(value) : formatManwon(value);
-  return {
-    current: { probability: formatPercent(preview.current.probability), detail: reach70(preview.current.reach70Date) },
-    adjusted: {
-      title: `바꾼 계획 (${describeChanges(adjustments)})`,
-      probability: formatPercent(preview.adjusted.probability),
-      detail: `${meaningful ? formatPercentPoint(diff) : "거의 차이 없음"} · ${reach70(preview.adjusted.reach70Date)}`,
-      tone: !meaningful ? "default" : diff > 0 ? "good" : "danger",
-    },
-    rows: preview.table.map((row) => ({
-      metric: row.metric,
-      label: METRIC_LABELS[row.metric],
-      current: fmt(row.metric, row.current),
-      adjusted: fmt(row.metric, row.adjusted),
-      diff: row.diff == null ? "—" : PERCENT_METRICS.includes(row.metric) ? formatPercentPoint(row.diff) : signedManwon(row.diff),
-    })),
-  };
-}
 
 // ===== 담은 계획 비교 (/compare) =====
 

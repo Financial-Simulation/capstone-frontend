@@ -16,7 +16,7 @@ export function MockNote({ match }: { match?: MockMatch }) {
         <Badge tone="mock">목업</Badge>{" "}
         {exact
           ? `정답 파일(analysis_golden.json)의 ${match?.caseKey ?? ""} 계산 결과예요.`
-          : "입력한 값과 같은 정답 케이스가 없어 S1 결과를 대신 보여 줘요. 숫자가 내 입력과 달라요."}
+          : (match?.note ?? "입력한 값과 같은 정답 케이스가 없어 S1 결과를 대신 보여 줘요. 숫자가 내 입력과 달라요.")}
       </p>
       <p className="mt-1 text-ink-soft">
         백엔드 /simulate가 붙으면 같은 seed로 같은 숫자가 나와요.{match?.note && exact ? ` ${match.note}.` : ""}

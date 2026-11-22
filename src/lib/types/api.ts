@@ -11,6 +11,7 @@ import type {
   SimulationInput,
   SimulationInputDraft,
 } from "./input";
+import type { Eligibility } from "./results";
 
 /** 모든 API가 돌려주는 공통 응답 (ApiResponse.java) */
 export interface ApiResponse<T> {
@@ -151,7 +152,7 @@ export interface PresetsResult {
 
 // ===== GET /api/examples =====
 
-export type ExampleKey = "S1" | "S2" | "S3";
+export type ExampleKey = "S1" | "S2" | "S3" | "S4";
 
 export interface ExampleInput {
   key: ExampleKey | (string & {});
@@ -159,6 +160,8 @@ export interface ExampleInput {
   label: string;
   /** 이 값으로 /simulate를 부른다. 내 입력(simInput.v1)에는 저장하지 않는다 */
   input: SimulationInput;
+  /** 혜택 질문 예시 답 (S4만). /benefits에 같이 보낸다 */
+  eligibility?: Eligibility;
 }
 
 export interface ExamplesResult {

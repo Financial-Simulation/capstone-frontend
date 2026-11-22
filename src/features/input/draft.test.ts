@@ -12,7 +12,6 @@ import {
   removeLoan,
   setExpenseMode,
   setHasLoan,
-  setAllocation,
   setLoanType,
 } from "./draft";
 
@@ -29,19 +28,6 @@ describe("v1.7 칸", () => {
     const fixed = { inputMode: "TOTAL" as const, total: 950_000 };
     const next = patch({ expenses: { fixed } }, "expenses", { monthlyRent: 500_000 });
     expect(next).toEqual({ expenses: { fixed, monthlyRent: 500_000 } });
-  });
-
-  it("상품별 배분: 넣고 · 비우기 (월 저축액 등 다른 저축 칸은 그대로)", () => {
-    const base = { savingPlan: { monthlySaving: 500_000, generalSavingRate: 3.5 } };
-    const next = setAllocation(base, { policyMonthly: 300_000, housingMonthly: 100_000, pensionMonthly: 100_000 });
-    expect(next.savingPlan).toEqual({
-      monthlySaving: 500_000,
-      generalSavingRate: 3.5,
-      policyMonthly: 300_000,
-      housingMonthly: 100_000,
-      pensionMonthly: 100_000,
-    });
-    expect(setAllocation(next, { housingMonthly: null }).savingPlan).toEqual({ ...next.savingPlan, housingMonthly: null });
   });
 });
 

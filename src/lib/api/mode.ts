@@ -26,6 +26,7 @@ export const ENDPOINTS = [
   "reports",
   "meta",
   "story",
+  "benefits",
 ] as const;
 
 export type Endpoint = (typeof ENDPOINTS)[number];
@@ -46,6 +47,7 @@ export const ENDPOINT_LABELS: Record<Endpoint, string> = {
   reports: "POST /reports",
   meta: "GET /meta",
   story: "POST /simulate/story (데모)",
+  benefits: "POST /benefits",
 };
 
 /** 아무 데서도 정하지 않은 엔드포인트는 실제 API */

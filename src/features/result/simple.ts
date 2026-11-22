@@ -107,22 +107,6 @@ export function cautions(result: SimulateResult): Caution[] {
   return list;
 }
 
-// ===== 받는 혜택 (세금 · 정부 지원금) =====
-
-export function benefits(result: SimulateResult): string[] {
-  const lines: string[] = [];
-  const tax = result.tax;
-  if (tax && tax.refundPerYear > 0) {
-    lines.push(`매년 2월 연말정산으로 약 ${formatManwon(tax.refundPerYear)}을 돌려받아요.`);
-  }
-  const { eligible, expectedSubsidy } = result.risks.policySaving;
-  const noMatch = result.warnings?.some((w) => w.code === "INFO_POLICY_NO_MATCH") ?? false;
-  if (eligible && !noMatch && expectedSubsidy != null && expectedSubsidy > 0) {
-    lines.push(`청년미래적금으로 정부 지원금을 약 ${formatManwon(expectedSubsidy)} 받아요.`);
-  }
-  return lines;
-}
-
 // ===== 이렇게 하면 좋아져요 =====
 
 export interface SimpleAction {

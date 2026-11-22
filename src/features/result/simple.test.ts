@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { goldenCaseByKey } from "@/mocks/golden";
-import { benefits, cautions, chancePhrase, outOfTen, peopleText, simpleActions, simpleSummary } from "./simple";
+import { cautions, chancePhrase, outOfTen, peopleText, simpleActions, simpleSummary } from "./simple";
 
 const golden = (key: string) => goldenCaseByKey(key)!;
 
@@ -46,7 +46,7 @@ describe("결론", () => {
   it("어려운 말을 쓰지 않는다", () => {
     for (const key of ["S1", "S2", "S3", "E1", "E2", "E3", "E4", "E5", "T1", "T2", "T3"]) {
       const sim = golden(key).simulate;
-      const text = [simpleSummary(sim).chance, ...simpleSummary(sim).lines, ...cautions(sim).map((c) => c.text), ...benefits(sim)].join(" ");
+      const text = [simpleSummary(sim).chance, ...simpleSummary(sim).lines, ...cautions(sim).map((c) => c.text)].join(" ");
       expect(text).not.toMatch(/미래 2,000개|중간값|하위|오차|계산기|%p|분위/);
     }
   });
@@ -64,19 +64,6 @@ describe("조심할 점", () => {
   it("S3: 위험이 작고 청년미래 대상이 아니면 '많이 안 풀려도' 한 줄만", () => {
     const list = cautions(golden("S3").simulate);
     expect(list).toEqual([{ key: "worst", text: "많이 안 풀려도(20번 중 1번) 목표 시점에 5,763만 원은 모여요.", tone: "info" }]);
-  });
-});
-
-describe("받는 혜택", () => {
-  it("T1: 연말정산 환급 · 정부 지원금", () => {
-    expect(benefits(golden("T1").simulate)).toEqual([
-      "매년 2월 연말정산으로 약 86만 원을 돌려받아요.",
-      "청년미래적금으로 정부 지원금을 약 51만 원 받아요.",
-    ]);
-  });
-
-  it("S3: 상품이 없으면 빈 목록", () => {
-    expect(benefits(golden("S3").simulate)).toEqual([]);
   });
 });
 

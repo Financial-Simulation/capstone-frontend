@@ -9,19 +9,22 @@
  * 버튼으로 부르는 API 작업(결과 화면의 비교 · 추천 · 미리보기 · 가능성 범위)은 맨 아래 useApiTask.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { SimulationInputDraft, YearMonth } from "./types";
+import type { Eligibility, SimulationInputDraft, YearMonth } from "./types";
 import { currentYearMonth } from "./year-month";
 import {
+  ELIGIBILITY_KEY,
   INPUT_KEY,
   PLANS_KEY,
   PROGRESS_KEY,
   browserStorage,
   clearAll,
+  parseEligibility,
   parseInput,
   parseJson,
   parsePlans,
   parseProgress,
   readRaw,
+  saveEligibility,
   saveInput,
   savePlans,
   saveProgress,
@@ -43,7 +46,7 @@ function notify() {
 function subscribe(listener: Listener) {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    const watched = [INPUT_KEY, PLANS_KEY, PROGRESS_KEY, MODE_OVERRIDE_KEY];
+    const watched = [INPUT_KEY, PLANS_KEY, PROGRESS_KEY, ELIGIBILITY_KEY, MODE_OVERRIDE_KEY];
     if (event.key === null || watched.includes(event.key)) listener();
   };
   window.addEventListener("storage", onStorage);
@@ -73,9 +76,11 @@ let unsavedInputRaw: string | null = null;
 const readInput = cachedReader(() => unsavedInputRaw ?? readRaw(INPUT_KEY), parseInput);
 const readPlans = cachedReader(() => readRaw(PLANS_KEY), parsePlans);
 const readProgress = cachedReader(() => readRaw(PROGRESS_KEY), parseProgress);
+const readEligibility = cachedReader(() => readRaw(ELIGIBILITY_KEY), parseEligibility);
 
 const EMPTY_PLANS: SavedPlan[] = [];
 const EMPTY_PROGRESS: Progress = { visited: [] };
+const EMPTY_ELIGIBILITY: Eligibility = {};
 
 export type InputUpdater = SimulationInputDraft | ((prev: SimulationInputDraft) => SimulationInputDraft);
 
@@ -113,6 +118,17 @@ export function useSavedPlans() {
     return saved;
   }, []);
   return { plans, setPlans };
+}
+
+/** 결과 화면 '혜택을 더 정확히' 질문 답 (simEligibility.v1) */
+export function useEligibility() {
+  const eligibility = useSyncExternalStore(subscribe, readEligibility, () => EMPTY_ELIGIBILITY);
+  const setEligibility = useCallback((next: Eligibility) => {
+    const saved = saveEligibility(next);
+    notify();
+    return saved;
+  }, []);
+  return { eligibility, setEligibility };
 }
 
 /** 거쳐 간 입력 단계 */

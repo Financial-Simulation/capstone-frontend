@@ -3,7 +3,6 @@ import { goldenCaseByKey } from "@/mocks/golden";
 import type { RobustJobResult, SimulationInput } from "@/lib/types";
 import {
   EMERGENCY_CHOICES,
-  baseHint,
   describeChanges,
   hasChanges,
   planBase,
@@ -11,7 +10,6 @@ import {
   planCompareRows,
   planLabels,
   planRequests,
-  previewView,
   robustPlanLines,
   sameAdjustments,
 } from "./plan";
@@ -50,11 +48,7 @@ describe("바꿔 볼 값 7개", () => {
     expect(sameAdjustments({ monthlySaving: 400_000 }, { monthlySaving: 400_000, breakThreshold: 1 })).toBe(false);
   });
 
-  it("칸 아래 '지금 …'과 비상금 선택지", () => {
-    const base = planBase(s1);
-    expect(baseHint("monthlySaving", base, "적금·청약·연금에 넣는 돈 합계")).toBe("지금 50만 원 · 적금·청약·연금에 넣는 돈 합계");
-    expect(baseHint("goalTargetDate", base)).toBe("지금 2031년 11월");
-    expect(baseHint("emergencyFirstAmount", base)).toBe("지금 바로 적금 시작");
+  it("비상금 선택지", () => {
     expect(EMERGENCY_CHOICES.map((c) => c.label)).toEqual([
       "바로 적금 시작",
       "100만 원 모은 뒤 적금",
@@ -62,35 +56,6 @@ describe("바꿔 볼 값 7개", () => {
       "300만 원 모은 뒤 적금",
       "500만 원 모은 뒤 적금",
     ]);
-  });
-});
-
-describe("미리보기 (/simulate/preview, 서버 값 그대로)", () => {
-  it("S1: 변동지출 85만 원 → 58.0% → 70.5% (의미 있는 차이, 초록)", () => {
-    const { adjustments, ...preview } = golden("S1").preview;
-    const view = previewView(preview, adjustments!);
-    expect(view.current).toEqual({ probability: "58.0%", detail: "70%가 되는 때 2032년 12월" });
-    expect(view.adjusted).toEqual({
-      title: "바꾼 계획 (변동지출 85만 원)",
-      probability: "70.5%",
-      detail: "+12.5%p · 70%가 되는 때 2031년 11월",
-      tone: "good",
-    });
-    expect(view.rows.map((r) => [r.label, r.current, r.adjusted, r.diff])).toEqual([
-      ["목표 달성 가능성", "58.0%", "70.5%", "+12.5%p"],
-      ["빚질 가능성", "18.9%", "15.9%", "−3.1%p"],
-      ["최악의 경우 (하위 5%)", "−1,568만 원", "−865만 원", "+703만 원"],
-      ["청년미래적금 중도해지", "43.9%", "22.7%", "−21.2%p"],
-      ["정부 지원금", "57만 원", "80만 원", "+23만 원"],
-    ]);
-  });
-
-  it("S3: 청년미래 대상이 아니면 그 줄은 —, 차이가 작으면 '거의 차이 없음'", () => {
-    const { adjustments, ...preview } = golden("S3").preview;
-    const view = previewView(preview, adjustments!);
-    expect(view.adjusted.tone).toBe("default");
-    expect(view.adjusted.detail.startsWith("거의 차이 없음")).toBe(true);
-    expect(view.rows.at(-1)).toMatchObject({ current: "—", adjusted: "—", diff: "—" });
   });
 });
 

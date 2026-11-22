@@ -7,6 +7,8 @@
  * 실패하면 ApiError를 던진다 → toFieldErrors(error, input)로 칸 오류, formErrorMessage(error)로 화면 위 안내.
  */
 import type {
+  BenefitsRequest,
+  BenefitsResult,
   CompareRequest,
   CompareResult,
   ExamplesResult,
@@ -148,6 +150,11 @@ export const api = {
   /** 데모 '미래 다시 보기': 상위 5% · 가운데 · 하위 5% 미래를 달마다 (요청은 /simulate와 같다) */
   story(body: SimulateRequest, options?: RequestOptions) {
     return call<StoryResult>("story", () => request("POST", "/simulate/story", body, options), (m) => m.story(body));
+  },
+
+  /** 받을 수 있는 혜택: 정책 판정 + 받으면 목표 달성 가능성이 얼마나 바뀌는지 (adjustments가 있으면 바꾼 계획 기준) */
+  benefits(body: BenefitsRequest, options?: RequestOptions) {
+    return call<BenefitsResult>("benefits", () => request("POST", "/benefits", body, options), (m) => m.benefits(body));
   },
 
   /** 근거·파라미터 */

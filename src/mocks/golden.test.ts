@@ -72,9 +72,11 @@ describe("같은 입력 찾기 (엔진이 쓰는 값으로)", () => {
     expect(findGoldenCase(withGross)).toBeNull();
   });
 
-  it("백엔드 /examples의 S1~S3(기본값이 채워진 모양)도 같은 케이스", () => {
+  it("백엔드 /examples의 S1~S3(기본값이 채워진 모양)도 같은 케이스, S4(11/18 추가)는 정답 파일에 없다", () => {
     for (const example of examplesData.examples) {
-      expect(findGoldenCase(example.input as SimulationInputDraft)?.golden.key).toBe(example.key);
+      const found = findGoldenCase(example.input as SimulationInputDraft)?.golden.key;
+      if (example.key === "S4") expect(found).toBeUndefined();
+      else expect(found).toBe(example.key);
     }
   });
 

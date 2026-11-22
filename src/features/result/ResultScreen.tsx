@@ -5,17 +5,15 @@
  * 입력이 덜 끝났으면 그 화면으로 안내하고, 계산 중에는 '계산 중'(5초가 넘으면 오래 걸린다는 안내),
  * 실패하면 입력 칸 문제는 '입력 확인하기', 백엔드 꺼짐 · 서버 오류는 '다시 계산'.
  * 위쪽 · 맨 아래 '자세한 결과 (PDF)'는 같은 입력 · 담은 계획으로 리포트(/report)를 연다 (인쇄 · PDF).
- * 맨 아래 버튼: 상품별로 나눠 보기(세금 결과가 있을 때) · 계획 바꿔 보기 → 그 블록을 펼치고 그 자리로 옮긴다.
+ * 계획 바꿔 보기 · 상품별로 나눠 보기 · 미래 다시 보기는 본문(ResultView)에 늘 펼쳐 둔다 (멘토 피드백 11/16).
  */
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { PLAN_SECTION_ID } from "@/features/plan/PlanSection";
-import { ALLOCATION_SECTION_ID, ResultView } from "./ResultView";
+import { ResultView } from "./ResultView";
 import { Computing, Empty, Failed, NotReady } from "./StateViews";
 import { useResult } from "./use-result";
 import { Button, LinkButton } from "@/components/ui";
-import { setAllocation } from "@/features/input/draft";
 import { useHydrated, useSimInput } from "@/lib/hooks";
 import { readiness } from "./result";
 import { ROUTES, STEPS, stepByKey } from "@/lib/steps";
@@ -24,25 +22,8 @@ import type { SimulationInput } from "@/lib/types";
 export function ResultScreen() {
   const router = useRouter();
   const hydrated = useHydrated();
-  const { input, update, clear } = useSimInput();
+  const { input, clear } = useSimInput();
   const [confirmReset, setConfirmReset] = useState(false);
-  // '계획 바꿔 보기'(04-2): 맨 아래 버튼으로 펼치고 그 자리로 옮긴다
-  const [planOpen, setPlanOpen] = useState(false);
-  const [planScroll, setPlanScroll] = useState(0);
-  useEffect(() => {
-    if (planScroll === 0) return;
-    document.getElementById(PLAN_SECTION_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    document.getElementById("plan-title")?.focus({ preventScroll: true });
-  }, [planScroll]);
-  // '상품별로 나눠 보기': 같은 방식으로 펼치고 옮긴다
-  const [allocationOpen, setAllocationOpen] = useState(false);
-  const [allocationScroll, setAllocationScroll] = useState(0);
-  useEffect(() => {
-    if (allocationScroll === 0) return;
-    document.getElementById(ALLOCATION_SECTION_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    document.getElementById("alloc-title")?.focus({ preventScroll: true });
-  }, [allocationScroll]);
-
   const ready = hydrated ? readiness(input) : null;
   const result = useResult(ready?.ok && input ? (input as SimulationInput) : null);
 
@@ -83,44 +64,10 @@ export function ResultScreen() {
         </div>
       </div>
 
-      <ResultView
-        data={result.data}
-        input={input ?? {}}
-        onApplyAllocation={(allocation) => {
-          // 내 입력의 배분을 바꾸면 결과 전체를 다시 계산한다 (계산 중 화면 → 새 결과, 위에서부터 보이게)
-          update((prev) => setAllocation(prev, allocation));
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-        allocationOpen={allocationOpen}
-        planOpen={planOpen}
-        onPlanClose={() => setPlanOpen(false)}
-      />
+      <ResultView data={result.data} input={input ?? {}} />
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line pt-6">
         <LinkButton href={ROUTES.report}>자세한 결과 보기 (PDF)</LinkButton>
-        <LinkButton href={ROUTES.story} variant="secondary">
-          미래 다시 보기 (데모)
-        </LinkButton>
-        {result.data.sim.data.tax && (
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setAllocationOpen(true);
-              setAllocationScroll((n) => n + 1);
-            }}
-          >
-            상품별로 나눠 보기
-          </Button>
-        )}
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setPlanOpen(true);
-            setPlanScroll((n) => n + 1);
-          }}
-        >
-          계획 바꿔 보기
-        </Button>
         <LinkButton href={STEPS[0].href} variant="ghost">
           입력 수정
         </LinkButton>

@@ -22,6 +22,8 @@ export interface Quantiles {
 
 export interface SimulateRequest {
   input: SimulationInput;
+  /** 결과 화면 '계획 바꿔 보기' 막대에서 바꾼 값. 있으면 바꾼 계획으로 계산한다 (/simulate · /simulate/story) */
+  adjustments?: Adjustments;
   /** 비우면 20261007 */
   seed?: number | null;
 }
@@ -550,4 +552,79 @@ export interface StoryResult {
   goalMonths: number;
   targetAmount: number;
   stories: Story[];
+}
+
+// ===== 받을 수 있는 혜택 (POST /benefits) =====
+
+/** 혜택 판정에만 쓰는 선택 질문. 모두 비워도 된다 (null · 없음 = 모름). 계산 입력과 따로 저장한다 */
+export interface Eligibility {
+  /** 부모님과 따로 사나요 */
+  livingApart?: boolean | null;
+  /** 지금 회사가 중소기업인가요 */
+  sme?: boolean | null;
+  /** 지금 회사에 들어간 달 YYYY-MM */
+  hireMonth?: YearMonth | null;
+  /** 이미 중소기업 소득세 감면을 받고 있나요 */
+  taxReliefNow?: boolean | null;
+  /** 군 복무 개월 0~120 */
+  militaryMonths?: number | null;
+  /** 부모님 가구 소득 중위 100% 이하 · 재산 4.7억 이하인가요 */
+  parentsIncomeLow?: boolean | null;
+  /** 지금 집 보증금 (원) */
+  rentDeposit?: number | null;
+  /** 한 달 대중교통비 (원) */
+  monthlyTransit?: number | null;
+}
+
+export type EligibilityKey = keyof Eligibility;
+
+export interface BenefitsRequest {
+  input: SimulationInput;
+  adjustments?: Adjustments;
+  eligibility?: Eligibility;
+  seed?: number;
+}
+
+/** 받아요 · 확인해 보세요 · 실직하면 · 못 받아요 (서버가 이 순서로 보낸다) */
+export type BenefitStatus = "YES" | "CHECK" | "LATER" | "NO";
+export type BenefitCategory = "CASH" | "TAX" | "SAVING" | "LOAN" | "SAFETY";
+
+export interface BenefitEffect {
+  /** 받으면 목표 달성 가능성 % */
+  probability: number;
+  /** 지금(바꾼) 계획보다 몇 %p */
+  diff: number;
+  /** 계산에 넣은 가정 한 줄 */
+  assumption: string | null;
+}
+
+export interface BenefitItem {
+  key: string;
+  name: string;
+  category: BenefitCategory;
+  status: BenefitStatus;
+  /** 받는 돈 한 줄 (모르면 null) */
+  amount: string | null;
+  /** 카드에 바로 보이는 짧은 한 줄 (판정 이유) */
+  summary: string;
+  /** 자세한 설명 ('자세히'를 눌러야 보인다) */
+  detail: string;
+  /** 어디서 · 언제 신청하는지 */
+  how: string;
+  /** 더 알려 주면 판정이 정확해지는 질문 */
+  ask: EligibilityKey[];
+  effect: BenefitEffect | null;
+  /** 2027년에 바뀔 수 있는 내용 (확정 전) */
+  notice: string | null;
+  sources: { title: string; url: string | null }[];
+}
+
+export interface BenefitsResult {
+  /** 규칙표(benefits.json) 기준일 */
+  asOf: string;
+  /** 지금(바꾼) 계획의 목표 달성 가능성 % */
+  probability: number;
+  /** 연말정산으로 매년 돌려받는 돈 (원, 없으면 null) */
+  refundPerYear: number | null;
+  items: BenefitItem[];
 }

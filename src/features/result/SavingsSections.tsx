@@ -1,33 +1,20 @@
 /**
- * 모은 돈: '앞으로 모을 돈'(범위 그래프 + 해마다 표) · '1 · 3 · 5 · 10년 뒤 모은 돈' 표.
- * 그래프는 BandChart.tsx, 표의 줄은 result.ts(checkpointRows · yearlyRows)가 서버 값에서 고른다.
+ * 모은 돈 표: '해마다 모은 돈' · '1 · 3 · 5 · 10년 뒤 모은 돈' (숫자 더 보기). 그래프는 ChartPanel.tsx · BandChart.tsx,
+ * 표의 줄은 result.ts(checkpointRows · yearlyRows)가 서버 값에서 고른다.
  */
 import type { ReactNode } from "react";
 import { formatManwon } from "@/lib/format";
-import type { SimulateResult, SimulationInputDraft } from "@/lib/types";
+import type { SimulateResult } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
-import { BandChart, BandLegend } from "./BandChart";
-import { checkpointRows, eventMarks, yearlyRows, type QuantileRow } from "./result";
+import { checkpointRows, yearlyRows, type QuantileRow } from "./result";
 
-export function ChartCard({ result, input }: { result: SimulateResult; input: SimulationInputDraft }) {
-  const events = eventMarks(input);
+/** 해마다 모은 돈 표 (그래프의 표 버전) */
+export function YearlyTable({ result }: { result: SimulateResult }) {
   return (
     <section className="rounded-xl border border-line bg-surface p-5">
-      <h2 className="text-base font-bold">앞으로 모을 돈</h2>
-      <p className="mt-1 text-sm text-ink-soft">
-        실직·급한 지출·물가·연봉이 달라지는 {result.paths.toLocaleString("ko-KR")}가지 경우를 계산해서, 모은 돈이 어디쯤 있을지
-        보여 드려요. 그래프를 누르면 그달의 값을 볼 수 있어요.
-      </p>
-      <div className="mt-4">
-        <BandLegend hasEvents={events.length > 0} />
-      </div>
-      <div className="mt-3">
-        <BandChart result={result} events={events} />
-      </div>
-      <details className="mt-3">
-        <summary className="cursor-pointer text-sm font-semibold text-ink-soft">표로 보기 (해마다)</summary>
-        <QuantileTable rows={yearlyRows(result)} />
-      </details>
+      <h2 className="text-base font-bold">해마다 모은 돈</h2>
+      <p className="mt-1 text-sm text-ink-soft">그래프의 값을 1년마다 표로 보여 드려요.</p>
+      <QuantileTable rows={yearlyRows(result)} />
     </section>
   );
 }

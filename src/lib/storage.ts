@@ -4,16 +4,18 @@
  *  - simInput.v1   : SimulationInput 그대로 (입력 중이면 빈 칸이 있는 Draft)
  *  - simPlans.v1   : 04-2에서 저장한 비교 계획, 최대 3개
  *  - simProgress.v1: 화면에서만 쓰는 진행 상태 (거쳐 간 단계). 서버로 보내지 않는다
+ *  - simEligibility.v1: 결과 화면 '혜택을 더 정확히' 질문 답 (Eligibility). /benefits에만 보낸다
  *
  * localStorage는 사생활 보호 모드·저장 공간 초과 등에서 예외를 던질 수 있어 모두 try/catch로 감싼다.
  * 스키마가 바뀌면 키를 v2로 올리고 v1 값을 옮기거나 버린다.
  */
-import type { Adjustments, SimulationInputDraft, YearMonth } from "./types";
+import type { Adjustments, Eligibility, SimulationInputDraft, YearMonth } from "./types";
 import { currentYearMonth, isYearMonth } from "./year-month";
 
 export const INPUT_KEY = "simInput.v1";
 export const PLANS_KEY = "simPlans.v1";
 export const PROGRESS_KEY = "simProgress.v1";
+export const ELIGIBILITY_KEY = "simEligibility.v1";
 export const MAX_SAVED_PLANS = 3;
 
 /** 테스트에서 가짜 저장소를 넣을 수 있게 Storage의 필요한 부분만 */
@@ -114,6 +116,7 @@ export function clearAll(storage: StorageLike | null = browserStorage()): void {
   remove(INPUT_KEY, storage);
   remove(PLANS_KEY, storage);
   remove(PROGRESS_KEY, storage);
+  remove(ELIGIBILITY_KEY, storage);
 }
 
 /**
@@ -175,4 +178,26 @@ export function loadProgress(storage: StorageLike | null = browserStorage()): Pr
 
 export function saveProgress(progress: Progress, storage: StorageLike | null = browserStorage()): boolean {
   return writeJson(PROGRESS_KEY, progress, storage);
+}
+
+// ===== simEligibility.v1 =====
+
+const BOOLEAN_KEYS = ["livingApart", "sme", "taxReliefNow", "parentsIncomeLow"] as const;
+const NUMBER_KEYS = ["militaryMonths", "rentDeposit", "monthlyTransit"] as const;
+
+/** 아는 칸만, 타입이 맞는 값만 남긴다 (모르면 칸을 뺀다) */
+export function parseEligibility(value: unknown): Eligibility {
+  if (!isPlainObject(value)) return {};
+  const out: Eligibility = {};
+  for (const key of BOOLEAN_KEYS) if (typeof value[key] === "boolean") out[key] = value[key] as boolean;
+  for (const key of NUMBER_KEYS) {
+    const v = value[key];
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) out[key] = v;
+  }
+  if (typeof value.hireMonth === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value.hireMonth)) out.hireMonth = value.hireMonth as YearMonth;
+  return out;
+}
+
+export function saveEligibility(eligibility: Eligibility, storage: StorageLike | null = browserStorage()): boolean {
+  return writeJson(ELIGIBILITY_KEY, parseEligibility(eligibility), storage);
 }
