@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { formatManwon } from "@/lib/format";
 import type { BenefitItem, BenefitsResult, BenefitStatus, Eligibility, YearMonth } from "@/lib/types";
 import { AnswerInput } from "./EligibilityForm";
@@ -98,6 +99,7 @@ export function BenefitsSection({
 function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number; answers: Parameters<typeof BenefitsSection>[0]["answers"] }) {
   const style = STATUS_STYLES[item.status];
   const links = item.sources.filter((s) => s.url);
+  const headline = cardHeadline(item);
   return (
     <li
       className={`group relative rounded-lg border bg-surface p-4 hover:z-10 hover:rounded-b-none hover:border-b-transparent hover:shadow-lg ${style.card}`}
@@ -120,7 +122,11 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
           </span>
         )}
       </div>
-      {item.amount && <p className="mt-2 text-lg font-bold tabular-nums">{item.amount}</p>}
+      <p className={`mt-2 truncate text-lg font-bold tabular-nums ${item.status === "NO" ? "text-ink-soft" : ""}`}>
+        {headline.big}
+        {headline.limit && <span className="ml-2 text-sm font-semibold text-ink-soft">{headline.limit}</span>}
+      </p>
+      {headline.sub && <p className="truncate text-sm text-ink-soft">{headline.sub}</p>}
 
       <div
         className={`absolute inset-x-[-1px] top-full z-10 -mt-px hidden space-y-3 rounded-b-lg border border-t-0 ${style.panel} bg-surface px-4 pb-4 pt-1 text-sm text-ink-soft shadow-lg group-hover:block`}
@@ -186,6 +192,17 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
       </div>
     </li>
   );
+}
+
+/** 금액이 없으면 요약의 첫 비율(40% · 12~15%)을 크게, 설명의 '연 N만 원까지'(한도)를 옆에, 요약은 아래 한 줄로 */
+function cardHeadline(item: BenefitItem): { big: string; limit: string | null; sub: string | null } {
+  if (item.key === "youthFuture" || item.key === "youthFuturePreferential") {
+    return { big: item.amount ?? item.summary, limit: `월 ${formatManwon(YOUTH_FUTURE_SAVING.monthlyLimit)}까지`, sub: null };
+  }
+  if (item.amount) return { big: item.amount, limit: null, sub: null };
+  const rate = item.summary.match(/\d[\d.,~]*%/)?.[0];
+  const limit = item.detail.match(/[연월] [\d,]+만 원까지/)?.[0] ?? null;
+  return rate ? { big: rate, limit, sub: item.summary } : { big: item.summary, limit: null, sub: null };
 }
 
 function signed(n: number): string {

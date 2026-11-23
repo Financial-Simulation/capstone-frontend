@@ -61,13 +61,9 @@ export function EligibilityForm({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-bold">더 정확히 알고 싶다면 입력하기</span>
-          <span className="block text-xs text-ink-soft">
-            선택 · {count}/{QUESTIONS.length} 답함 · 이 브라우저에만 저장
-          </span>
         </span>
         <Icon name="chevron" className="size-5 shrink-0 text-ink-soft transition-transform group-open:rotate-90" />
       </summary>
-      <p className="mt-3 text-sm text-ink-soft">답하면 혜택 카드가 바로 다시 판정돼요. 모르면 비워 두세요.</p>
       <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-5 xl:grid-cols-2">
         {QUESTIONS.map((q) => (
           <QuestionField
