@@ -59,7 +59,7 @@ export function ChartPanel({
           <h2 className="text-base font-bold">앞으로 모을 돈</h2>
           <p className="mt-1 text-sm text-ink-soft">
             {kind === null
-              ? `실직·급한 지출·물가·연봉이 달라지는 ${result.paths.toLocaleString("ko-KR")}가지 경우를 계산했어요. 버튼을 누르면 그중 한 미래가 한 달씩 어떻게 흘러가는지 보여 드려요.`
+              ? `가능한 미래 ${result.paths.toLocaleString("ko-KR")}가지를 계산했어요. 버튼으로 하나씩 볼 수 있어요.`
               : `${result.paths.toLocaleString("ko-KR")}가지 중 '${KIND_LABELS[kind].title}'(${KIND_LABELS[kind].sub}) 미래 하나를 한 달씩 보여 드려요.`}
           </p>
         </div>
@@ -87,7 +87,7 @@ export function ChartPanel({
             {base && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
                 <span aria-hidden className="inline-block w-4 border-t-2 border-dashed border-muted" />
-                지금 계획의 보통이면 (막대로 바꾸기 전)
+                지금 계획의 상위 50% (막대로 바꾸기 전)
               </p>
             )}
           </div>

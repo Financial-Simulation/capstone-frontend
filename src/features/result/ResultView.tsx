@@ -5,8 +5,8 @@
  *
  * 배치 (조민석 배치안 11/18 · 멘토 피드백 11/10 · 11/16):
  *  결론(SimpleHero)
- *  [그래프 + 미래 다시 보기(ChartPanel) | 계획 바꿔 보기(PlanSection): 가장 좋은 배분 3개 · 배분 막대 · 좋아져요 · 저축/지출/목표 막대]
- *  조심할 점(CautionStrip) · 상품별로 나눠 보기(원그래프 3개) · 받을 수 있는 혜택(카드) · 혜택 질문(접힘) · 숫자 더 보기(접힘)
+ *  [왼쪽: 그래프 + 미래 다시 보기(ChartPanel) · 조심할 점(CautionStrip), 화면에 고정 | 오른쪽(스크롤): 계획 바꿔 보기(PlanSection) · 상품별로 나눠 보기(원그래프 3개)]
+ *  받을 수 있는 혜택(카드) · 혜택 질문(접힘) · 숫자 더 보기(접힘)
  * 막대를 움직이면 바꾼 계획으로 다시 계산해(use-adjusted.ts) 결론 · 그래프 · 조심할 점 · 혜택이 바로 바뀐다. 그래프에는 지금 계획을 회색 점선으로 남긴다.
  * 자세한 숫자(1·3·5·10년 표 · 위험 · 세금 카드 · 적금 깬 이유 · 바꿔 본 것 전체와 70% 역산 · 가능성 범위 · 입력값과 가정)는 '숫자 더 보기'와 리포트(/report)에.
  * v1.7 블록(가능성 범위 · 세금 · 상품별로 나눠 보기 · 계획 바꿔 보기)은 내 계획에만 붙인다 (04-E 예시는 example, 명세서 v1.7 9.1).
@@ -87,65 +87,54 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
   const { eligibility, setEligibility } = useEligibility();
   const benefits = useBenefits(input, adjustments, eligibility);
   const [formOpen, setFormOpen] = useState(false);
-  const [focusKey, setFocusKey] = useState<{ key: EligibilityKey; at: number } | null>(null);
-  const asked = new Set(benefits.result?.data.items.flatMap((item) => item.ask) ?? []);
+  const asked = new Set<EligibilityKey>();
 
   return (
     <div className="space-y-5">
       <SimpleHero result={shown} base={ghost} />
       {data.sim.source === "mock" && <MockNote match={data.sim.mock} />}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
-        <ChartPanel result={shown} base={ghost} input={input} adjustments={adjustments} storyEnabled />
-        <PlanSection
-          input={input}
-          values={values}
-          onValues={setValues}
-          allocation={fitted}
-          baseAllocation={baseAllocation}
-          onAllocation={setAllocation}
-          policyEligible={base.risks.policySaving.eligible}
-          recommend={recommend.data}
-          recommendError={recommend.error}
-          adjustments={adjustments}
-          levers={data.reverse?.data.levers ?? null}
-          currentProbability={base.goal.probability}
-          adjustedProbability={changed && adjusted.result && !adjusted.loading ? adjusted.result.goal.probability : null}
-          loading={adjusted.loading}
-          error={adjusted.error}
-        />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="min-w-0 space-y-5">
+          <ChartPanel result={shown} base={ghost} input={input} adjustments={adjustments} storyEnabled />
+          <CautionStrip result={shown} />
+        </div>
+        {/* 오른쪽은 왼쪽 높이에 맞추고 안에서 스크롤 */}
+        <div className="relative min-h-[28rem] min-w-0">
+          <div className="space-y-5 lg:absolute lg:inset-0 lg:overflow-y-auto lg:pr-1">
+            <PlanSection
+              input={input}
+              values={values}
+              onValues={setValues}
+              baseAllocation={baseAllocation}
+              onAllocation={setAllocation}
+              adjustments={adjustments}
+              levers={data.reverse?.data.levers ?? null}
+              currentProbability={base.goal.probability}
+              adjustedProbability={changed && adjusted.result && !adjusted.loading ? adjusted.result.goal.probability : null}
+              loading={adjusted.loading}
+              error={adjusted.error}
+            />
+            <AllocationSection result={base} recommend={recommend.data} error={recommend.error} allocation={fitted} onPick={setAllocation} />
+          </div>
+        </div>
       </div>
-      <CautionStrip result={shown} />
-      <AllocationSection
-        result={base}
-        recommend={recommend.data}
-        error={recommend.error}
-        allocation={fitted}
-        onPick={(next) => {
-          setAllocation(next);
-          document.getElementById("plan-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }}
-      />
       <BenefitsSection
         result={benefits.result?.data ?? null}
         loading={benefits.loading}
         error={benefits.error}
-        onAsk={(key) => {
-          setFormOpen(true);
-          setFocusKey({ key, at: Date.now() });
-        }}
-      />
-      {benefits.result?.source === "mock" && benefits.result.mock?.note && (
-        <p className="text-xs text-muted">목업: {benefits.result.mock.note}</p>
-      )}
-      <EligibilityForm
-        eligibility={eligibility}
-        onChange={setEligibility}
-        startMonth={input.startMonth}
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        focusKey={focusKey}
-        asked={asked}
-      />
+        answers={{ eligibility, onChange: setEligibility, startMonth: input.startMonth }}
+      >
+        <EligibilityForm
+          eligibility={eligibility}
+          onChange={setEligibility}
+          startMonth={input.startMonth}
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          focusKey={null}
+          asked={asked}
+        />
+      </BenefitsSection>
+      {benefits.result?.source === "mock" && benefits.result.mock?.note && <p className="text-xs text-muted">목업: {benefits.result.mock.note}</p>}
       <MoreNumbers data={data} input={input} example={false} />
     </div>
   );
@@ -154,7 +143,11 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
 /** 가장 좋은 배분 (/allocations/recommend): 계획 바꿔 보기 버튼 3개와 원그래프 3개가 같이 쓴다. 지금 계획 기준으로 한 번만 */
 function useRecommend(input: SimulationInput) {
   const body = JSON.stringify(input);
-  const [state, setState] = useState<{ key: string; data: RecommendResult | null; error: string | null } | null>(null);
+  const [state, setState] = useState<{
+    key: string;
+    data: RecommendResult | null;
+    error: string | null;
+  } | null>(null);
   useEffect(() => {
     const abort = new AbortController();
     api.recommendAllocation({ input: JSON.parse(body) as SimulationInput }, { signal: abort.signal }).then(
@@ -165,7 +158,10 @@ function useRecommend(input: SimulationInput) {
     );
     return () => abort.abort();
   }, [body]);
-  return { data: state?.key === body ? state.data : null, error: state?.key === body ? state.error : null };
+  return {
+    data: state?.key === body ? state.data : null,
+    error: state?.key === body ? state.error : null,
+  };
 }
 
 const NO_ANSWERS: Eligibility = {};
@@ -182,7 +178,7 @@ function ExampleBody({ data, input, eligibility }: { data: ResultData; input: Si
       <ChartPanel result={result} base={null} input={input} adjustments={NO_ADJUSTMENTS} storyEnabled />
       <CautionStrip result={result} />
       {answered && <p className="text-sm text-ink-soft">이 예시는 혜택 질문 답(따로 삶 · 중소기업 · 보증금 · 교통비)도 넣어 두었어요.</p>}
-      <BenefitsSection result={benefits.result?.data ?? null} loading={benefits.loading} error={benefits.error} onAsk={null} />
+      <BenefitsSection result={benefits.result?.data ?? null} loading={benefits.loading} error={benefits.error} answers={null} />
       <MoreNumbers data={data} input={input} example />
     </div>
   );

@@ -47,7 +47,7 @@ describe("결론", () => {
     for (const key of ["S1", "S2", "S3", "E1", "E2", "E3", "E4", "E5", "T1", "T2", "T3"]) {
       const sim = golden(key).simulate;
       const text = [simpleSummary(sim).chance, ...simpleSummary(sim).lines, ...cautions(sim).map((c) => c.text)].join(" ");
-      expect(text).not.toMatch(/미래 2,000개|중간값|하위|오차|계산기|%p|분위/);
+      expect(text).not.toMatch(/미래 2,000개|중간값|오차|계산기|%p|분위/);
     }
   });
 });
@@ -58,7 +58,7 @@ describe("조심할 점", () => {
     expect(list.map((c) => c.key)).toEqual(["debt", "termination", "worst"]);
     expect(list[0].text).toMatch(/^10명 중 2명은 목표 시점 전에 돈이 바닥나서/);
     expect(list[1].text).toBe("10명 중 2명은 청년미래적금을 만기 전에 깨요. 주로 급한 지출 때문이에요.");
-    expect(list[2]).toEqual({ key: "worst", text: "많이 안 풀리면(20번 중 1번) 목표 시점에 오히려 1,320만 원 빚이 남을 수 있어요.", tone: "danger" });
+    expect(list[2]).toEqual({ key: "worst", text: "하위 5%(20번 중 1번)는 목표 시점에 오히려 1,320만 원 빚이 남을 수 있어요.", tone: "danger" });
   });
 
   it("S3: 위험이 작고 청년미래 대상이 아니면 '많이 안 풀려도' 한 줄만", () => {

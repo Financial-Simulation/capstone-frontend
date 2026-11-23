@@ -50,7 +50,7 @@ export function simpleSummary(result: SimulateResult): SimpleSummary {
   const chance =
     p >= 95 ? "거의 확실하게 모을 수 있어요" : p < 5 ? "모으기 어려워요" : `10번 중 ${outOfTen(p)}번쯤은 모을 수 있어요`;
   const lines: string[] = [];
-  if (middle != null) lines.push(`보통이면 그때 ${formatManwon(middle)}쯤 모여 있어요.`);
+  if (middle != null) lines.push(`상위 50%(중간)면 그때 ${formatManwon(middle)}쯤 모여 있어요.`);
   lines.push(`실직이나 급한 지출 없이 계획대로만 가면 ${formatManwon(deterministic.atGoal)}까지 모여요.`);
   return {
     level: probabilityLevel(p),
@@ -101,7 +101,7 @@ export function cautions(result: SimulateResult): Caution[] {
   const worst = debt.worstCaseAtGoal;
   list.push(
     worst < 0
-      ? { key: "worst", text: `많이 안 풀리면(20번 중 1번) 목표 시점에 오히려 ${formatManwon(-worst)} 빚이 남을 수 있어요.`, tone: "danger" }
+      ? { key: "worst", text: `하위 5%(20번 중 1번)는 목표 시점에 오히려 ${formatManwon(-worst)} 빚이 남을 수 있어요.`, tone: "danger" }
       : { key: "worst", text: `많이 안 풀려도(20번 중 1번) 목표 시점에 ${formatManwon(worst)}은 모여요.`, tone: "info" },
   );
   return list;
