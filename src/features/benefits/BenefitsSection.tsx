@@ -1,23 +1,27 @@
+"use client";
+
 /**
  * 결과 화면 '받을 수 있는 혜택' (멘토 피드백 11/16 · 조민석 배치안 11/18 · 글 줄이기 11/18).
  * 카드에는 핵심만: 상태 · 이름 · 받는 돈 · 짧은 한 줄(서버 summary) · '받으면 65% → 82%'.
- * 설명 · 신청 방법 · 2027년 바뀔 수 있는 내용 · 출처는 카드에 마우스를 올리면 보인다.
+ * 설명 · 신청 방법 · 2027년 바뀔 수 있는 내용 · 출처는 '자세히 보기'로 연다.
  * 못 받는 혜택도 같은 그리드에 카드로 표시하고, 이유는 카드 안에 항상 보인다.
  * 판정 · 문장 · 출처는 서버(/benefits, benefits.json) 것 그대로. 여기서는 배치만 한다.
  */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Button } from "@/components/ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { Modal } from "@/components/ui/Modal";
 import { YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { formatManwon } from "@/lib/format";
 import type { BenefitItem, BenefitsResult, BenefitStatus, Eligibility, YearMonth } from "@/lib/types";
 import { AnswerInput } from "./EligibilityForm";
 import { QUESTION_BY_KEY, STATUS_LABELS, withAnswer } from "./questions";
 
-const STATUS_STYLES: Record<BenefitStatus, { card: string; panel: string; chip: string; icon: IconName }> = {
-  YES: { card: "border-good-line", panel: "border-good-line", chip: "bg-good-soft text-good", icon: "check" },
-  CHECK: { card: "border-warn-line", panel: "border-warn-line", chip: "bg-warn-soft text-warn", icon: "help" },
-  LATER: { card: "border-line", panel: "border-line", chip: "bg-primary-soft text-primary", icon: "clock" },
-  NO: { card: "border-line", panel: "border-line", chip: "bg-line text-ink-soft", icon: "close" },
+const STATUS_STYLES: Record<BenefitStatus, { card: string; chip: string; icon: IconName }> = {
+  YES: { card: "border-good-line", chip: "bg-good-soft text-good", icon: "check" },
+  CHECK: { card: "border-warn-line", chip: "bg-warn-soft text-warn", icon: "help" },
+  LATER: { card: "border-line", chip: "bg-primary-soft text-primary", icon: "clock" },
+  NO: { card: "border-line", chip: "bg-line text-ink-soft", icon: "close" },
 };
 
 const CATEGORY_ICONS: Record<BenefitItem["category"], IconName> = {
@@ -90,13 +94,15 @@ export function BenefitsSection({
 }
 
 function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number; answers: Parameters<typeof BenefitsSection>[0]["answers"] }) {
+  const [detailOpen, setDetailOpen] = useState(false);
+  const closeDetail = () => setDetailOpen(false);
   const style = STATUS_STYLES[item.status];
   const unavailable = item.status === "NO";
   const links = item.sources.filter((s) => s.url);
   const headline = unavailable ? null : cardHeadline(item);
   return (
     <li
-      className={`relative rounded-lg border p-4 ${style.card} ${unavailable ? "bg-canvas" : "group bg-surface hover:z-10 hover:rounded-b-none hover:border-b-transparent hover:shadow-lg"}`}
+      className={`rounded-lg border p-4 ${style.card} ${unavailable ? "bg-canvas" : "bg-surface"}`}
     >
       <div className="flex items-start gap-3">
         <span aria-hidden className={`flex size-10 shrink-0 items-center justify-center rounded-full ${style.chip}`}>
@@ -128,9 +134,18 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
         <p className="mt-2 text-sm text-ink-soft">{item.detail || item.summary}</p>
       )}
 
-      {!unavailable && <div
-        className={`pointer-events-none invisible absolute inset-x-[-1px] top-full z-10 -mt-px space-y-3 rounded-b-lg border border-t-0 ${style.panel} bg-surface px-4 pb-4 pt-1 text-sm text-ink-soft opacity-0 shadow-lg group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-200 motion-safe:ease-out motion-safe:group-hover:delay-75`}
+      {!unavailable && (
+        <Button type="button" size="sm" variant="ghost" className="mt-2" aria-label={`${item.name} 자세히 보기`} aria-haspopup="dialog" onClick={() => setDetailOpen(true)}>
+          자세히 보기
+        </Button>
+      )}
+      {!unavailable && <Modal
+        open={detailOpen}
+        title={item.name}
+        onClose={closeDetail}
+        actions={<Button type="button" variant="secondary" onClick={closeDetail}>닫기</Button>}
       >
+        <div className="space-y-3">
         <p className="text-ink">{item.detail}</p>
         {item.effect && (
           <p>
@@ -189,7 +204,8 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
             {item.notice}
           </p>
         )}
-      </div>}
+        </div>
+      </Modal>}
     </li>
   );
 }

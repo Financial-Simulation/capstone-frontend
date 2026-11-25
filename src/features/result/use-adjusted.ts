@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { simulateScenario } from "@/features/plan/action-comparison";
+import { sameAdjustments } from "@/features/plan/plan";
 import { api, errorMessage, isAbortError } from "@/lib/api";
 import type { Adjustments, SimulateRequest, SimulationInput, YearMonth } from "@/lib/types";
 
@@ -14,8 +15,8 @@ export const DELAY_MS = 300;
 
 type Calculation = Awaited<ReturnType<typeof simulateScenario>>;
 
-export function useAdjustedResult(input: SimulationInput, adjustments: Adjustments, seed: number, scenario?: { moveMonth?: YearMonth }) {
-  const changed = Object.keys(adjustments).length > 0;
+export function useAdjustedResult(input: SimulationInput, adjustments: Adjustments, seed: number, scenario?: { moveMonth?: YearMonth; adjustments: Adjustments }) {
+  const changed = scenario ? !sameAdjustments(adjustments, scenario.adjustments) : Object.keys(adjustments).length > 0;
   const scope = JSON.stringify({ input, seed, scenario });
   const key = changed ? JSON.stringify({ input, adjustments, seed }) : null;
   const isScenario = scenario !== undefined;

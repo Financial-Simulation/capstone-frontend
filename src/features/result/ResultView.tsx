@@ -85,7 +85,7 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
     ...(savingChanged ? (Object.fromEntries(ALLOCATION_KEYS.map((k) => [k, fitted[k]])) as Adjustments) : allocationChanges(fitted, baseAllocation)),
   };
   const activeInput = action?.input ?? input;
-  const adjusted = useAdjustedResult(activeInput, adjustments, base.seed, action ? { moveMonth: action.move?.month } : undefined);
+  const adjusted = useAdjustedResult(activeInput, adjustments, base.seed, action ? { moveMonth: action.move?.month, adjustments: action.adjustments } : undefined);
   const shown = adjusted.result ?? action?.result ?? base;
   const move = adjusted.result ? adjusted.move : action?.move;
   const ghost = action || adjusted.result ? base : null;
@@ -119,7 +119,7 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
             result={shown}
             base={ghost}
             input={activeInput}
-            adjustments={adjusted.appliedAdjustments ?? NO_ADJUSTMENTS}
+            adjustments={adjusted.appliedAdjustments ?? action?.adjustments ?? NO_ADJUSTMENTS}
             scenarioApplied={action !== null}
           />
           <CautionStrip result={shown} />
@@ -136,11 +136,11 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
               adjustments={adjustments}
               levers={data.reverse?.data.levers ?? null}
               currentProbability={base.goal.probability}
-              adjustedProbability={adjusted.result && !adjusted.loading ? adjusted.result.goal.probability : null}
+              adjustedProbability={!adjusted.loading ? (adjusted.result ?? action?.result)?.goal.probability ?? null : null}
               loading={adjusted.loading}
               error={adjusted.error}
             >
-              <ActionComparison input={input} seed={base.seed} active={action !== null} onResult={setAction} />
+              <ActionComparison input={input} seed={base.seed} adjustments={adjustments} active={action !== null} onResult={setAction} />
             </PlanSection>
             <AllocationSection result={base} recommend={recommend.data} error={recommend.error} allocation={fitted} onPick={setAllocation} />
           </div>

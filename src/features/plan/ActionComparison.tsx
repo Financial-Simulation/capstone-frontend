@@ -5,16 +5,18 @@ import { Button } from "@/components/ui";
 import { PresetCard, usePresets } from "@/features/input/scenario/ScenarioStep";
 import { useApiTask } from "@/lib/hooks";
 import { checkCrossRules, checkFields, checkRequired } from "@/lib/rules";
-import type { SimulationInput, SimulationInputDraft } from "@/lib/types";
+import type { Adjustments, SimulationInput, SimulationInputDraft } from "@/lib/types";
 import { changedMoveMonth, comparisonEvents, simulateScenario } from "./action-comparison";
 
 export type ActionComparisonResult = Awaited<ReturnType<typeof simulateScenario>> & {
   input: SimulationInput;
+  adjustments: Adjustments;
 };
 
-export function ActionComparison({ input, seed, active, onResult }: {
+export function ActionComparison({ input, seed, adjustments, active, onResult }: {
   input: SimulationInput;
   seed: number;
+  adjustments: Adjustments;
   active: boolean;
   onResult: (result: ActionComparisonResult | null) => void;
 }) {
@@ -60,14 +62,13 @@ export function ActionComparison({ input, seed, active, onResult }: {
             setAttempted(true);
             const events = comparisonEvents(draft.events ?? []);
             if (!events || Object.keys(checkFields(draft)).length || Object.keys(checkRequired("EVENTS", draft)).length || checkCrossRules(draft)) return;
-            onResult(null);
             void run("actions", "바꾼 계획을 비교하지 못했어요", async (signal) => {
               const next = { ...input, events };
-              const request = { input: next, seed };
+              const request = { input: next, seed, ...(Object.keys(adjustments).length ? { adjustments } : {}) };
               const month = changedMoveMonth(input.events ?? [], events);
               const comparison = await simulateScenario(request, month, signal);
               if (!signal.aborted) {
-                onResult({ input: next, ...comparison });
+                onResult({ input: next, adjustments, ...comparison });
               }
             });
           }}>
