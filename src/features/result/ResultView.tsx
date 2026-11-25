@@ -42,7 +42,7 @@ import { RobustSection } from "./RobustSection";
 import { CheckpointTable, YearlyTable } from "./SavingsSections";
 import { CautionStrip, SimpleHero } from "./SimpleSections";
 import { riskCards } from "./result";
-import { useAdjustedResult } from "./use-adjusted";
+import { DELAY_MS, useAdjustedResult } from "./use-adjusted";
 import type { ResultData } from "./use-result";
 
 export function ResultView({
@@ -90,7 +90,14 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
   const move = adjusted.result ? adjusted.move : action?.move;
   const ghost = action || adjusted.result ? base : null;
 
-  const recommend = useRecommend(input);
+  const recommend = useRecommend({
+    ...activeInput,
+    savingPlan: {
+      ...activeInput.savingPlan,
+      monthlySaving: values.monthlySaving,
+      ...fitAllocation(baseAllocation, values.monthlySaving),
+    },
+  });
   const { eligibility, setEligibility } = useEligibility();
   const benefits = useBenefits(activeInput, adjustments, eligibility);
   const [formOpen, setFormOpen] = useState(false);
@@ -101,20 +108,20 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
       {data.sim.source === "mock" && <MockNote match={data.sim.mock} />}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0 space-y-5">
-          {action ? (
-            <div className="space-y-5">
-              {move && <div role="status" className="border-l-4 border-primary bg-primary-soft px-4 py-3">
-                <p className="text-sm font-bold">이사 후 현금이 가장 적은 달</p>
-                <p className="mt-1 text-base font-semibold tabular-nums">
-                  {move.lowest ? `${formatYearMonth(move.lowest.month)} · ${formatWon(move.lowest.cash)}` : "비교할 현금 내역이 없어요."}
-                </p>
-                <p className="mt-1 text-xs text-ink-soft">중간 시나리오에서 {formatYearMonth(move.month)} 이사부터 최대 12개월을 봐요. 보증금은 현금에 넣지 않아요.</p>
-              </div>}
-              <ChartPanel key="actions" result={shown} base={base} input={activeInput} adjustments={adjustments} storyEnabled={false} actionComparison />
-            </div>
-          ) : (
-            <ChartPanel key="plan" result={shown} base={ghost} input={input} adjustments={adjustments} storyEnabled />
-          )}
+          {move && <div role="status" className="border-l-4 border-primary bg-primary-soft px-4 py-3">
+            <p className="text-sm font-bold">이사 후 현금이 가장 적은 달</p>
+            <p className="mt-1 text-base font-semibold tabular-nums">
+              {move.lowest ? `${formatYearMonth(move.lowest.month)} · ${formatWon(move.lowest.cash)}` : "비교할 현금 내역이 없어요."}
+            </p>
+            <p className="mt-1 text-xs text-ink-soft">중간 시나리오에서 {formatYearMonth(move.month)} 이사부터 최대 12개월을 봐요. 보증금은 현금에 넣지 않아요.</p>
+          </div>}
+          <ChartPanel
+            result={shown}
+            base={ghost}
+            input={activeInput}
+            adjustments={adjusted.appliedAdjustments ?? NO_ADJUSTMENTS}
+            scenarioApplied={action !== null}
+          />
           <CautionStrip result={shown} />
         </div>
         {/* 오른쪽은 왼쪽 높이에 맞추고 안에서 스크롤 */}
@@ -164,7 +171,7 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
   );
 }
 
-/** 가장 좋은 배분 (/allocations/recommend): 계획 바꿔 보기 버튼 3개와 원그래프 3개가 같이 쓴다. 지금 계획 기준으로 한 번만 */
+/** 적용한 시나리오와 월 저축액 기준으로 추천을 다시 받는다. 배분 선택 자체는 추천 기준을 바꾸지 않는다. */
 function useRecommend(input: SimulationInput) {
   const body = JSON.stringify(input);
   const [state, setState] = useState<{
@@ -174,13 +181,20 @@ function useRecommend(input: SimulationInput) {
   } | null>(null);
   useEffect(() => {
     const abort = new AbortController();
-    api.recommendAllocation({ input: JSON.parse(body) as SimulationInput }, { signal: abort.signal }).then(
-      ({ data }) => setState({ key: body, data, error: null }),
-      (error: unknown) => {
-        if (!isAbortError(error)) setState({ key: body, data: null, error: errorMessage(error) });
-      },
-    );
-    return () => abort.abort();
+    const timer = setTimeout(() => {
+      api.recommendAllocation({ input: JSON.parse(body) as SimulationInput }, { signal: abort.signal }).then(
+        ({ data }) => {
+          if (!abort.signal.aborted) setState({ key: body, data, error: null });
+        },
+        (error: unknown) => {
+          if (!abort.signal.aborted && !isAbortError(error)) setState({ key: body, data: null, error: errorMessage(error) });
+        },
+      );
+    }, DELAY_MS);
+    return () => {
+      clearTimeout(timer);
+      abort.abort();
+    };
   }, [body]);
   return {
     data: state?.key === body ? state.data : null,
@@ -199,7 +213,7 @@ function ExampleBody({ data, input, eligibility }: { data: ResultData; input: Si
     <div className="space-y-5">
       <SimpleHero result={result} />
       {data.sim.source === "mock" && <MockNote match={data.sim.mock} />}
-      <ChartPanel result={result} base={null} input={input} adjustments={NO_ADJUSTMENTS} storyEnabled />
+      <ChartPanel result={result} base={null} input={input} adjustments={NO_ADJUSTMENTS} />
       <CautionStrip result={result} />
       {answered && <p className="text-sm text-ink-soft">이 예시는 혜택 질문 답(따로 삶 · 중소기업 · 보증금 · 교통비)도 넣어 두었어요.</p>}
       <BenefitsSection result={benefits.result?.data ?? null} loading={benefits.loading} error={benefits.error} answers={null} />

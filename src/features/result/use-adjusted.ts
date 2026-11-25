@@ -20,23 +20,28 @@ export function useAdjustedResult(input: SimulationInput, adjustments: Adjustmen
   const key = changed ? JSON.stringify({ input, adjustments, seed }) : null;
   const isScenario = scenario !== undefined;
   const moveMonth = scenario?.moveMonth;
-  const [state, setState] = useState<{ key: string; scope: string; calculation: Calculation | null; error: string | null } | null>(null);
+  const [state, setState] = useState<{
+    key: string;
+    scope: string;
+    displayed: { calculation: Calculation; adjustments: Adjustments } | null;
+    error: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (key === null) return;
     const abort = new AbortController();
     const timer = setTimeout(() => {
-      const body = JSON.parse(key) as SimulateRequest;
+      const body = JSON.parse(key) as SimulateRequest & { adjustments: Adjustments };
       const request = isScenario
         ? simulateScenario(body, moveMonth, abort.signal)
         : api.simulate(body, { signal: abort.signal }).then(({ data }) => ({ result: data, move: null }));
       request.then(
         (calculation) => {
-          if (!abort.signal.aborted) setState({ key, scope, calculation, error: null });
+          if (!abort.signal.aborted) setState({ key, scope, displayed: { calculation, adjustments: body.adjustments }, error: null });
         },
         (error: unknown) => {
           if (!abort.signal.aborted && !isAbortError(error)) {
-            setState((prev) => ({ key, scope, calculation: prev?.scope === scope ? prev.calculation : null, error: errorMessage(error) }));
+            setState((prev) => ({ key, scope, displayed: prev?.scope === scope ? prev.displayed : null, error: errorMessage(error) }));
           }
         },
       );
@@ -48,10 +53,11 @@ export function useAdjustedResult(input: SimulationInput, adjustments: Adjustmen
   }, [key, scope, isScenario, moveMonth]);
 
   const current = state?.scope === scope ? state : null;
-  if (key === null) return { result: null, move: null, loading: false, error: null };
+  if (key === null) return { result: null, move: null, appliedAdjustments: null, loading: false, error: null };
   return {
-    result: current?.calculation?.result ?? null,
-    move: current?.calculation?.move ?? null,
+    result: current?.displayed?.calculation.result ?? null,
+    move: current?.displayed?.calculation.move ?? null,
+    appliedAdjustments: current?.displayed?.adjustments ?? null,
     loading: current?.key !== key,
     error: current?.key === key ? current.error : null,
   };

@@ -182,7 +182,7 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
 - 계획 바꿔 보기 04-2 (`features/plan/PlanSection.tsx` · `plan.ts`): 그래프 옆에서 저축·지출·목표를 조정해 결과를 미리 본다(`POST /simulate/preview`). 계획은 최대 3개까지 담아서(`simPlans.v1`) 비교할 수 있다(`POST /compare`). 내 입력은 바꾸지 않는다.
   서버는 계획 이름을 20자까지만 받아서(PlanSpec) 두 값 이상 바꾼 계획 이름은 줄여 보내고(`planRequests`), 비교 표 · 결론 · 리포트에는 담은 계획 이름을 그대로 붙인다(`planLabels`).
   목업은 정답 파일에 없는 계획을 계산하지 못해서, 담은 계획 대신 정답 파일의 예시 계획(변동지출 10만 원 줄이기 · 비상금 300만 원 먼저 · 목표 1년 늦추기)을 보여 준다.
-- 시나리오 바꿔 보기 (`features/plan/ActionComparison.tsx`): 입력 단계에서 저장한 시나리오는 선택된 상태로 표시한다. 시점·금액을 바꾸거나 다른 시나리오를 추가하면 서버가 같은 seed로 다시 계산하고, 그래프에는 저장한 계획과 바꾼 시나리오를 함께 보여 준다. 저장한 입력은 그대로다.
+- 시나리오 바꿔 보기 (`features/plan/ActionComparison.tsx`): 입력 단계에서 저장한 시나리오는 선택된 상태로 표시한다. 시점·금액을 바꾸거나 다른 시나리오를 추가하면 서버가 같은 seed로 다시 계산한다. 전체 범위에는 저장한 계획을 점선으로 남기고, 최상·중간·최악 재생에는 바꾼 시나리오와 배분을 함께 반영한다. 저장한 입력은 그대로다.
 - 상품별로 나눠 보기 (`features/tax/AllocationSection.tsx` · `allocation.ts`): 현재 배분과 서버 추천(`POST /allocations/recommend`)을 원그래프로 보여 준다. 추천 기준이 같은 배분을 고르면 카드 하나로 합친다. ‘이 배분으로 보기’는 결과 화면에서만 적용한다. 04-E 예시에는 붙이지 않는다.
 - 받을 수 있는 혜택 (`features/benefits/BenefitsSection.tsx`): 서버의 자격 판정을 보여 준다. 못 받는 혜택도 같은 카드 그리드에 표시하고 이유를 카드 안에 바로 보여 준다.
 - 리포트 저장 (`features/report/ReportScreen.tsx` · `ReportPaper.tsx` · `report.ts`): 위쪽 '리포트 저장' → `/report`. 내 입력과 담은 계획(`simPlans.v1`)으로 `POST /reports`를 불러 한 장으로 그린다 (입력 요약 · 목표 · 앞으로 모을 돈 · 위험 · 세금 · 개선 포인트 · 담은 계획 비교 · 근거 · 유의사항).
