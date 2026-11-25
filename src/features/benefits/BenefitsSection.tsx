@@ -3,14 +3,12 @@
 /**
  * 결과 화면 '받을 수 있는 혜택' (멘토 피드백 11/16 · 조민석 배치안 11/18 · 글 줄이기 11/18).
  * 카드에는 핵심만: 상태 · 이름 · 받는 돈 · 짧은 한 줄(서버 summary) · '받으면 65% → 82%'.
- * 설명 · 신청 방법 · 2027년 바뀔 수 있는 내용 · 출처는 '자세히 보기'로 연다.
+ * 설명 · 신청 방법 · 2027년 바뀔 수 있는 내용 · 출처는 카드를 눌러 연다.
  * 못 받는 혜택도 같은 그리드에 카드로 표시하고, 이유는 카드 안에 항상 보인다.
  * 판정 · 문장 · 출처는 서버(/benefits, benefits.json) 것 그대로. 여기서는 배치만 한다.
  */
-import { useState, type ReactNode } from "react";
-import { Button } from "@/components/ui";
+import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Modal } from "@/components/ui/Modal";
 import { YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { formatManwon } from "@/lib/format";
 import type { BenefitItem, BenefitsResult, BenefitStatus, Eligibility, YearMonth } from "@/lib/types";
@@ -94,15 +92,13 @@ export function BenefitsSection({
 }
 
 function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number; answers: Parameters<typeof BenefitsSection>[0]["answers"] }) {
-  const [detailOpen, setDetailOpen] = useState(false);
-  const closeDetail = () => setDetailOpen(false);
   const style = STATUS_STYLES[item.status];
   const unavailable = item.status === "NO";
   const links = item.sources.filter((s) => s.url);
   const headline = unavailable ? null : cardHeadline(item);
   return (
     <li
-      className={`rounded-lg border p-4 ${style.card} ${unavailable ? "bg-canvas" : "bg-surface"}`}
+      className={`relative rounded-lg border p-4 ${style.card} ${unavailable ? "bg-canvas" : "bg-surface has-[details[open]]:z-10 has-[details[open]]:rounded-b-none has-[details[open]]:border-b-transparent has-[details[open]]:shadow-lg"}`}
     >
       <div className="flex items-start gap-3">
         <span aria-hidden className={`flex size-10 shrink-0 items-center justify-center rounded-full ${style.chip}`}>
@@ -121,6 +117,7 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
             <span className="font-bold text-good">+{Math.max(0, Math.round(item.effect.probability - base))}%p</span>
           </span>
         )}
+        {!unavailable && <Icon name="chevron" aria-hidden className="mt-1 size-4 shrink-0 rotate-90 text-muted" />}
       </div>
       {headline ? (
         <>
@@ -134,18 +131,19 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
         <p className="mt-2 text-sm text-ink-soft">{item.detail || item.summary}</p>
       )}
 
-      {!unavailable && (
-        <Button type="button" size="sm" variant="ghost" className="mt-2" aria-label={`${item.name} 자세히 보기`} aria-haspopup="dialog" onClick={() => setDetailOpen(true)}>
-          자세히 보기
-        </Button>
-      )}
-      {!unavailable && <Modal
-        open={detailOpen}
-        title={item.name}
-        onClose={closeDetail}
-        actions={<Button type="button" variant="secondary" onClick={closeDetail}>닫기</Button>}
+      {!unavailable && <details
+        name="benefit-details"
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || !event.currentTarget.open) return;
+          event.preventDefault();
+          event.currentTarget.open = false;
+          event.currentTarget.querySelector("summary")?.focus();
+        }}
       >
-        <div className="space-y-3">
+        <summary className="absolute inset-0 cursor-pointer list-none rounded-lg [&::-webkit-details-marker]:hidden">
+          <span className="sr-only">{item.name} 자세히 보기</span>
+        </summary>
+        <div className={`absolute inset-x-[-1px] top-full -mt-px space-y-3 rounded-b-lg border border-t-0 ${style.card} bg-surface px-4 pb-4 pt-1 text-sm text-ink-soft shadow-lg`}>
         <p className="text-ink">{item.detail}</p>
         {item.effect && (
           <p>
@@ -205,7 +203,7 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
           </p>
         )}
         </div>
-      </Modal>}
+      </details>}
     </li>
   );
 }
