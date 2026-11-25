@@ -1,8 +1,8 @@
 /**
  * 결과 화면 '받을 수 있는 혜택' (멘토 피드백 11/16 · 조민석 배치안 11/18 · 글 줄이기 11/18).
  * 카드에는 핵심만: 상태 · 이름 · 받는 돈 · 짧은 한 줄(서버 summary) · '받으면 65% → 82%'.
- * 설명 · 신청 방법 · 2027년 바뀔 수 있는 내용 · 출처는 '자세히'를 눌러야 보인다.
- * 못 받는 혜택은 맨 아래 접힌 목록에 한 줄씩 (이름 — 이유).
+ * 설명 · 신청 방법 · 2027년 바뀔 수 있는 내용 · 출처는 카드에 마우스를 올리면 보인다.
+ * 못 받는 혜택도 같은 그리드에 카드로 표시하고, 이유는 카드 안에 항상 보인다.
  * 판정 · 문장 · 출처는 서버(/benefits, benefits.json) 것 그대로. 여기서는 배치만 한다.
  */
 import type { ReactNode } from "react";
@@ -75,23 +75,12 @@ export function BenefitsSection({
 
       {result && (
         <>
-          <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {shown.map((item) => (
-              <BenefitCard key={item.key} item={item} base={result.probability} answers={answers} />
-            ))}
-          </ul>
-          {missed.length > 0 && (
-            <details className="mt-3 rounded-lg border border-line px-4 py-2">
-              <summary className="cursor-pointer text-sm font-semibold text-ink-soft">못 받는 혜택 {missed.length}개</summary>
-              <ul className="mt-2 space-y-1.5 pb-1 text-sm">
-                {missed.map((item) => (
-                  <li key={item.key} className="flex flex-wrap gap-x-2">
-                    <span className="font-semibold text-ink-soft">{item.name}</span>
-                    <span className="text-muted">{item.summary}</span>
-                  </li>
-                ))}
-              </ul>
-            </details>
+          {result.items.length > 0 && (
+            <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {[...shown, ...missed].map((item) => (
+                <BenefitCard key={item.key} item={item} base={result.probability} answers={answers} />
+              ))}
+            </ul>
           )}
           <p className="mt-3 text-xs text-muted">{result.asOf} 기준 · 실제 대상 여부는 신청하는 곳에서 확정돼요</p>
         </>
@@ -102,11 +91,12 @@ export function BenefitsSection({
 
 function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number; answers: Parameters<typeof BenefitsSection>[0]["answers"] }) {
   const style = STATUS_STYLES[item.status];
+  const unavailable = item.status === "NO";
   const links = item.sources.filter((s) => s.url);
-  const headline = cardHeadline(item);
+  const headline = unavailable ? null : cardHeadline(item);
   return (
     <li
-      className={`group relative rounded-lg border bg-surface p-4 hover:z-10 hover:rounded-b-none hover:border-b-transparent hover:shadow-lg ${style.card}`}
+      className={`relative rounded-lg border p-4 ${style.card} ${unavailable ? "bg-canvas" : "group bg-surface hover:z-10 hover:rounded-b-none hover:border-b-transparent hover:shadow-lg"}`}
     >
       <div className="flex items-start gap-3">
         <span aria-hidden className={`flex size-10 shrink-0 items-center justify-center rounded-full ${style.chip}`}>
@@ -119,20 +109,26 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
             {STATUS_LABELS[item.status]}
           </p>
         </div>
-        {item.effect && (
+        {!unavailable && item.effect && (
           <span className="shrink-0 text-right text-sm tabular-nums">
             <span className="block text-xs text-muted">가능성</span>
             <span className="font-bold text-good">+{Math.max(0, Math.round(item.effect.probability - base))}%p</span>
           </span>
         )}
       </div>
-      <p className={`mt-2 truncate text-lg font-bold tabular-nums ${item.status === "NO" ? "text-ink-soft" : ""}`}>
-        {headline.big}
-        {headline.limit && <span className="ml-2 text-sm font-semibold text-ink-soft">{headline.limit}</span>}
-      </p>
-      {headline.sub && <p className="truncate text-sm text-ink-soft">{headline.sub}</p>}
+      {headline ? (
+        <>
+          <p className="mt-2 truncate text-lg font-bold tabular-nums">
+            {headline.big}
+            {headline.limit && <span className="ml-2 text-sm font-semibold text-ink-soft">{headline.limit}</span>}
+          </p>
+          {headline.sub && <p className="truncate text-sm text-ink-soft">{headline.sub}</p>}
+        </>
+      ) : (
+        <p className="mt-2 text-sm text-ink-soft">{item.detail || item.summary}</p>
+      )}
 
-      <div
+      {!unavailable && <div
         className={`pointer-events-none invisible absolute inset-x-[-1px] top-full z-10 -mt-px space-y-3 rounded-b-lg border border-t-0 ${style.panel} bg-surface px-4 pb-4 pt-1 text-sm text-ink-soft opacity-0 shadow-lg group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-200 motion-safe:ease-out motion-safe:group-hover:delay-75`}
       >
         <p className="text-ink">{item.detail}</p>
@@ -193,7 +189,7 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
             {item.notice}
           </p>
         )}
-      </div>
+      </div>}
     </li>
   );
 }
