@@ -13,10 +13,13 @@
  * 받을 수 있는 혜택은 예시에도 보여 준다 (질문 칸 없이, 예시에 들어 있는 답으로. 11/18 S4 '혼자 월세' 예시로 청년월세 지원을 보여 주려고).
  */
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
 import { YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { BenefitsSection } from "@/features/benefits/BenefitsSection";
-import { EligibilityForm } from "@/features/benefits/EligibilityForm";
+import { ELIGIBILITY_FORM_ID, EligibilityForm } from "@/features/benefits/EligibilityForm";
 import { useBenefits } from "@/features/benefits/use-benefits";
+import { ActionComparison, type ActionComparisonResult } from "@/features/plan/ActionComparison";
 import { PlanSection } from "@/features/plan/PlanSection";
 import { ALLOCATION_KEYS } from "@/features/input/draft";
 import { allocationChanges, fitAllocation } from "@/features/plan/allocation-sliders";
@@ -26,8 +29,10 @@ import { TaxSection } from "@/features/tax/TaxSection";
 import { toMonthly, type MonthlyAllocation } from "@/features/tax/allocation";
 import { taxView } from "@/features/tax/tax";
 import { api, errorMessage, isAbortError } from "@/lib/api";
+import { formatWon } from "@/lib/format";
 import { useEligibility } from "@/lib/hooks";
-import type { Adjustments, Eligibility, EligibilityKey, RecommendResult, SimulationInput, SimulationInputDraft } from "@/lib/types";
+import type { Adjustments, Eligibility, RecommendResult, SimulationInput, SimulationInputDraft } from "@/lib/types";
+import { formatYearMonth } from "@/lib/year-month";
 import { Assumptions } from "./Assumptions";
 import { ChartPanel } from "./ChartPanel";
 import { MockNote } from "./Hero";
@@ -70,6 +75,17 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
       };
   const [values, setValues] = useState<PlanValues>(basePlan);
   const [allocation, setAllocation] = useState<MonthlyAllocation>(baseAllocation);
+  const [action, setAction] = useState<ActionComparisonResult | null>(null);
+
+  function changeValues(next: PlanValues) {
+    setAction(null);
+    setValues(next);
+  }
+
+  function changeAllocation(next: MonthlyAllocation) {
+    setAction(null);
+    setAllocation(next);
+  }
 
   // 월 저축액을 바꾸면 배분을 남는 만큼만으로 맞추고, 세 칸을 모두 보낸다 (서버 기본값 '청년미래 = min(저축액, 50만)'이 끼어들지 않게)
   const fitted = fitAllocation(allocation, values.monthlySaving);
@@ -87,7 +103,6 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
   const { eligibility, setEligibility } = useEligibility();
   const benefits = useBenefits(input, adjustments, eligibility);
   const [formOpen, setFormOpen] = useState(false);
-  const asked = new Set<EligibilityKey>();
 
   return (
     <div className="space-y-5">
@@ -95,8 +110,21 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
       {data.sim.source === "mock" && <MockNote match={data.sim.mock} />}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0 space-y-5">
-          <ChartPanel result={shown} base={ghost} input={input} adjustments={adjustments} storyEnabled />
-          <CautionStrip result={shown} />
+          {action ? (
+            <div className="space-y-5">
+              {action.move && <div role="status" className="border-l-4 border-primary bg-primary-soft px-4 py-3">
+                <p className="text-sm font-bold">이사 후 현금이 가장 적은 달</p>
+                <p className="mt-1 text-base font-semibold tabular-nums">
+                  {action.move.lowest ? `${formatYearMonth(action.move.lowest.month)} · ${formatWon(action.move.lowest.cash)}` : "비교할 현금 내역이 없어요."}
+                </p>
+                <p className="mt-1 text-xs text-ink-soft">중간 시나리오에서 {formatYearMonth(action.move.month)} 이사부터 최대 12개월을 봐요. 보증금은 현금에 넣지 않아요.</p>
+              </div>}
+              <ChartPanel key="actions" result={action.result} base={base} input={action.input} adjustments={NO_ADJUSTMENTS} storyEnabled={false} actionComparison />
+            </div>
+          ) : (
+            <ChartPanel key="plan" result={shown} base={ghost} input={input} adjustments={adjustments} storyEnabled />
+          )}
+          <CautionStrip result={action?.result ?? shown} />
         </div>
         {/* 오른쪽은 왼쪽 높이에 맞추고 안에서 스크롤 */}
         <div className="relative min-h-[28rem] min-w-0">
@@ -104,17 +132,19 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
             <PlanSection
               input={input}
               values={values}
-              onValues={setValues}
+              onValues={changeValues}
               baseAllocation={baseAllocation}
-              onAllocation={setAllocation}
+              onAllocation={changeAllocation}
               adjustments={adjustments}
               levers={data.reverse?.data.levers ?? null}
               currentProbability={base.goal.probability}
               adjustedProbability={changed && adjusted.result && !adjusted.loading ? adjusted.result.goal.probability : null}
               loading={adjusted.loading}
               error={adjusted.error}
-            />
-            <AllocationSection result={base} recommend={recommend.data} error={recommend.error} allocation={fitted} onPick={setAllocation} />
+            >
+              <ActionComparison input={input} seed={base.seed} active={action !== null} onResult={setAction} />
+            </PlanSection>
+            <AllocationSection result={base} recommend={recommend.data} error={recommend.error} allocation={fitted} onPick={changeAllocation} />
           </div>
         </div>
       </div>
@@ -123,15 +153,18 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
         loading={benefits.loading}
         error={benefits.error}
         answers={{ eligibility, onChange: setEligibility, startMonth: input.startMonth }}
+        headerAction={
+          <Button type="button" size="sm" variant="secondary" aria-expanded={formOpen} aria-controls={ELIGIBILITY_FORM_ID} onClick={() => setFormOpen((open) => !open)}>
+            <Icon name="edit" className="size-4" />
+            더 정확히 알고 싶다면 입력하기
+          </Button>
+        }
       >
         <EligibilityForm
           eligibility={eligibility}
           onChange={setEligibility}
           startMonth={input.startMonth}
           open={formOpen}
-          onOpenChange={setFormOpen}
-          focusKey={null}
-          asked={asked}
         />
       </BenefitsSection>
       {benefits.result?.source === "mock" && benefits.result.mock?.note && <p className="text-xs text-muted">목업: {benefits.result.mock.note}</p>}

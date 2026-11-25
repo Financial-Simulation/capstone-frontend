@@ -15,7 +15,7 @@ import { api, errorMessage, isAbortError } from "@/lib/api";
 import { formatManwon } from "@/lib/format";
 import type { Adjustments, SimulateResult, SimulationInputDraft, Story, StoryKind, StoryResult } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
-import { BandChart, BandLegend, type StoryOverlay } from "./BandChart";
+import { BandChart, BandLegend, EventLegend, type StoryOverlay } from "./BandChart";
 import { eventMarks } from "./result";
 
 /** 1초에 몇 달 */
@@ -37,6 +37,7 @@ export function ChartPanel({
   input,
   adjustments,
   storyEnabled,
+  actionComparison = false,
 }: {
   /** 보여 줄 결과 (계획을 바꿨으면 바꾼 계획) */
   result: SimulateResult;
@@ -46,6 +47,7 @@ export function ChartPanel({
   adjustments: Adjustments;
   /** 04-E 예시 결과에는 미래 다시 보기를 붙이지 않는다 */
   storyEnabled: boolean;
+  actionComparison?: boolean;
 }) {
   const events = eventMarks(input);
   const [kind, setKind] = useState<StoryKind | null>(null);
@@ -56,9 +58,11 @@ export function ChartPanel({
     <section className="rounded-xl border border-line bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 basis-72">
-          <h2 className="text-base font-bold">앞으로 모을 돈</h2>
+          <h2 className="text-base font-bold">{actionComparison ? "액션 적용 후 모을 돈" : "앞으로 모을 돈"}</h2>
           <p className="mt-1 text-sm text-ink-soft">
-            {kind === null
+            {actionComparison
+              ? "선택한 액션을 반영한 결과를 저장한 계획과 비교했어요."
+              : kind === null
               ? `가능한 미래 ${result.paths.toLocaleString("ko-KR")}가지를 계산했어요. 버튼으로 하나씩 볼 수 있어요.`
               : `${result.paths.toLocaleString("ko-KR")}가지 중 '${KIND_LABELS[kind].title}'(${KIND_LABELS[kind].sub}) 미래 하나를 한 달씩 보여 드려요.`}
           </p>
@@ -83,13 +87,14 @@ export function ChartPanel({
       {kind === null || !storyEnabled ? (
         <>
           <div className="mt-4">
-            <BandLegend hasEvents={events.length > 0} />
+            <BandLegend />
             {base && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
                 <span aria-hidden className="inline-block w-4 border-t-2 border-dashed border-muted" />
-                지금 계획의 상위 50% (막대로 바꾸기 전)
+                {actionComparison ? "저장한 계획의 상위 50% (중간)" : "지금 계획의 상위 50% (막대로 바꾸기 전)"}
               </p>
             )}
+            <EventLegend events={events} />
           </div>
           <div className="mt-3">
             <BandChart result={result} events={events} ghost={base?.bands} />
@@ -234,6 +239,7 @@ function Replay({
         ))}
       </div>
 
+      <EventLegend events={events} />
       <BandChart result={result} events={events} story={overlay} />
       <input
         type="range"

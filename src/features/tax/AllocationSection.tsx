@@ -2,7 +2,7 @@
 
 /**
  * 결과 화면 '상품별로 나눠 보기' (조민석 배치안 11/18: 원그래프 3개 · 멘토 피드백 11/16: 입력칸 없이, 글은 접기).
- * /allocations/recommend 결과(ResultView가 한 번 부른다)를 원그래프 3개로: 지금 배분 · 가능성이 가장 높은 배분 · 세금·지원금이 가장 큰 배분.
+ * 지금 배분과 서버 추천을 원그래프로 보여 준다. 같은 배분은 한 카드로 묶는다.
  * 원 = 월 저축액을 상품별로 나눈 비율. '이 배분으로 보기'를 누르면 그 배분으로 결론 · 그래프가 바로 다시 계산된다.
  * 고르는 규칙 설명은 접어 둔다. 보여 줄 값은 allocation.ts(recommendCards · recommendNote)가 서버 값에서 고른다.
  */
@@ -33,6 +33,7 @@ export function AllocationSection({
   allocation: MonthlyAllocation;
   onPick: (allocation: MonthlyAllocation) => void;
 }) {
+  const cards = recommend ? recommendCards(recommend) : [];
   return (
     <section aria-labelledby="alloc-title" className="rounded-xl border border-line bg-surface p-5">
       <h2 id="alloc-title" tabIndex={-1} className="text-base font-bold outline-none">
@@ -56,7 +57,7 @@ export function AllocationSection({
       ) : (
         <>
           <ul className="mt-4 space-y-3">
-            {recommendCards(recommend).map((card) => {
+            {cards.map((card) => {
               const option = recommend[card.key];
               const monthly = toMonthly(option.allocation);
               const active = sameAllocation(allocation, monthly);
@@ -83,7 +84,7 @@ export function AllocationSection({
             <summary className="cursor-pointer text-sm font-semibold text-ink-soft">어떻게 골랐나요?</summary>
             <p className="mt-2 text-sm text-ink-soft">{recommendNote(recommend, result.paths, goalWhen(result))}</p>
             <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-ink-soft">
-              {recommendCards(recommend).map((card) => (
+              {cards.map((card) => (
                 <li key={card.key}>
                   {card.title}: {card.allocation}. {card.benefit}
                 </li>

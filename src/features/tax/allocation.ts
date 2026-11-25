@@ -68,11 +68,29 @@ export function recommendCards(rec: RecommendResult): RecommendCard[] {
       apply: key === "current" || sameAllocation(monthly, current) ? null : monthly,
     };
   };
-  return [
+  const cards = [
     card("current", "지금 배분", rec.current),
     card("bestProbability", "목표 달성 가능성이 가장 높은 배분", rec.bestProbability),
     card("bestBenefit", "세금·지원금이 가장 큰 배분", rec.bestBenefit),
   ];
+  const unique: RecommendCard[] = [];
+  for (const candidate of cards) {
+    const same = unique.find((existing) => {
+      const a = rec[existing.key].allocation;
+      const b = rec[candidate.key].allocation;
+      return sameAllocation(a, b) && a.generalMonthly === b.generalMonthly;
+    });
+    if (!same) {
+      unique.push(candidate);
+      continue;
+    }
+    if (same.key === "current") {
+      same.title += candidate.key === "bestProbability" ? " · 가능성 최고" : " · 혜택 최대";
+    } else {
+      same.title = "목표 달성 가능성과 혜택이 가장 높은 배분";
+    }
+  }
+  return unique;
 }
 
 /** 추천 아래 설명. 규칙 문장은 서버 것 그대로 */

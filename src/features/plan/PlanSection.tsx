@@ -7,7 +7,7 @@
  * 어떤 막대든 움직이면 ResultView가 POST /simulate(+adjustments)로 다시 계산해 그래프 · 결론 · 혜택이 바로 바뀐다.
  * 내 입력(simInput.v1)은 바꾸지 않는다. 04 결과에만. 막대 범위는 sliders.ts · allocation-sliders.ts, 비교 표는 plan.ts에서 고른다.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 import { DiffText } from "@/components/ui/Stat";
 import { simpleActions } from "@/features/result/simple";
@@ -50,6 +50,7 @@ export function PlanSection({
   adjustedProbability,
   loading,
   error: calcError,
+  children,
 }: {
   input: SimulationInput;
   /** 지금 막대 값 (ResultView가 갖고, 바뀌면 다시 계산한다) */
@@ -67,6 +68,7 @@ export function PlanSection({
   adjustedProbability: number | null;
   loading: boolean;
   error: string | null;
+  children?: ReactNode;
 }) {
   const base = planBase(input);
   const changed = hasChanges(adjustments);
@@ -107,6 +109,8 @@ export function PlanSection({
           <span className="text-ink-soft">막대를 움직이면 그래프가 바로 바뀌어요.</span>
         )}
       </p>
+
+      {children}
 
       {actions.length > 0 && (
         <div className="mt-5 border-t border-line pt-4">

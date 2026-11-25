@@ -33,6 +33,7 @@ export function BenefitsSection({
   loading,
   error,
   answers,
+  headerAction,
   children,
 }: {
   result: BenefitsResult | null;
@@ -40,7 +41,7 @@ export function BenefitsSection({
   error: string | null;
   /** 카드 안에서 바로 답하는 칸 (04-E 예시는 질문 칸이 없어 null) */
   answers: { eligibility: Eligibility; onChange: (next: Eligibility) => void; startMonth: YearMonth } | null;
-  /** 카드 아래 새 칸 (정확히 알고 싶다면 입력하기) */
+  headerAction?: ReactNode;
   children?: ReactNode;
 }) {
   const shown = result?.items.filter((item) => item.status !== "NO") ?? [];
@@ -48,11 +49,14 @@ export function BenefitsSection({
   const yes = shown.filter((item) => item.status === "YES").length;
   return (
     <section aria-labelledby="benefits-title" className="rounded-xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="benefits-title" className="text-base font-bold">
           받을 수 있는 혜택
         </h2>
-        {loading && result && <span className="text-sm text-muted">다시 계산 중…</span>}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {loading && result && <span className="text-sm text-muted">다시 계산 중…</span>}
+          {headerAction}
+        </div>
       </div>
       {result && (
         <p className="mt-1 text-sm text-ink-soft">
@@ -60,6 +64,7 @@ export function BenefitsSection({
           {result.refundPerYear ? ` · 연말정산 환급 매년 약 ${formatManwon(result.refundPerYear)}` : ""}
         </p>
       )}
+      {children}
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-danger">
@@ -88,7 +93,6 @@ export function BenefitsSection({
               </ul>
             </details>
           )}
-          {children && <div className="mt-4">{children}</div>}
           <p className="mt-3 text-xs text-muted">{result.asOf} 기준 · 실제 대상 여부는 신청하는 곳에서 확정돼요</p>
         </>
       )}
@@ -129,7 +133,7 @@ function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number;
       {headline.sub && <p className="truncate text-sm text-ink-soft">{headline.sub}</p>}
 
       <div
-        className={`absolute inset-x-[-1px] top-full z-10 -mt-px hidden space-y-3 rounded-b-lg border border-t-0 ${style.panel} bg-surface px-4 pb-4 pt-1 text-sm text-ink-soft shadow-lg group-hover:block`}
+        className={`pointer-events-none invisible absolute inset-x-[-1px] top-full z-10 -mt-px space-y-3 rounded-b-lg border border-t-0 ${style.panel} bg-surface px-4 pb-4 pt-1 text-sm text-ink-soft opacity-0 shadow-lg group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-200 motion-safe:ease-out motion-safe:group-hover:delay-75`}
       >
         <p className="text-ink">{item.detail}</p>
         {item.effect && (

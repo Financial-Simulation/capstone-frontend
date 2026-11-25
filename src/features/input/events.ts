@@ -8,6 +8,19 @@ import type { EventPreset, EventTemplate, EventType, PlannedEvent, PresetKey, Si
 
 export type EventAmountKey = "amount" | "monthlyChange" | "incomeChangeRate" | "gapMonths" | "deposit";
 
+const PRESET_NAMES: Record<PresetKey, string> = {
+  INDEPENDENCE: "독립",
+  JEONSE_MOVE: "전세 이사",
+  WEDDING: "결혼 비용",
+  JOB_CHANGE: "이직",
+  CAR: "자동차",
+  CUSTOM: "예정된 일",
+};
+
+export function plannedEventName(event: Draft<PlannedEvent>): string {
+  return event.name?.trim() || (event.presetKey ? PRESET_NAMES[event.presetKey] : null) || "예정된 일";
+}
+
 export interface EventFieldDef {
   key: EventAmountKey;
   label: string;

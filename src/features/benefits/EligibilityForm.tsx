@@ -1,19 +1,15 @@
 "use client";
 
 /**
- * 결과 화면 맨 아래 '혜택을 받을 수 있을지 더 정확히 알고 싶다면 입력하기' (접고 펼침, 조민석 배치안 11/18).
- * 모두 선택. 답은 브라우저(simEligibility.v1)에 저장하고, 바뀌면 위 혜택 카드가 다시 판정된다 (서버 /benefits).
- * 혜택 카드의 '알려 주면 정확해져요'를 누르면 열리고 그 질문으로 옮겨 간다 (focusKey).
+ * 혜택 질문 모음. 답을 바꾸면 혜택 카드가 다시 판정된다 (서버 /benefits).
  */
-import { useEffect } from "react";
-import { Icon } from "@/components/ui/Icon";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { NumberInput } from "@/components/ui/NumberInput";
 import { YearMonthPicker } from "@/components/ui/YearMonthPicker";
 import type { Eligibility, EligibilityKey, YearMonth } from "@/lib/types";
 import { QUESTIONS, answeredCount, withAnswer, type Question } from "./questions";
 
-const ELIGIBILITY_FORM_ID = "eligibility-form";
+export const ELIGIBILITY_FORM_ID = "eligibility-form";
 
 const YES_NO = [
   { value: true, label: "예" },
@@ -26,51 +22,25 @@ export function EligibilityForm({
   onChange,
   startMonth,
   open,
-  onOpenChange,
-  focusKey,
-  asked,
 }: {
   eligibility: Eligibility;
   onChange: (next: Eligibility) => void;
   startMonth: YearMonth;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  /** 이 질문으로 옮겨 간다 (혜택 카드에서 누른 것) */
-  focusKey: { key: EligibilityKey; at: number } | null;
-  /** 혜택 카드들이 물어보는 질문 (강조) */
-  asked: ReadonlySet<EligibilityKey>;
 }) {
-  useEffect(() => {
-    if (!focusKey || !open) return;
-    const el = document.getElementById(`elig-${focusKey.key}`);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-    el?.focus({ preventScroll: true });
-  }, [focusKey, open]);
-
   const count = answeredCount(eligibility);
   return (
-    <details
+    <div
       id={ELIGIBILITY_FORM_ID}
-      open={open}
-      onToggle={(event) => onOpenChange((event.currentTarget as HTMLDetailsElement).open)}
-      className="group scroll-mt-20 rounded-lg border border-primary/30 bg-primary-soft/40 p-4"
+      hidden={!open}
+      className="mt-4 rounded-lg border border-primary/30 bg-primary-soft/40 p-4"
     >
-      <summary className="flex cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
-        <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-          <Icon name="edit" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-bold">더 정확히 알고 싶다면 입력하기</span>
-        </span>
-        <Icon name="chevron" className="size-5 shrink-0 text-ink-soft transition-transform group-open:rotate-90" />
-      </summary>
-      <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-5 xl:grid-cols-2">
         {QUESTIONS.map((q) => (
           <QuestionField
             key={q.key}
             q={q}
             value={eligibility[q.key]}
-            highlight={asked.has(q.key) && (eligibility[q.key] === null || eligibility[q.key] === undefined)}
             startMonth={startMonth}
             onValue={(value) => onChange(withAnswer(eligibility, q.key, value))}
           />
@@ -81,26 +51,24 @@ export function EligibilityForm({
           답 모두 지우기
         </button>
       )}
-    </details>
+    </div>
   );
 }
 
 function QuestionField({
   q,
   value,
-  highlight,
   startMonth,
   onValue,
 }: {
   q: Question;
   value: Eligibility[EligibilityKey];
-  highlight: boolean;
   startMonth: YearMonth;
   onValue: (value: Eligibility[EligibilityKey]) => void;
 }) {
   const id = `elig-${q.key}`;
   return (
-    <div className={`rounded-lg p-2 ${highlight ? "bg-warn-soft/50 ring-1 ring-warn-line" : ""}`}>
+    <div className="p-2">
       <label htmlFor={id} className="text-sm font-semibold">
         {q.label}
       </label>

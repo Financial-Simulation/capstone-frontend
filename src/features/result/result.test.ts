@@ -125,6 +125,21 @@ describe("예정된 일 표시 (입력의 occurDate)", () => {
     ]);
     expect(eventMarks({ events: [] })).toEqual([]);
   });
+
+  it("이름 없는 프리셋은 종류로 구분하고 같은 달의 자동차 비용은 한 번만 표시한다", () => {
+    expect(eventMarks({
+      startMonth: "2026-11",
+      events: [
+        { presetKey: "CAR", eventType: "ONE_TIME", occurDate: "2027-01" },
+        { presetKey: "CAR", eventType: "SPEND_CHANGE", occurDate: "2027-01" },
+        { presetKey: "JOB_CHANGE", occurDate: "2027-01" },
+        { presetKey: "JEONSE_MOVE", occurDate: "2027-02" },
+      ],
+    })).toEqual([
+      { months: 2, label: "자동차 · 이직" },
+      { months: 3, label: "전세 이사" },
+    ]);
+  });
 });
 
 describe("계산하지 못했을 때 (입력 확인하기 / 다시 계산)", () => {
