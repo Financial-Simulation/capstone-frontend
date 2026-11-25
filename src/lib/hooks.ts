@@ -232,5 +232,5 @@ export function useApiTask<K extends string>() {
     }
   }, []);
 
-  return { busy, error, run };
+  return { busy, error, run, clearError: () => setError(null) };
 }

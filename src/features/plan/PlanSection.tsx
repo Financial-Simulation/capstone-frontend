@@ -102,7 +102,11 @@ export function PlanSection({
           <>
             지금 {Math.round(currentProbability)}% →{" "}
             <span className="font-semibold text-primary">
-              {loading || adjustedProbability === null ? "계산 중…" : `바꾼 계획 ${Math.round(adjustedProbability)}%`}
+              {calcError
+                ? "계산하지 못했어요"
+                : loading || adjustedProbability === null
+                  ? "계산 중…"
+                  : `바꾼 계획 ${Math.round(adjustedProbability)}%`}
             </span>
           </>
         ) : (

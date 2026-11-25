@@ -58,10 +58,10 @@ export function ChartPanel({
     <section className="rounded-xl border border-line bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 basis-72">
-          <h2 className="text-base font-bold">{actionComparison ? "액션 적용 후 모을 돈" : "앞으로 모을 돈"}</h2>
+          <h2 className="text-base font-bold">{actionComparison ? "시나리오를 바꾸면 모을 돈" : "앞으로 모을 돈"}</h2>
           <p className="mt-1 text-sm text-ink-soft">
             {actionComparison
-              ? "선택한 액션을 반영한 결과를 저장한 계획과 비교했어요."
+              ? "바꾼 시나리오의 결과를 저장한 계획과 비교했어요."
               : kind === null
               ? `가능한 미래 ${result.paths.toLocaleString("ko-KR")}가지를 계산했어요. 버튼으로 하나씩 볼 수 있어요.`
               : `${result.paths.toLocaleString("ko-KR")}가지 중 '${KIND_LABELS[kind].title}'(${KIND_LABELS[kind].sub}) 미래 하나를 한 달씩 보여 드려요.`}

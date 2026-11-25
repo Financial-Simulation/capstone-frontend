@@ -1,5 +1,6 @@
+import { api, ApiError } from "@/lib/api";
 import { eventFieldsMatch } from "@/lib/rules";
-import type { Draft, PlannedEvent, StoryResult, YearMonth } from "@/lib/types";
+import type { Draft, PlannedEvent, SimulateRequest, StoryResult, YearMonth } from "@/lib/types";
 import { isYearMonth, monthsBetween } from "@/lib/year-month";
 
 export function comparisonEvents(draft: readonly Draft<PlannedEvent>[]): PlannedEvent[] | null {
@@ -20,6 +21,17 @@ export function changedMoveMonth(saved: readonly PlannedEvent[], events: readonl
     old.eventType === "MOVE" && old.presetKey === event.presetKey && old.occurDate === event.occurDate &&
     old.deposit === event.deposit && old.monthlyChange === event.monthlyChange && old.amount === event.amount,
   )).map((event) => event.occurDate).sort()[0];
+}
+
+export async function simulateScenario(request: SimulateRequest, moveMonth: YearMonth | undefined, signal: AbortSignal) {
+  const [sim, story] = await Promise.all([
+    api.simulate(request, { signal }),
+    moveMonth ? api.story(request, { signal }) : null,
+  ]);
+  if (sim.source === "mock" || story?.source === "mock") {
+    throw new ApiError("ACTIONS_REQUIRE_REAL_API", "실제 계산 서버에 연결해야 비교할 수 있어요.", null);
+  }
+  return { result: sim.data, move: moveMonth && story ? { month: moveMonth, lowest: lowestMoveCash(story.data, moveMonth) } : null };
 }
 
 /** 이사한 달부터 첫 12개월의 현금만 본다. 보증금과 적금은 합치지 않는다. */

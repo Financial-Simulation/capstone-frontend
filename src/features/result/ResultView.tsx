@@ -77,16 +77,6 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
   const [allocation, setAllocation] = useState<MonthlyAllocation>(baseAllocation);
   const [action, setAction] = useState<ActionComparisonResult | null>(null);
 
-  function changeValues(next: PlanValues) {
-    setAction(null);
-    setValues(next);
-  }
-
-  function changeAllocation(next: MonthlyAllocation) {
-    setAction(null);
-    setAllocation(next);
-  }
-
   // 월 저축액을 바꾸면 배분을 남는 만큼만으로 맞추고, 세 칸을 모두 보낸다 (서버 기본값 '청년미래 = min(저축액, 50만)'이 끼어들지 않게)
   const fitted = fitAllocation(allocation, values.monthlySaving);
   const savingChanged = values.monthlySaving !== basePlan.monthlySaving;
@@ -94,14 +84,15 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
     ...planChanges(values, basePlan),
     ...(savingChanged ? (Object.fromEntries(ALLOCATION_KEYS.map((k) => [k, fitted[k]])) as Adjustments) : allocationChanges(fitted, baseAllocation)),
   };
-  const adjusted = useAdjustedResult(input, adjustments);
-  const changed = Object.keys(adjustments).length > 0;
-  const shown = changed && adjusted.result ? adjusted.result : base;
-  const ghost = changed && adjusted.result ? base : null;
+  const activeInput = action?.input ?? input;
+  const adjusted = useAdjustedResult(activeInput, adjustments, base.seed, action ? { moveMonth: action.move?.month } : undefined);
+  const shown = adjusted.result ?? action?.result ?? base;
+  const move = adjusted.result ? adjusted.move : action?.move;
+  const ghost = action || adjusted.result ? base : null;
 
   const recommend = useRecommend(input);
   const { eligibility, setEligibility } = useEligibility();
-  const benefits = useBenefits(input, adjustments, eligibility);
+  const benefits = useBenefits(activeInput, adjustments, eligibility);
   const [formOpen, setFormOpen] = useState(false);
 
   return (
@@ -112,19 +103,19 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
         <div className="min-w-0 space-y-5">
           {action ? (
             <div className="space-y-5">
-              {action.move && <div role="status" className="border-l-4 border-primary bg-primary-soft px-4 py-3">
+              {move && <div role="status" className="border-l-4 border-primary bg-primary-soft px-4 py-3">
                 <p className="text-sm font-bold">이사 후 현금이 가장 적은 달</p>
                 <p className="mt-1 text-base font-semibold tabular-nums">
-                  {action.move.lowest ? `${formatYearMonth(action.move.lowest.month)} · ${formatWon(action.move.lowest.cash)}` : "비교할 현금 내역이 없어요."}
+                  {move.lowest ? `${formatYearMonth(move.lowest.month)} · ${formatWon(move.lowest.cash)}` : "비교할 현금 내역이 없어요."}
                 </p>
-                <p className="mt-1 text-xs text-ink-soft">중간 시나리오에서 {formatYearMonth(action.move.month)} 이사부터 최대 12개월을 봐요. 보증금은 현금에 넣지 않아요.</p>
+                <p className="mt-1 text-xs text-ink-soft">중간 시나리오에서 {formatYearMonth(move.month)} 이사부터 최대 12개월을 봐요. 보증금은 현금에 넣지 않아요.</p>
               </div>}
-              <ChartPanel key="actions" result={action.result} base={base} input={action.input} adjustments={NO_ADJUSTMENTS} storyEnabled={false} actionComparison />
+              <ChartPanel key="actions" result={shown} base={base} input={activeInput} adjustments={adjustments} storyEnabled={false} actionComparison />
             </div>
           ) : (
             <ChartPanel key="plan" result={shown} base={ghost} input={input} adjustments={adjustments} storyEnabled />
           )}
-          <CautionStrip result={action?.result ?? shown} />
+          <CautionStrip result={shown} />
         </div>
         {/* 오른쪽은 왼쪽 높이에 맞추고 안에서 스크롤 */}
         <div className="relative min-h-[28rem] min-w-0">
@@ -132,19 +123,19 @@ function MyResultBody({ data, input }: { data: ResultData; input: SimulationInpu
             <PlanSection
               input={input}
               values={values}
-              onValues={changeValues}
+              onValues={setValues}
               baseAllocation={baseAllocation}
-              onAllocation={changeAllocation}
+              onAllocation={setAllocation}
               adjustments={adjustments}
               levers={data.reverse?.data.levers ?? null}
               currentProbability={base.goal.probability}
-              adjustedProbability={changed && adjusted.result && !adjusted.loading ? adjusted.result.goal.probability : null}
+              adjustedProbability={adjusted.result && !adjusted.loading ? adjusted.result.goal.probability : null}
               loading={adjusted.loading}
               error={adjusted.error}
             >
               <ActionComparison input={input} seed={base.seed} active={action !== null} onResult={setAction} />
             </PlanSection>
-            <AllocationSection result={base} recommend={recommend.data} error={recommend.error} allocation={fitted} onPick={changeAllocation} />
+            <AllocationSection result={base} recommend={recommend.data} error={recommend.error} allocation={fitted} onPick={setAllocation} />
           </div>
         </div>
       </div>

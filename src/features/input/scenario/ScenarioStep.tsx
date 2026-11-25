@@ -20,7 +20,7 @@ import { fieldId } from "@/lib/form";
 import { useCurrentMonth } from "@/lib/hooks";
 import { LIMITS } from "@/lib/rules";
 import type { EventPreset, SimulationInputDraft, YearMonth } from "@/lib/types";
-import { addMonths, formatYearMonth, isWithinMonths, isYearMonth } from "@/lib/year-month";
+import { formatYearMonth, isYearMonth } from "@/lib/year-month";
 
 /** 예정된 일 시점 범위: 기준 달부터 10년(119개월) 안 (lib/rules.ts의 LIMITS) */
 const EVENT_WINDOW = `${(LIMITS.eventMonths.max + 1) / 12}년(${LIMITS.eventMonths.max}개월)`;
@@ -116,7 +116,7 @@ export function ScenarioStep() {
 }
 
 export function PresetCard({
-  form, preset, start, idPrefix = "", savedMoveDate, stackFields = false,
+  form, preset, start, idPrefix = "", stackFields = false,
 }: {
   form: Pick<StepForm, "input" | "error"> & Partial<Pick<StepForm, "touch">> & {
     update: (patch: (prev: SimulationInputDraft) => SimulationInputDraft) => void;
@@ -124,7 +124,6 @@ export function PresetCard({
   preset: EventPreset;
   start: YearMonth | null;
   idPrefix?: string;
-  savedMoveDate?: YearMonth;
   stackFields?: boolean;
 }) {
   const indexes = presetEventIndexes(form.input, preset.presetKey);
@@ -135,7 +134,6 @@ export function PresetCard({
   const toggleId = idPrefix + fieldId(`preset.${preset.presetKey}`);
   const datePath = `events[${first}].occurDate`;
   const dateId = idPrefix + fieldId(datePath);
-  const later = savedMoveDate ? addMonths(savedMoveDate, 3) : null;
 
   const dateMissing = indexes.some((i) => form.error(`events[${i}].occurDate`));
   const dateError = dateMissing ? `${preset.name} 시점이 비어 있어요` : undefined;
@@ -180,11 +178,6 @@ export function PresetCard({
               <div className="h-11 w-60 animate-pulse rounded-lg bg-canvas" />
             )}
           </Field>
-          {start && later && isWithinMonths(start, later, LIMITS.eventMonths.min, LIMITS.eventMonths.max) && (
-            <button type="button" className="text-sm font-semibold text-primary underline" onClick={() => form.update((prev) => setPresetDate(prev, preset.presetKey, later))}>
-              예정일보다 3개월 늦추기
-            </button>
-          )}
           <div className={`grid grid-cols-1 gap-4 ${stackFields ? "" : "sm:grid-cols-2"}`}>
             {events.flatMap(({ index, event }) =>
               eventFields(

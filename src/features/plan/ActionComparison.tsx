@@ -3,17 +3,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui";
 import { PresetCard, usePresets } from "@/features/input/scenario/ScenarioStep";
-import { api, ApiError } from "@/lib/api";
 import { useApiTask } from "@/lib/hooks";
 import { checkCrossRules, checkFields, checkRequired } from "@/lib/rules";
-import type { SimulateResult, SimulationInput, SimulationInputDraft } from "@/lib/types";
-import { changedMoveMonth, comparisonEvents, lowestMoveCash } from "./action-comparison";
+import type { SimulationInput, SimulationInputDraft } from "@/lib/types";
+import { changedMoveMonth, comparisonEvents, simulateScenario } from "./action-comparison";
 
-export interface ActionComparisonResult {
+export type ActionComparisonResult = Awaited<ReturnType<typeof simulateScenario>> & {
   input: SimulationInput;
-  result: SimulateResult;
-  move: { month: SimulationInput["startMonth"]; lowest: ReturnType<typeof lowestMoveCash> } | null;
-}
+};
 
 export function ActionComparison({ input, seed, active, onResult }: {
   input: SimulationInput;
@@ -25,7 +22,7 @@ export function ActionComparison({ input, seed, active, onResult }: {
   const [draft, setDraft] = useState<SimulationInputDraft>(input);
   const [attempted, setAttempted] = useState(false);
   const { state, retry } = usePresets(started);
-  const { busy, error, run } = useApiTask<"actions">();
+  const { busy, error, run, clearError } = useApiTask<"actions">();
   const errors = attempted ? { ...checkRequired("EVENTS", draft), ...checkFields(draft) } : {};
   const cross = attempted ? checkCrossRules(draft) : null;
   const changed = JSON.stringify(draft.events ?? []) !== JSON.stringify(input.events ?? []);
@@ -33,6 +30,13 @@ export function ActionComparison({ input, seed, active, onResult }: {
   function update(patch: (prev: SimulationInputDraft) => SimulationInputDraft) {
     onResult(null);
     setDraft(patch);
+  }
+
+  function reset() {
+    setDraft(input);
+    setAttempted(false);
+    clearError();
+    onResult(null);
   }
 
   return (
@@ -61,15 +65,9 @@ export function ActionComparison({ input, seed, active, onResult }: {
               const next = { ...input, events };
               const request = { input: next, seed };
               const month = changedMoveMonth(input.events ?? [], events);
-              const [sim, story] = await Promise.all([
-                api.simulate(request, { signal }),
-                month ? api.story(request, { signal }) : null,
-              ]);
-              if (sim.source === "mock" || story?.source === "mock") {
-                throw new ApiError("ACTIONS_REQUIRE_REAL_API", "실제 계산 서버에 연결해야 비교할 수 있어요.", null);
-              }
+              const comparison = await simulateScenario(request, month, signal);
               if (!signal.aborted) {
-                onResult({ input: next, result: sim.data, move: month && story ? { month, lowest: lowestMoveCash(story.data, month) } : null });
+                onResult({ input: next, ...comparison });
               }
             });
           }}>
@@ -82,7 +80,6 @@ export function ActionComparison({ input, seed, active, onResult }: {
                       start={input.startMonth}
                       idPrefix="action-"
                       stackFields
-                      savedMoveDate={input.events?.find((event) => event.eventType === "MOVE" && event.presetKey === preset.presetKey)?.occurDate}
                       form={{
                         input: draft, update,
                         error: (path, options) => errors[path] ?? (options?.prefix ? Object.entries(errors).find(([key]) => key.startsWith(`${path}.`))?.[1] : undefined),
@@ -93,8 +90,8 @@ export function ActionComparison({ input, seed, active, onResult }: {
               </ul>
               {state.source === "mock" && <p className="text-xs text-mock">목업 목록이에요. 비교하려면 실제 계산 서버에 연결해야 해요.</p>}
               <div className="flex flex-wrap gap-2">
-                <Button type="submit" disabled={!changed || busy !== null}>{busy ? "계산 중…" : "그래프에서 비교하기"}</Button>
-                {active && <Button type="button" variant="secondary" onClick={() => onResult(null)}>비교 닫기</Button>}
+                <Button type="submit" disabled={!changed || busy !== null}>{busy ? "계산 중…" : "그래프에 추가하기"}</Button>
+                <Button type="button" variant="secondary" disabled={!changed && !active} onClick={reset}>시나리오 초기화</Button>
               </div>
             </fieldset>
             {(cross || error) && <p role="alert" className="mt-2 text-sm text-danger">{cross?.message ?? error}</p>}
