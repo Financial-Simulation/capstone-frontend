@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import { DiffText } from "@/components/ui/Stat";
 import { PLAN_COMPARE_HEADERS } from "@/features/plan/plan";
-import { BandChart, BandLegend } from "@/features/result/BandChart";
+import { BandChart, BandLegend, EventLegend } from "@/features/result/BandChart";
 import { CauseBars } from "@/features/result/RiskSections";
 import { eventMarks, reverseLines } from "@/features/result/result";
 import { taxView } from "@/features/tax/tax";
@@ -58,7 +58,8 @@ export function ReportPaper({
         </Table>
         {sim && (
           <div className="mt-4 break-inside-avoid">
-            <BandLegend hasEvents={events.length > 0} />
+            <BandLegend />
+            <EventLegend events={events} />
             <div className="mt-2">
               <BandChart result={sim} events={events} />
             </div>

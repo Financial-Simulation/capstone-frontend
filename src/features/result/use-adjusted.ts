@@ -6,25 +6,44 @@
  * 새 결과가 올 때까지는 앞 결과를 그대로 보여 준다 (그래프가 깜빡이지 않게). 바꾼 값이 없으면 null.
  */
 import { useEffect, useState } from "react";
+import { simulateScenario } from "@/features/plan/action-comparison";
+import { sameAdjustments } from "@/features/plan/plan";
 import { api, errorMessage, isAbortError } from "@/lib/api";
-import type { Adjustments, SimulateResult, SimulationInput } from "@/lib/types";
+import type { Adjustments, SimulateRequest, SimulationInput, YearMonth } from "@/lib/types";
 
 export const DELAY_MS = 300;
 
-export function useAdjustedResult(input: SimulationInput, adjustments: Adjustments) {
-  const changed = Object.keys(adjustments).length > 0;
-  const key = changed ? JSON.stringify({ input, adjustments }) : null;
-  const [state, setState] = useState<{ key: string; result: SimulateResult | null; error: string | null } | null>(null);
+type Calculation = Awaited<ReturnType<typeof simulateScenario>>;
+
+export function useAdjustedResult(input: SimulationInput, adjustments: Adjustments, seed: number, scenario?: { moveMonth?: YearMonth; adjustments: Adjustments }) {
+  const changed = scenario ? !sameAdjustments(adjustments, scenario.adjustments) : Object.keys(adjustments).length > 0;
+  const scope = JSON.stringify({ input, seed, scenario });
+  const key = changed ? JSON.stringify({ input, adjustments, seed }) : null;
+  const isScenario = scenario !== undefined;
+  const moveMonth = scenario?.moveMonth;
+  const [state, setState] = useState<{
+    key: string;
+    scope: string;
+    displayed: { calculation: Calculation; adjustments: Adjustments } | null;
+    error: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (key === null) return;
     const abort = new AbortController();
     const timer = setTimeout(() => {
-      const body = JSON.parse(key) as { input: SimulationInput; adjustments: Adjustments };
-      api.simulate(body, { signal: abort.signal }).then(
-        ({ data }) => setState({ key, result: data, error: null }),
+      const body = JSON.parse(key) as SimulateRequest & { adjustments: Adjustments };
+      const request = isScenario
+        ? simulateScenario(body, moveMonth, abort.signal)
+        : api.simulate(body, { signal: abort.signal }).then(({ data }) => ({ result: data, move: null }));
+      request.then(
+        (calculation) => {
+          if (!abort.signal.aborted) setState({ key, scope, displayed: { calculation, adjustments: body.adjustments }, error: null });
+        },
         (error: unknown) => {
-          if (!isAbortError(error)) setState((prev) => ({ key, result: prev?.result ?? null, error: errorMessage(error) }));
+          if (!abort.signal.aborted && !isAbortError(error)) {
+            setState((prev) => ({ key, scope, displayed: prev?.scope === scope ? prev.displayed : null, error: errorMessage(error) }));
+          }
         },
       );
     }, DELAY_MS);
@@ -32,8 +51,15 @@ export function useAdjustedResult(input: SimulationInput, adjustments: Adjustmen
       clearTimeout(timer);
       abort.abort();
     };
-  }, [key]);
+  }, [key, scope, isScenario, moveMonth]);
 
-  if (key === null) return { result: null, loading: false, error: null };
-  return { result: state?.result ?? null, loading: state?.key !== key, error: state?.key === key ? state.error : null };
+  const current = state?.scope === scope ? state : null;
+  if (key === null) return { result: null, move: null, appliedAdjustments: null, loading: false, error: null };
+  return {
+    result: current?.displayed?.calculation.result ?? null,
+    move: current?.displayed?.calculation.move ?? null,
+    appliedAdjustments: current?.displayed?.adjustments ?? null,
+    loading: current?.key !== key,
+    error: current?.key === key ? current.error : null,
+  };
 }

@@ -46,7 +46,7 @@ function describe(example: ExampleInput): string {
     `${person.age}세 · ${person.employmentType === "CONTRACT" ? "계약직" : "정규직"}`,
     `월 실수령액 ${formatWon(income.monthlyNetIncome)}`,
     `${formatDuration(months)} 뒤 ${formatManwon(goal.targetAmount)} 목표`,
-    ...(names.length > 0 ? [`예정된 일: ${names.join(", ")}`] : []),
+    ...(names.length > 0 ? [`추가 시나리오: ${names.join(", ")}`] : []),
   ].join(" · ");
 }
 

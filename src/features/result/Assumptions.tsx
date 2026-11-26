@@ -53,7 +53,7 @@ export function Assumptions({ result, input }: { result: SimulateResult; input: 
       "목표",
       `${input.goal?.name || INPUT_DEFAULTS.goalName} · ${formatWon(input.goal?.targetAmount)} · ${input.goal?.targetDate ? formatYearMonth(input.goal.targetDate) : "—"}`,
     ],
-    ["예정된 일", (input.events ?? []).map((e) => `${e.name ?? "일"} ${e.occurDate ? formatYearMonth(e.occurDate) : ""}`).join(" · ") || "없음"],
+    ["추가 시나리오", (input.events ?? []).map((e) => `${e.name ?? "일"} ${e.occurDate ? formatYearMonth(e.occurDate) : ""}`).join(" · ") || "없음"],
   ];
 
   return (

@@ -3,9 +3,9 @@
 /**
  * 04 범위 그래프: 지금부터 10년(0~120개월) 동안 모은 돈의 분포.
  *  - 범위(아래 10%~위 10%)는 옅은 면, 중간값은 선, 최악의 경우(하위 5%)는 주황 선
- *  - 화면 글자는 쉬운 말로: 범위 '10번 중 8번은 이 안' · 중간값 '보통이면' · 하위 5% '많이 안 풀리면' · 계산기 결과 '계획대로만 가면'
+ *  - 화면 글자는 쉬운 말로: 범위 '상위 10%~하위 10%' · 중간값 '상위 50%' · '하위 5%' · 계산기 결과 '계획대로만 가면'
  *  - 목표 금액(가로 점선)과 목표 시점(세로 점선), 계산기 결과는 두 점(목표 시점 · 10년 뒤)
- *  - 예정된 일은 입력의 occurDate로 아래쪽에 ◆
+ *  - 예정된 일은 입력의 occurDate로 아래쪽에 번호를 붙인다.
  *  - 마우스 · 손가락 · 화살표 키로 달을 옮기면 그달의 값을 보여 준다 (표로 보기에도 같은 값)
  */
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject } from "react";
@@ -103,6 +103,15 @@ export function BandChart({
 
   const goalBand = bands[gm];
   const activeBand = active === null ? null : bands[active];
+  const axisY = MARGIN.top + plotH;
+  const eventLanes: number[] = [];
+  const eventBadges = events.map((event) => {
+    const px = x(event.months);
+    const available = eventLanes.findIndex((previous) => px - previous >= 18);
+    const lane = available < 0 ? eventLanes.length : available;
+    eventLanes[lane] = px;
+    return { event, px, py: axisY - lane * 18 };
+  });
 
   // ----- 라벨 자리: 데이터 선 · 점 · 다른 라벨과 겹치지 않는 후보를 고른다 (chart.ts pickLabels) -----
   const plotRight = MARGIN.left + plotW;
@@ -121,7 +130,7 @@ export function BandChart({
   const marks: Obstacle[] = [
     { kind: "box", box: goalLabel.box },
     ...(gm !== last ? [{ kind: "box", box: { x0: x(last) - 7, x1: x(last) + 7, y0: y(det.at120) - 7, y1: y(det.at120) + 7 } } as const] : []),
-    ...events.map((e) => ({ kind: "box", box: { x0: x(e.months) - 8, x1: x(e.months) + 8, y0: MARGIN.top + plotH - 8, y1: MARGIN.top + plotH + 8 } }) as const),
+    ...eventBadges.map(({ px, py }) => ({ kind: "box", box: { x0: px - 8, x1: px + 8, y0: py - 8, y1: py + 8 } }) as const),
   ];
 
   // 계산기 라벨: 점의 오른쪽 위 · 왼쪽 위(중간값 선이 점 아래일 때) → 아래 → 옆. 깨끗한 자리가 없으면 안 그린다(범례 · 툴팁에 있다)
@@ -174,7 +183,7 @@ export function BandChart({
   };
 
   const summary = goalBand
-    ? `모은 돈 범위 그래프. 목표 시점(${formatYearMonth(goalBand.month)})에 보통이면 ${formatManwon(goalBand.p50)}, 안 풀리면 ${formatManwon(goalBand.p10)}, 잘 풀리면 ${formatManwon(goalBand.p90)}, 많이 안 풀리면 ${formatManwon(goalBand.p5)}. 화살표 키로 달을 옮겨 볼 수 있어요.`
+    ? `모은 돈 범위 그래프. 목표 시점(${formatYearMonth(goalBand.month)})에 상위 50% ${formatManwon(goalBand.p50)}, 상위 10% ${formatManwon(goalBand.p90)}, 하위 10% ${formatManwon(goalBand.p10)}, 하위 5% ${formatManwon(goalBand.p5)}. 화살표 키로 달을 옮겨 볼 수 있어요.`
     : "모은 돈 범위 그래프";
 
   // 툴팁: 가리킨 달의 오른쪽(자리가 없으면 왼쪽)에, 그래프 밖으로 나가지 않게
@@ -255,10 +264,14 @@ export function BandChart({
           <line x1={x(gm)} x2={x(gm)} y1={MARGIN.top - 6} y2={MARGIN.top + plotH} className="stroke-ink-soft" strokeWidth={1.5} strokeDasharray="5 4" />
 
           {/* 예정된 일 (입력의 occurDate) */}
-          {events.map((event) => (
-            <g key={event.months} transform={`translate(${x(event.months)},${MARGIN.top + plotH})`}>
+          {eventBadges.map(({ event, px, py }, index) => (
+            <g key={event.months} transform={`translate(${px},${py})`}>
               <title>{`${afterLabel(event.months)} · ${event.label}`}</title>
-              <rect x={-5} y={-5} width={10} height={10} transform="rotate(45)" className="fill-warn stroke-surface" strokeWidth={2} />
+              {py < axisY && <line x1={0} x2={0} y1={8} y2={axisY - py} className="stroke-muted" />}
+              <circle r={8} className="fill-ink stroke-surface" strokeWidth={1.5} />
+              <text y={0.5} textAnchor="middle" dominantBaseline="central" className="fill-white text-[8px] font-bold">
+                {index + 1}
+              </text>
             </g>
           ))}
 
@@ -327,10 +340,10 @@ export function BandChart({
           </p>
           <div className="mt-1.5 grid grid-cols-[0.75rem_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 whitespace-nowrap">
             {/* 그래프에서 보이는 위아래 순서 그대로 (1·3·5·10년 표와 같은 이름) */}
-            <TooltipRow mark={<span className="block h-2.5 w-3 rounded-sm bg-primary/20" />} value={formatManwon(activeBand.p90)} label="잘 풀리면" />
-            <TooltipRow mark={<span className="block h-0.5 w-3 rounded-full bg-primary" />} value={formatManwon(activeBand.p50)} label="보통이면" />
-            <TooltipRow mark={<span className="block h-2.5 w-3 rounded-sm bg-primary/20" />} value={formatManwon(activeBand.p10)} label="안 풀리면" />
-            <TooltipRow mark={<span className="block h-0.5 w-3 rounded-full bg-series-2" />} value={formatManwon(activeBand.p5)} label="많이 안 풀리면" />
+            <TooltipRow mark={<span className="block h-2.5 w-3 rounded-sm bg-primary/20" />} value={formatManwon(activeBand.p90)} label="상위 10%" />
+            <TooltipRow mark={<span className="block h-0.5 w-3 rounded-full bg-primary" />} value={formatManwon(activeBand.p50)} label="상위 50% (중간)" />
+            <TooltipRow mark={<span className="block h-2.5 w-3 rounded-sm bg-primary/20" />} value={formatManwon(activeBand.p10)} label="하위 10%" />
+            <TooltipRow mark={<span className="block h-0.5 w-3 rounded-full bg-series-2" />} value={formatManwon(activeBand.p5)} label="하위 5%" />
             {(active === gm || active === last) && (
               <TooltipRow
                 mark={<span className="block size-2.5 rounded-full border-2 border-ink" />}
@@ -341,9 +354,6 @@ export function BandChart({
           </div>
           {activeEvent && (
             <p className="mt-1.5 font-semibold text-ink">
-              <span aria-hidden className="text-warn">
-                ◆
-              </span>{" "}
               {activeEvent.label}
             </p>
           )}
@@ -397,7 +407,7 @@ function TooltipRow({ mark, value, label }: { mark: ReactNode; value: string; la
 }
 
 /** 그래프 위 범례 (2개 이상이라 항상 보여 준다) */
-export function BandLegend({ hasEvents }: { hasEvents: boolean }) {
+export function BandLegend() {
   const item = (key: ReactNode, label: string) => (
     <li className="flex items-center gap-1.5">
       {key}
@@ -406,12 +416,25 @@ export function BandLegend({ hasEvents }: { hasEvents: boolean }) {
   );
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
-      {item(<span aria-hidden className="inline-block h-0.5 w-4 bg-primary" />, "보통이면")}
-      {item(<span aria-hidden className="inline-block h-2.5 w-4 rounded-sm bg-primary/15" />, "10번 중 8번은 이 안")}
-      {item(<span aria-hidden className="inline-block h-0.5 w-4 bg-series-2" />, "많이 안 풀리면 (20번 중 1번)")}
+      {item(<span aria-hidden className="inline-block h-0.5 w-4 bg-primary" />, "상위 50% (중간)")}
+      {item(<span aria-hidden className="inline-block h-2.5 w-4 rounded-sm bg-primary/15" />, "상위 10% ~ 하위 10%")}
+      {item(<span aria-hidden className="inline-block h-0.5 w-4 bg-series-2" />, "하위 5% (20번 중 1번)")}
       {item(<span aria-hidden className="inline-block w-4 border-t-2 border-dashed border-ink-soft" />, "목표 금액 · 목표 시점")}
       {item(<span aria-hidden className="inline-block size-2.5 rounded-full border-2 border-ink" />, "계획대로만 가면 (실직·급한 지출 없이)")}
-      {hasEvents && item(<span aria-hidden className="inline-block size-2 rotate-45 bg-warn" />, "예정된 일")}
     </ul>
+  );
+}
+
+export function EventLegend({ events }: { events: readonly EventMark[] }) {
+  if (!events.length) return null;
+  return (
+    <ol aria-label="그래프에 표시한 이벤트" className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink">
+      {events.map((event, index) => (
+        <li key={event.months} className="flex items-center gap-1.5">
+          <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-ink px-0.5 py-0.5 text-[10px] font-bold text-white tabular-nums">{index + 1}</span>
+          <span>{event.label} <span className="text-ink-soft">({afterLabel(event.months)})</span></span>
+        </li>
+      ))}
+    </ol>
   );
 }

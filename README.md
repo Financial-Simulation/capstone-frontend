@@ -176,13 +176,15 @@ v1.7에서 생긴 것 (타입은 `src/lib/types`):
   같은 입력 · 같은 seed면 같은 결과라서 화면에 다시 들어오면 다시 불러도 숫자가 같다 (`features/result/use-result.ts`).
 - 상태: 입력 없음 → 시작 안내 / 필수 칸이 빠짐 → 그 단계로 가기 / 계산 중('취소' → 03, 5초가 넘으면 '평소보다 오래 걸리고 있어요') /
   계산 실패: 서버가 입력 칸을 문제 삼으면 '입력 확인하기'(그 단계로), 백엔드 꺼짐 · 응답 없음 · 서버 오류면 '다시 계산'만 (`result.ts`의 `failure`). 04-E는 늘 '다시 계산'.
-- 본문 순서 (`features/result/ResultView.tsx`): 첫 문장(API의 headline 그대로) → 가능성 범위(04만) → 범위 그래프 → 1·3·5·10년 표 → 위험 카드 5장 → 세금 → 어디에 얼마나(둘 다 04만) → 적금을 처음 깬 이유 4가지(합 100%) → 이렇게 바꿔 보세요 → 계획 바꿔 보기(펼쳤을 때) → 내 입력값과 적용 가정(펼치면 `GET /meta`).
+- 내 결과 본문 (`features/result/ResultView.tsx`): 결론 → 범위 그래프와 계획·배분 패널 → 받을 수 있는 혜택 → 숫자 더 보기. 넓은 화면에서는 그래프가 왼쪽, 스크롤 가능한 계획·배분 패널이 오른쪽이고, 좁은 화면에서는 위아래로 배치한다.
 - 세금 (v1.7, `features/tax/TaxSection.tsx` · `tax.ts`): `/simulate`의 `tax`로 카드 5장(매년 · 목표 시점까지 돌려받는 세금, 낸 이자소득세, 해지로 다시 낸 세금, 순이득)과 안내 문장. 금액은 모두 서버 값이고, 화면에서 세율표로 계산하지 않는다 ('내는 세금 연 약 n만 원'은 서버가 값을 주면 넣는다). 04-E 예시에는 붙이지 않는다.
 - 가능성 범위 (`features/result/RobustSection.tsx` · `robust.ts`): '가능성 범위 계산'을 누르면 `POST /robust`로 작업을 맡기고 1.5초마다 `GET /robust/{jobId}`로 진행률을 물어 범위를 띠로 그린다 (`lib/api/robust.ts`의 `runRobust`, 계획 바꿔 보기도 같이 쓴다). 화면을 떠나면 묻기를 멈춘다.
-- 계획 바꿔 보기 04-2 (`features/plan/PlanSection.tsx` · `plan.ts`): 맨 아래 '계획 바꿔 보기'로 펼친다. 값 7개(변동 · 고정지출, 월 저축액, 버틸 금액, 목표 금액 · 시점, 비상금 먼저)를 바꿔 '바꾼 계획 미리보기'(`POST /simulate/preview`), 최대 3개 담아(`simPlans.v1`) '담은 계획 비교'(`POST /compare`), '가정을 바꿔도 결론이 같은지 보기'(`POST /robust`의 plans). 내 입력은 바꾸지 않는다.
+- 계획 바꿔 보기 04-2 (`features/plan/PlanSection.tsx` · `plan.ts`): 그래프 옆에서 저축·지출·목표를 조정해 결과를 미리 본다(`POST /simulate/preview`). 계획은 최대 3개까지 담아서(`simPlans.v1`) 비교할 수 있다(`POST /compare`). 내 입력은 바꾸지 않는다.
   서버는 계획 이름을 20자까지만 받아서(PlanSpec) 두 값 이상 바꾼 계획 이름은 줄여 보내고(`planRequests`), 비교 표 · 결론 · 리포트에는 담은 계획 이름을 그대로 붙인다(`planLabels`).
   목업은 정답 파일에 없는 계획을 계산하지 못해서, 담은 계획 대신 정답 파일의 예시 계획(변동지출 10만 원 줄이기 · 비상금 300만 원 먼저 · 목표 1년 늦추기)을 보여 준다.
-- 어디에 얼마나 (v1.7, `features/tax/AllocationSection.tsx` · `allocation.ts`): 월 저축액을 청년미래 · 청약 · 연금저축으로 나눠 '지금 계획과 비교하기'(`POST /compare`), '가장 좋은 배분 찾기'(`POST /allocations/recommend`). '이 배분으로'는 내 입력의 배분(`savingPlan.policyMonthly` 등)을 바꾸고 결과 전체를 다시 계산한다. 04-E 예시에는 붙이지 않는다.
+- 시나리오 바꿔 보기 (`features/plan/ActionComparison.tsx`): 입력 단계에서 저장한 시나리오는 선택된 상태로 표시한다. 시점·금액을 바꾸거나 다른 시나리오를 추가하면 서버가 같은 seed로 다시 계산한다. 전체 범위에는 저장한 계획을 점선으로 남기고, 최상·중간·최악 재생에는 바꾼 시나리오와 배분을 함께 반영한다. 저장한 입력은 그대로다.
+- 상품별로 나눠 보기 (`features/tax/AllocationSection.tsx` · `allocation.ts`): 현재 배분과 서버 추천(`POST /allocations/recommend`)을 원그래프로 보여 준다. 추천 기준이 같은 배분을 고르면 카드 하나로 합친다. ‘이 배분으로 보기’는 결과 화면에서만 적용한다. 04-E 예시에는 붙이지 않는다.
+- 받을 수 있는 혜택 (`features/benefits/BenefitsSection.tsx`): 서버의 자격 판정을 보여 준다. 카드를 누르면 바로 아래에 신청 방법과 출처가 열리고, 못 받는 혜택은 이유를 카드 안에 바로 보여 준다.
 - 리포트 저장 (`features/report/ReportScreen.tsx` · `ReportPaper.tsx` · `report.ts`): 위쪽 '리포트 저장' → `/report`. 내 입력과 담은 계획(`simPlans.v1`)으로 `POST /reports`를 불러 한 장으로 그린다 (입력 요약 · 목표 · 앞으로 모을 돈 · 위험 · 세금 · 개선 포인트 · 담은 계획 비교 · 근거 · 유의사항).
   '인쇄 · PDF로 저장'은 브라우저 인쇄(대상: 'PDF로 저장')이고, 인쇄할 때는 머리글 · 버튼을 빼고(`print:hidden`) A4로 나온다 (`globals.css`의 `@page`). 04-E 예시에는 없다.
 - 서버 값을 화면용으로 고르는 건 `features/result/result.ts`(계산하지 않고 고르기 · 문장 · 색 기준만, 세금 · 배분 · 계획은 그 폴더의 `tax.ts` · `allocation.ts` · `plan.ts`), 눈금과 그래프 위 라벨 자리(선 · 점 · 다른 라벨과 겹치지 않는 곳, 없으면 계산기 라벨은 생략)는 `features/result/chart.ts`.

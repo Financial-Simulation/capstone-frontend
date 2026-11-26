@@ -1,43 +1,64 @@
+"use client";
+
 /**
  * 결과 화면 '받을 수 있는 혜택' (멘토 피드백 11/16 · 조민석 배치안 11/18 · 글 줄이기 11/18).
  * 카드에는 핵심만: 상태 · 이름 · 받는 돈 · 짧은 한 줄(서버 summary) · '받으면 65% → 82%'.
- * 설명 · 신청 방법 · 2027년 바뀔 수 있는 내용 · 출처는 '자세히'를 눌러야 보인다.
- * 못 받는 혜택은 맨 아래 접힌 목록에 한 줄씩 (이름 — 이유).
+ * 설명 · 신청 방법 · 2027년 바뀔 수 있는 내용 · 출처는 카드를 눌러 연다.
+ * 못 받는 혜택도 같은 그리드에 카드로 표시하고, 이유는 카드 안에 항상 보인다.
  * 판정 · 문장 · 출처는 서버(/benefits, benefits.json) 것 그대로. 여기서는 배치만 한다.
  */
+import type { ReactNode } from "react";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { YOUTH_FUTURE_SAVING } from "@/config/policy";
 import { formatManwon } from "@/lib/format";
-import type { BenefitItem, BenefitsResult, BenefitStatus, EligibilityKey } from "@/lib/types";
-import { CATEGORY_LABELS, QUESTION_BY_KEY, STATUS_LABELS } from "./questions";
+import type { BenefitItem, BenefitsResult, BenefitStatus, Eligibility, YearMonth } from "@/lib/types";
+import { AnswerInput } from "./EligibilityForm";
+import { QUESTION_BY_KEY, STATUS_LABELS, withAnswer } from "./questions";
 
-const STATUS_STYLES: Record<BenefitStatus, { card: string; chip: string }> = {
-  YES: { card: "border-good-line", chip: "bg-good-soft text-good" },
-  CHECK: { card: "border-warn-line", chip: "bg-warn-soft text-warn" },
-  LATER: { card: "border-line", chip: "bg-primary-soft text-primary" },
-  NO: { card: "border-line", chip: "bg-line text-ink-soft" },
+const STATUS_STYLES: Record<BenefitStatus, { card: string; chip: string; icon: IconName }> = {
+  YES: { card: "border-good-line", chip: "bg-good-soft text-good", icon: "check" },
+  CHECK: { card: "border-warn-line", chip: "bg-warn-soft text-warn", icon: "help" },
+  LATER: { card: "border-line", chip: "bg-primary-soft text-primary", icon: "clock" },
+  NO: { card: "border-line", chip: "bg-line text-ink-soft", icon: "close" },
+};
+
+const CATEGORY_ICONS: Record<BenefitItem["category"], IconName> = {
+  CASH: "cash",
+  TAX: "tax",
+  SAVING: "saving",
+  LOAN: "loan",
+  SAFETY: "safety",
 };
 
 export function BenefitsSection({
   result,
   loading,
   error,
-  onAsk,
+  answers,
+  headerAction,
+  children,
 }: {
   result: BenefitsResult | null;
   loading: boolean;
   error: string | null;
-  /** '알려 주면 정확해져요'의 질문을 누르면 아래 질문 칸을 연다 (04-E 예시는 질문 칸이 없어 null) */
-  onAsk: ((key: EligibilityKey) => void) | null;
+  /** 카드 안에서 바로 답하는 칸 (04-E 예시는 질문 칸이 없어 null) */
+  answers: { eligibility: Eligibility; onChange: (next: Eligibility) => void; startMonth: YearMonth } | null;
+  headerAction?: ReactNode;
+  children?: ReactNode;
 }) {
   const shown = result?.items.filter((item) => item.status !== "NO") ?? [];
   const missed = result?.items.filter((item) => item.status === "NO") ?? [];
   const yes = shown.filter((item) => item.status === "YES").length;
   return (
     <section aria-labelledby="benefits-title" className="rounded-xl border border-line bg-surface p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="benefits-title" className="text-base font-bold">
           받을 수 있는 혜택
         </h2>
-        {loading && result && <span className="text-sm text-muted">다시 계산 중…</span>}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {loading && result && <span className="text-sm text-muted">다시 계산 중…</span>}
+          {headerAction}
+        </div>
       </div>
       {result && (
         <p className="mt-1 text-sm text-ink-soft">
@@ -45,6 +66,7 @@ export function BenefitsSection({
           {result.refundPerYear ? ` · 연말정산 환급 매년 약 ${formatManwon(result.refundPerYear)}` : ""}
         </p>
       )}
+      {children}
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-danger">
@@ -55,23 +77,12 @@ export function BenefitsSection({
 
       {result && (
         <>
-          <ul className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {shown.map((item) => (
-              <BenefitCard key={item.key} item={item} base={result.probability} onAsk={onAsk} />
-            ))}
-          </ul>
-          {missed.length > 0 && (
-            <details className="mt-3 rounded-lg border border-line px-4 py-2">
-              <summary className="cursor-pointer text-sm font-semibold text-ink-soft">못 받는 혜택 {missed.length}개</summary>
-              <ul className="mt-2 space-y-1.5 pb-1 text-sm">
-                {missed.map((item) => (
-                  <li key={item.key} className="flex flex-wrap gap-x-2">
-                    <span className="font-semibold text-ink-soft">{item.name}</span>
-                    <span className="text-muted">{item.summary}</span>
-                  </li>
-                ))}
-              </ul>
-            </details>
+          {result.items.length > 0 && (
+            <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {[...shown, ...missed].map((item) => (
+                <BenefitCard key={item.key} item={item} base={result.probability} answers={answers} />
+              ))}
+            </ul>
           )}
           <p className="mt-3 text-xs text-muted">{result.asOf} 기준 · 실제 대상 여부는 신청하는 곳에서 확정돼요</p>
         </>
@@ -80,83 +91,132 @@ export function BenefitsSection({
   );
 }
 
-function BenefitCard({ item, base, onAsk }: { item: BenefitItem; base: number; onAsk: ((key: EligibilityKey) => void) | null }) {
+function BenefitCard({ item, base, answers }: { item: BenefitItem; base: number; answers: Parameters<typeof BenefitsSection>[0]["answers"] }) {
   const style = STATUS_STYLES[item.status];
+  const unavailable = item.status === "NO";
+  const links = item.sources.filter((s) => s.url);
+  const headline = unavailable ? null : cardHeadline(item);
   return (
-    <li className={`flex flex-col gap-1 rounded-lg border bg-surface p-4 ${style.card}`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${style.chip}`}>{STATUS_LABELS[item.status]}</span>
-        {item.effect && (
-          <span className="text-sm tabular-nums">
-            <span className="text-muted">{Math.round(base)}% → </span>
-            <span className="font-bold text-good">{Math.round(item.effect.probability)}%</span>
+    <li
+      className={`relative rounded-lg border p-4 ${style.card} ${unavailable ? "bg-canvas" : "bg-surface has-[details[open]]:z-10 has-[details[open]]:rounded-b-none has-[details[open]]:border-b-transparent has-[details[open]]:shadow-lg"}`}
+    >
+      <div className="flex items-start gap-3">
+        <span aria-hidden className={`flex size-10 shrink-0 items-center justify-center rounded-full ${style.chip}`}>
+          <Icon name={CATEGORY_ICONS[item.category]} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold leading-snug">{item.name}</p>
+          <p className={`mt-0.5 inline-flex items-center gap-1 text-xs font-semibold ${style.chip.split(" ")[1]}`}>
+            <Icon name={style.icon} className="size-3.5" />
+            {STATUS_LABELS[item.status]}
+          </p>
+        </div>
+        {!unavailable && item.effect && (
+          <span className="shrink-0 text-right text-sm tabular-nums">
+            <span className="block text-xs text-muted">가능성</span>
+            <span className="font-bold text-good">+{Math.max(0, Math.round(item.effect.probability - base))}%p</span>
           </span>
         )}
+        {!unavailable && <Icon name="chevron" aria-hidden className="mt-1 size-4 shrink-0 rotate-90 text-muted" />}
       </div>
-      <p className="mt-1 font-bold">{item.name}</p>
-      {item.amount && <p className="text-[15px] font-semibold tabular-nums">{item.amount}</p>}
-      <p className="text-sm text-ink-soft">{item.summary}</p>
-      {item.ask.length > 0 && (
-        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="text-muted">답하면 확정:</span>
-          {item.ask.map((key) =>
-            onAsk ? (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onAsk(key)}
-                className="rounded-full border border-line-strong px-2 py-0.5 font-semibold text-primary hover:border-primary hover:bg-primary-soft"
-              >
-                {QUESTION_BY_KEY[key]?.short ?? key}
-              </button>
-            ) : (
-              <span key={key} className="rounded-full border border-line px-2 py-0.5 text-ink-soft">
-                {QUESTION_BY_KEY[key]?.short ?? key}
-              </span>
-            ),
-          )}
-        </p>
-      )}
-      <details className="mt-1 text-sm">
-        <summary className="cursor-pointer text-xs font-semibold text-ink-soft hover:text-primary">
-          자세히{item.notice && <span className="ml-1.5 rounded bg-warn-soft px-1.5 py-0.5 font-semibold text-warn">2027 변경 예정</span>}
-        </summary>
-        <div className="mt-2 space-y-2 text-ink-soft">
-          <p className="text-xs text-muted">{CATEGORY_LABELS[item.category]}</p>
-          <p>{item.detail}</p>
-          {item.effect && (
-            <p>
-              받으면 목표 달성 가능성 {Math.round(base)}% → {Math.round(item.effect.probability)}% ({signed(item.effect.diff)}%p)
-              {item.effect.assumption && <span className="text-muted"> · {item.effect.assumption}</span>}
-            </p>
-          )}
-          <p>
-            <span className="font-semibold text-ink">신청 </span>
-            {item.how}
+      {headline ? (
+        <>
+          <p className="mt-2 truncate text-lg font-bold tabular-nums">
+            {headline.big}
+            {headline.limit && <span className="ml-2 text-sm font-semibold text-ink-soft">{headline.limit}</span>}
           </p>
-          {item.notice && (
-            <p className="rounded-md bg-warn-soft/60 px-2 py-1 text-warn">
-              <span className="font-semibold">바뀔 수 있어요 · </span>
-              {item.notice}
-            </p>
-          )}
-          <ul className="space-y-0.5 text-xs">
-            {item.sources.map((s) => (
-              <li key={s.title}>
-                {s.url ? (
-                  <a href={s.url} target="_blank" rel="noreferrer" className="underline hover:text-primary">
-                    {s.title}
-                  </a>
-                ) : (
-                  s.title
-                )}
-              </li>
+          {headline.sub && <p className="truncate text-sm text-ink-soft">{headline.sub}</p>}
+        </>
+      ) : (
+        <p className="mt-2 text-sm text-ink-soft">{item.detail || item.summary}</p>
+      )}
+
+      {!unavailable && <details
+        name="benefit-details"
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || !event.currentTarget.open) return;
+          event.preventDefault();
+          event.currentTarget.open = false;
+          event.currentTarget.querySelector("summary")?.focus();
+        }}
+      >
+        <summary className="absolute inset-0 cursor-pointer list-none rounded-lg [&::-webkit-details-marker]:hidden">
+          <span className="sr-only">{item.name} 자세히 보기</span>
+        </summary>
+        <div className={`absolute inset-x-[-1px] top-full -mt-px space-y-3 rounded-b-lg border border-t-0 ${style.card} bg-surface px-4 pb-4 pt-1 text-sm text-ink-soft shadow-lg`}>
+        <p className="text-ink">{item.detail}</p>
+        {item.effect && (
+          <p>
+            받으면 목표 달성 가능성 {Math.round(base)}% → {Math.round(item.effect.probability)}% ({signed(item.effect.diff)}%p)
+            {item.effect.assumption && <span className="text-muted"> · {item.effect.assumption}</span>}
+          </p>
+        )}
+        {answers && item.ask.length > 0 && (
+          <div className="space-y-3 rounded-md bg-canvas p-3">
+            {item.ask.map((key) => {
+              const q = QUESTION_BY_KEY[key];
+              if (!q) return null;
+              const id = `card-${item.key}-${key}`;
+              return (
+                <div key={key}>
+                  <label htmlFor={id} className="text-sm font-semibold">
+                    {q.label}
+                  </label>
+                  <div className="mt-1.5">
+                    <AnswerInput
+                      q={q}
+                      id={id}
+                      value={answers.eligibility[key]}
+                      startMonth={answers.startMonth}
+                      onValue={(value) => answers.onChange(withAnswer(answers.eligibility, key, value))}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p>
+          <span className="font-semibold text-ink">신청 </span>
+          {item.how}
+        </p>
+        {links.length > 0 && (
+          <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            {links.map((s) => (
+              <a
+                key={s.title}
+                href={s.url ?? undefined}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+              >
+                <Icon name="link" className="size-3.5" />
+                {s.title}
+              </a>
             ))}
-          </ul>
+          </p>
+        )}
+        {item.notice && (
+          <p className="rounded-md bg-warn-soft/60 px-2 py-1 text-warn">
+            <span className="font-semibold">2027 바뀔 수 있어요 · </span>
+            {item.notice}
+          </p>
+        )}
         </div>
-      </details>
+      </details>}
     </li>
   );
+}
+
+/** 금액이 없으면 요약의 첫 비율(40% · 12~15%)을 크게, 설명의 '연 N만 원까지'(한도)를 옆에, 요약은 아래 한 줄로 */
+function cardHeadline(item: BenefitItem): { big: string; limit: string | null; sub: string | null } {
+  if (item.key === "youthFuture" || item.key === "youthFuturePreferential") {
+    return { big: item.amount ?? item.summary, limit: `월 ${formatManwon(YOUTH_FUTURE_SAVING.monthlyLimit)}까지`, sub: null };
+  }
+  if (item.amount) return { big: item.amount, limit: null, sub: null };
+  const rate = item.summary.match(/\d[\d.,~]*%/)?.[0];
+  const limit = item.detail.match(/[연월] [\d,]+만 원까지/)?.[0] ?? null;
+  return rate ? { big: rate, limit, sub: item.summary } : { big: item.summary, limit: null, sub: null };
 }
 
 function signed(n: number): string {

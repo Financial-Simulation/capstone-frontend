@@ -13,9 +13,9 @@ import { Button } from "@/components/ui";
 import { KIND_LABELS, accountRows, eventViews, plannedNames, variableRows, type StoryEventView } from "@/features/story/story";
 import { api, errorMessage, isAbortError } from "@/lib/api";
 import { formatManwon } from "@/lib/format";
-import type { Adjustments, SimulateResult, SimulationInputDraft, Story, StoryKind, StoryResult } from "@/lib/types";
+import type { Adjustments, SimulateRequest, SimulateResult, SimulationInput, SimulationInputDraft, Story, StoryKind, StoryResult } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
-import { BandChart, BandLegend, type StoryOverlay } from "./BandChart";
+import { BandChart, BandLegend, EventLegend, type StoryOverlay } from "./BandChart";
 import { eventMarks } from "./result";
 
 /** 1초에 몇 달 */
@@ -36,20 +36,19 @@ export function ChartPanel({
   base,
   input,
   adjustments,
-  storyEnabled,
+  scenarioApplied = false,
 }: {
   /** 보여 줄 결과 (계획을 바꿨으면 바꾼 계획) */
   result: SimulateResult;
   /** 계획을 바꿨을 때 지금 계획 (회색 점선). 안 바꿨으면 null */
   base: SimulateResult | null;
-  input: SimulationInputDraft;
+  input: SimulationInput;
   adjustments: Adjustments;
-  /** 04-E 예시 결과에는 미래 다시 보기를 붙이지 않는다 */
-  storyEnabled: boolean;
+  scenarioApplied?: boolean;
 }) {
   const events = eventMarks(input);
   const [kind, setKind] = useState<StoryKind | null>(null);
-  const story = useStoryData(kind !== null && storyEnabled ? input : null, adjustments);
+  const story = useStoryData(kind !== null ? input : null, adjustments, result.seed);
   const current = story.data?.stories.find((s) => s.kind === kind) ?? null;
 
   return (
@@ -59,37 +58,36 @@ export function ChartPanel({
           <h2 className="text-base font-bold">앞으로 모을 돈</h2>
           <p className="mt-1 text-sm text-ink-soft">
             {kind === null
-              ? `실직·급한 지출·물가·연봉이 달라지는 ${result.paths.toLocaleString("ko-KR")}가지 경우를 계산했어요. 버튼을 누르면 그중 한 미래가 한 달씩 어떻게 흘러가는지 보여 드려요.`
+              ? `가능한 미래 ${result.paths.toLocaleString("ko-KR")}가지를 계산했어요. 버튼으로 하나씩 볼 수 있어요.`
               : `${result.paths.toLocaleString("ko-KR")}가지 중 '${KIND_LABELS[kind].title}'(${KIND_LABELS[kind].sub}) 미래 하나를 한 달씩 보여 드려요.`}
           </p>
         </div>
-        {storyEnabled && (
-          <div className="flex overflow-hidden rounded-lg border border-line-strong text-sm" role="group" aria-label="미래 고르기">
-            {[null, ...KINDS].map((k) => (
-              <button
-                key={k ?? "ALL"}
-                type="button"
-                aria-pressed={kind === k}
-                onClick={() => setKind(k)}
-                className={`h-9 px-3 font-semibold ${kind === k ? "bg-ink text-white" : "bg-surface text-ink-soft hover:bg-canvas"}`}
-              >
-                {k === null ? "전체 범위" : KIND_LABELS[k].title}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex overflow-hidden rounded-lg border border-line-strong text-sm" role="group" aria-label="미래 고르기">
+          {[null, ...KINDS].map((k) => (
+            <button
+              key={k ?? "ALL"}
+              type="button"
+              aria-pressed={kind === k}
+              onClick={() => setKind(k)}
+              className={`h-9 px-3 font-semibold ${kind === k ? "bg-ink text-white" : "bg-surface text-ink-soft hover:bg-canvas"}`}
+            >
+              {k === null ? "전체 범위" : KIND_LABELS[k].title}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {kind === null || !storyEnabled ? (
+      {kind === null ? (
         <>
           <div className="mt-4">
-            <BandLegend hasEvents={events.length > 0} />
+            <BandLegend />
             {base && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
                 <span aria-hidden className="inline-block w-4 border-t-2 border-dashed border-muted" />
-                지금 계획의 보통이면 (막대로 바꾸기 전)
+                {scenarioApplied ? "저장한 계획의 상위 50% (중간)" : "지금 계획의 상위 50% (막대로 바꾸기 전)"}
               </p>
             )}
+            <EventLegend events={events} />
           </div>
           <div className="mt-3">
             <BandChart result={result} events={events} ghost={base?.bands} />
@@ -102,31 +100,31 @@ export function ChartPanel({
       ) : !current || !story.data ? (
         <p className="mt-4 text-sm text-muted">미래를 불러오는 중…</p>
       ) : (
-        <Replay key={`${kind}:${JSON.stringify(adjustments)}`} result={result} data={story.data} story={current} input={input} events={events} />
+        <Replay key={`${kind}:${story.key}`} result={result} data={story.data} story={current} input={input} events={events} />
       )}
     </section>
   );
 }
 
 /** 고른 미래 세 개 (버튼을 처음 누를 때 한 번 부르고, 계획이 바뀌면 다시) */
-function useStoryData(input: SimulationInputDraft | null, adjustments: Adjustments) {
-  const key = input ? JSON.stringify({ input, adjustments }) : null;
+function useStoryData(input: SimulationInput | null, adjustments: Adjustments, seed: number) {
+  const key = input ? JSON.stringify({ input, seed, ...(Object.keys(adjustments).length ? { adjustments } : {}) }) : null;
   const [state, setState] = useState<{ key: string; data: StoryResult | null; error: string | null } | null>(null);
   useEffect(() => {
     if (key === null) return;
     const abort = new AbortController();
-    const body = JSON.parse(key) as { input: never; adjustments: Adjustments };
-    const changed = Object.keys(body.adjustments).length > 0;
-    api.story({ input: body.input, ...(changed ? { adjustments: body.adjustments } : {}) }, { signal: abort.signal }).then(
-      ({ data }) => setState({ key, data, error: null }),
+    api.story(JSON.parse(key) as SimulateRequest, { signal: abort.signal }).then(
+      ({ data }) => {
+        if (!abort.signal.aborted) setState({ key, data, error: null });
+      },
       (error: unknown) => {
-        if (!isAbortError(error)) setState({ key, data: null, error: errorMessage(error) });
+        if (!abort.signal.aborted && !isAbortError(error)) setState({ key, data: null, error: errorMessage(error) });
       },
     );
     return () => abort.abort();
   }, [key]);
   const fresh = state?.key === key;
-  return { data: fresh ? state.data : null, error: fresh ? state.error : null };
+  return { key, data: fresh ? state.data : null, error: fresh ? state.error : null };
 }
 
 function Replay({
@@ -234,6 +232,7 @@ function Replay({
         ))}
       </div>
 
+      <EventLegend events={events} />
       <BandChart result={result} events={events} story={overlay} />
       <input
         type="range"

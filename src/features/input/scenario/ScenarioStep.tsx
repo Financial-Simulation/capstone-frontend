@@ -19,7 +19,7 @@ import { eventFields, presetEventIndexes, setEventAmount, setPresetDate, toggleP
 import { fieldId } from "@/lib/form";
 import { useCurrentMonth } from "@/lib/hooks";
 import { LIMITS } from "@/lib/rules";
-import type { EventPreset, YearMonth } from "@/lib/types";
+import type { EventPreset, SimulationInputDraft, YearMonth } from "@/lib/types";
 import { formatYearMonth, isYearMonth } from "@/lib/year-month";
 
 /** 예정된 일 시점 범위: 기준 달부터 10년(119개월) 안 (lib/rules.ts의 LIMITS) */
@@ -30,22 +30,23 @@ type PresetState =
   | { status: "ok"; presets: EventPreset[]; source: ApiSource }
   | { status: "error"; message: string };
 
-function usePresets() {
+export function usePresets(enabled = true) {
   const [state, setState] = useState<PresetState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (!enabled) return;
     const abort = new AbortController();
     api.presets({ signal: abort.signal }).then(
       ({ data, source }) => setState({ status: "ok", presets: data.presets, source }),
       (error: unknown) => {
         if (!isAbortError(error)) {
-          setState({ status: "error", message: formErrorMessage(error) ?? "예정된 일 목록을 불러오지 못했어요." });
+          setState({ status: "error", message: formErrorMessage(error) ?? "시나리오 목록을 불러오지 못했어요." });
         }
       },
     );
     return () => abort.abort();
-  }, [attempt]);
+  }, [attempt, enabled]);
 
   const retry = () => {
     setState({ status: "loading" });
@@ -63,7 +64,7 @@ export function ScenarioStep() {
   return (
     <StepScreen
       step="EVENTS"
-      description="실직·급한 지출·물가·연봉 변화는 기본 상황에 확률로 들어 있어요. 앞으로 예정된 일이 있으면 켜 주세요."
+      description="실직·급한 지출·물가·연봉 변화는 기본 상황에 확률로 들어 있어요. 이사나 이직 등 반영하고 싶은 시나리오를 켜 주세요."
       onNext={form.submit}
       busy={form.busy}
     >
@@ -80,7 +81,7 @@ export function ScenarioStep() {
       </section>
 
       <FormSection
-        title="예정된 일"
+        title="추가 시나리오"
         description={
           start
             ? `켜면 '언제'와 기본 금액 칸이 열려요. 금액은 고칠 수 있고, 시점은 ${formatYearMonth(start)}부터 ${EVENT_WINDOW} 안이에요.`
@@ -91,7 +92,7 @@ export function ScenarioStep() {
         {state.status === "error" && (
           <div role="alert" className="rounded-lg border border-danger-line bg-danger-soft px-4 py-3 text-sm">
             <p className="font-semibold text-danger">{state.message}</p>
-            <p className="mt-1 text-ink-soft">예정된 일 없이도 결과를 볼 수 있어요.</p>
+            <p className="mt-1 text-ink-soft">시나리오를 추가하지 않아도 결과를 볼 수 있어요.</p>
             <Button size="sm" variant="secondary" className="mt-2" onClick={retry}>
               다시 불러오기
             </Button>
@@ -114,15 +115,25 @@ export function ScenarioStep() {
   );
 }
 
-function PresetCard({ form, preset, start }: { form: StepForm; preset: EventPreset; start: YearMonth | null }) {
+export function PresetCard({
+  form, preset, start, idPrefix = "", stackFields = false,
+}: {
+  form: Pick<StepForm, "input" | "error"> & Partial<Pick<StepForm, "touch">> & {
+    update: (patch: (prev: SimulationInputDraft) => SimulationInputDraft) => void;
+  };
+  preset: EventPreset;
+  start: YearMonth | null;
+  idPrefix?: string;
+  stackFields?: boolean;
+}) {
   const indexes = presetEventIndexes(form.input, preset.presetKey);
   const on = indexes.length > 0;
   const events = indexes.map((i) => ({ index: i, event: form.input.events?.[i] }));
   const first = indexes[0];
   const occurDate = on ? events[0].event?.occurDate : null;
-  const toggleId = fieldId(`preset.${preset.presetKey}`);
+  const toggleId = idPrefix + fieldId(`preset.${preset.presetKey}`);
   const datePath = `events[${first}].occurDate`;
-  const dateId = fieldId(datePath);
+  const dateId = idPrefix + fieldId(datePath);
 
   const dateMissing = indexes.some((i) => form.error(`events[${i}].occurDate`));
   const dateError = dateMissing ? `${preset.name} 시점이 비어 있어요` : undefined;
@@ -160,14 +171,14 @@ function PresetCard({ form, preset, start }: { form: StepForm; preset: EventPres
                 maxMonths={LIMITS.eventMonths.max}
                 invalid={Boolean(dateError)}
                 describedBy={describedBy(dateId, dateError)}
-                onBlur={form.touch(datePath)}
+                onBlur={form.touch?.(datePath)}
                 onChange={(date) => form.update((prev) => setPresetDate(prev, preset.presetKey, date))}
               />
             ) : (
               <div className="h-11 w-60 animate-pulse rounded-lg bg-canvas" />
             )}
           </Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className={`grid grid-cols-1 gap-4 ${stackFields ? "" : "sm:grid-cols-2"}`}>
             {events.flatMap(({ index, event }) =>
               eventFields(
                 event?.presetKey,
@@ -175,7 +186,7 @@ function PresetCard({ form, preset, start }: { form: StepForm; preset: EventPres
                 preset.events.find((template) => template.eventType === event?.eventType),
               ).map((def) => {
                 const path = `events[${index}].${def.key}`;
-                const id = fieldId(path);
+                const id = idPrefix + fieldId(path);
                 const error = form.error(path);
                 const value = event?.[def.key];
                 const common = {
@@ -183,7 +194,7 @@ function PresetCard({ form, preset, start }: { form: StepForm; preset: EventPres
                   value,
                   invalid: Boolean(error),
                   "aria-describedby": describedBy(id, error, def.hint),
-                  onBlur: form.touch(path),
+                  onBlur: form.touch?.(path),
                   onChange: (next: number | null) => form.update((prev) => setEventAmount(prev, index, def.key, next)),
                 };
                 return (

@@ -2,14 +2,12 @@
 
 /**
  * 결과 화면 '계획 바꿔 보기' (그래프 오른쪽, 조민석 배치안 11/18 · 멘토 피드백 11/16).
- *  - 가장 좋은 배분 버튼 3개(/allocations/recommend: 지금 · 가능성 최고 · 세금·지원금 최고) → 배분 막대가 그 값으로
- *  - 배분 막대: 월 저축액을 청년미래적금 · 주택청약 · 연금저축에 나누기 (남는 돈은 일반 적금)
  *  - '이렇게 하면 좋아져요'(/reverse의 levers)는 누르면 아래 계획 막대가 그 값으로 옮겨 가는 버튼
  *  - 저축 · 지출 · 목표 막대(접힘), 계획 담아 비교하기(접힘)
  * 어떤 막대든 움직이면 ResultView가 POST /simulate(+adjustments)로 다시 계산해 그래프 · 결론 · 혜택이 바로 바뀐다.
  * 내 입력(simInput.v1)은 바꾸지 않는다. 04 결과에만. 막대 범위는 sliders.ts · allocation-sliders.ts, 비교 표는 plan.ts에서 고른다.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui";
 import { DiffText } from "@/components/ui/Stat";
 import { simpleActions } from "@/features/result/simple";
@@ -18,8 +16,8 @@ import { formatManwon } from "@/lib/format";
 import { useApiTask, useSavedPlans } from "@/lib/hooks";
 import { MAX_SAVED_PLANS } from "@/lib/storage";
 import { ALLOCATION_KEYS } from "@/features/input/draft";
-import { recommendCards, sameAllocation, toMonthly, type MonthlyAllocation } from "@/features/tax/allocation";
-import type { Adjustments, CompareResult, EmergencyFirstAmount, Lever, RecommendResult, RobustJobResult, SimulationInput } from "@/lib/types";
+import type { MonthlyAllocation } from "@/features/tax/allocation";
+import type { Adjustments, CompareResult, EmergencyFirstAmount, Lever, RobustJobResult, SimulationInput } from "@/lib/types";
 import { addMonths, formatYearMonth } from "@/lib/year-month";
 import {
   EMERGENCY_CHOICES,
@@ -36,7 +34,6 @@ import {
   type PlanLabel,
   type PlanValues,
 } from "./plan";
-import { ALLOCATION_SLIDERS, generalOf, withAllocation } from "./allocation-sliders";
 import { applyLever, sliderSpecs, sliderValue, withSlider } from "./sliders";
 
 const PLAN_SECTION_ID = "plan-section";
@@ -45,33 +42,23 @@ export function PlanSection({
   input,
   values,
   onValues,
-  allocation,
   baseAllocation,
   onAllocation,
-  policyEligible,
-  recommend,
-  recommendError,
   adjustments,
   levers,
   currentProbability,
   adjustedProbability,
   loading,
   error: calcError,
+  children,
 }: {
   input: SimulationInput;
   /** 지금 막대 값 (ResultView가 갖고, 바뀌면 다시 계산한다) */
   values: PlanValues;
   onValues: (values: PlanValues) => void;
-  /** 지금 배분 막대 값 (월 저축액에 맞춘 것) */
-  allocation: MonthlyAllocation;
   /** 지금 계획의 배분 (서버 tax.allocation) */
   baseAllocation: MonthlyAllocation;
   onAllocation: (allocation: MonthlyAllocation) => void;
-  /** 청년미래적금 대상인지 (아니면 그 막대는 0에 고정) */
-  policyEligible: boolean;
-  /** 가장 좋은 배분 (아직이면 null) */
-  recommend: RecommendResult | null;
-  recommendError: string | null;
   /** 계획 막대 + 배분 막대를 합친 바꾼 값 (서버로 보내는 것) */
   adjustments: Adjustments;
   /** /reverse의 개선 포인트 (아직이면 null) */
@@ -81,6 +68,7 @@ export function PlanSection({
   adjustedProbability: number | null;
   loading: boolean;
   error: string | null;
+  children?: ReactNode;
 }) {
   const base = planBase(input);
   const changed = hasChanges(adjustments);
@@ -104,10 +92,6 @@ export function PlanSection({
     setRobust(null);
   };
 
-  const saving = values.monthlySaving;
-  const cards = recommend ? recommendCards(recommend) : [];
-  const SHORT_TITLES = { current: "지금 배분", bestProbability: "가능성 최고", bestBenefit: "세금·지원금 최고" } as const;
-
   return (
     <section id={PLAN_SECTION_ID} aria-labelledby="plan-title" className="scroll-mt-20 rounded-xl border border-line bg-surface p-5">
       <h2 id="plan-title" tabIndex={-1} className="text-base font-bold outline-none">
@@ -118,85 +102,19 @@ export function PlanSection({
           <>
             지금 {Math.round(currentProbability)}% →{" "}
             <span className="font-semibold text-primary">
-              {loading || adjustedProbability === null ? "계산 중…" : `바꾼 계획 ${Math.round(adjustedProbability)}%`}
+              {calcError
+                ? "계산하지 못했어요"
+                : loading || adjustedProbability === null
+                  ? "계산 중…"
+                  : `바꾼 계획 ${Math.round(adjustedProbability)}%`}
             </span>
           </>
         ) : (
-          <span className="text-ink-soft">막대를 움직이면 왼쪽 그래프와 위 결론이 바로 바뀌어요. 내 입력은 바뀌지 않아요.</span>
+          <span className="text-ink-soft">막대를 움직이면 그래프가 바로 바뀌어요.</span>
         )}
       </p>
 
-      <div className="mt-4">
-        <p className="text-sm font-semibold">가장 좋은 배분</p>
-        {recommendError ? (
-          <p role="alert" className="mt-2 text-sm text-danger">
-            배분을 찾지 못했어요: {recommendError}
-          </p>
-        ) : !recommend ? (
-          <p className="mt-2 text-sm text-muted">배분 39가지를 모두 계산하는 중… (몇 초 걸려요)</p>
-        ) : (
-          <div role="group" aria-label="가장 좋은 배분" className="mt-2 grid grid-cols-3 gap-2">
-            {cards.map((card) => {
-              const option = recommend[card.key];
-              const target = card.key === "current" ? baseAllocation : toMonthly(option.allocation);
-              const active = sameAllocation(allocation, target);
-              return (
-                <button
-                  key={card.key}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => onAllocation(target)}
-                  className={`rounded-lg border px-2 py-2 text-left text-xs ${active ? "border-primary bg-primary-soft" : "border-line-strong hover:border-primary"}`}
-                >
-                  <span className="block font-semibold text-ink">{SHORT_TITLES[card.key]}</span>
-                  <span className="mt-0.5 block text-base font-bold tabular-nums">{card.probability}</span>
-                  <span className="block text-muted tabular-nums">혜택 {formatManwon(option.totalBenefit)}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="mt-4 space-y-4">
-        {ALLOCATION_SLIDERS.map((slider) => {
-          const id = `alloc-${slider.key}`;
-          const disabled = slider.key === "policyMonthly" && !policyEligible;
-          return (
-            <div key={slider.key}>
-              <div className="flex items-baseline justify-between gap-2">
-                <label htmlFor={id} className="text-sm font-semibold">
-                  {slider.label}
-                </label>
-                <span className={`text-sm tabular-nums ${allocation[slider.key] !== baseAllocation[slider.key] ? "font-bold text-primary" : ""}`}>
-                  {disabled ? "대상 아님" : `월 ${formatManwon(allocation[slider.key])}`}
-                </span>
-              </div>
-              <input
-                id={id}
-                type="range"
-                min={0}
-                max={Math.max(slider.limit, 10_000)}
-                step={10_000}
-                value={allocation[slider.key]}
-                disabled={disabled}
-                onChange={(event) => onAllocation(withAllocation(allocation, slider.key, Number(event.target.value), saving))}
-                className="mt-1 w-full accent-[var(--color-primary)] disabled:opacity-40"
-                aria-valuetext={`월 ${formatManwon(allocation[slider.key])}`}
-              />
-              <p className="flex justify-between text-xs text-muted tabular-nums">
-                <span>0원</span>
-                <span>지금 {formatManwon(baseAllocation[slider.key])}</span>
-                <span>{formatManwon(slider.limit)}</span>
-              </p>
-            </div>
-          );
-        })}
-        <p className="text-sm text-ink-soft">
-          남는 돈 → 일반 적금 <span className="font-semibold tabular-nums text-ink">월 {formatManwon(generalOf(allocation, saving))}</span>
-          <span className="text-muted"> (월 저축액 {formatManwon(saving)} 안에서 나눠요. 한 상품을 늘리려면 다른 상품을 줄여 주세요)</span>
-        </p>
-      </div>
+      {children}
 
       {actions.length > 0 && (
         <div className="mt-5 border-t border-line pt-4">

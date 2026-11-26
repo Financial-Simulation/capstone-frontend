@@ -44,4 +44,15 @@ describe("가장 좋은 배분 찾기 (/allocations/recommend, 서버 값 그대
     expect(note).toContain("세금·지원금은 목표 시점(2031년 11월)까지 받는 돈의 평균이에요.");
     expect(note.endsWith("위 '위험'의 정부 지원금은 4년 안에 받는 돈이라 숫자가 다를 수 있어요.")).toBe(true);
   });
+
+  it("추천 기준이 같은 배분을 고르면 기준을 한 카드에 모은다", () => {
+    const rec = golden("S1").recommend;
+    expect(recommendCards({ ...rec, bestBenefit: rec.bestProbability }).map(({ title }) => title)).toEqual([
+      "지금 배분",
+      "목표 달성 가능성과 혜택이 가장 높은 배분",
+    ]);
+    expect(recommendCards({ ...rec, bestProbability: rec.current, bestBenefit: rec.current }).map(({ title }) => title)).toEqual([
+      "지금 배분 · 가능성 최고 · 혜택 최대",
+    ]);
+  });
 });

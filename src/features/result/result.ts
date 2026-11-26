@@ -21,6 +21,7 @@ import type {
   YearMonth,
 } from "@/lib/types";
 import { YOUTH_FUTURE_SAVING } from "@/config/policy";
+import { plannedEventName } from "@/features/input/events";
 import { formErrorMessage, toFieldErrors } from "@/lib/api";
 import { formatKoreanWon, formatManwon, formatPercent, formatPercentPoint } from "@/lib/format";
 import { normalizeErrors, stepOfPath } from "@/lib/form";
@@ -290,7 +291,7 @@ export function eventMarks(input: SimulationInputDraft | null | undefined): Even
     const months = monthsBetween(start, event.occurDate);
     if (months < 0 || months > 120) continue;
     const names = byMonth.get(months) ?? [];
-    const name = event.name || "예정된 일";
+    const name = plannedEventName(event);
     if (!names.includes(name)) names.push(name);
     byMonth.set(months, names);
   }

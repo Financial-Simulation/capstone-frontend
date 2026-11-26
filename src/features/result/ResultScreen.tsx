@@ -52,9 +52,6 @@ export function ResultScreen() {
           <LinkButton href={STEPS[0].href} variant="secondary" size="sm">
             입력 수정
           </LinkButton>
-          <LinkButton href={stepByKey("EVENTS").href} variant="secondary" size="sm">
-            시나리오 바꾸기
-          </LinkButton>
           <LinkButton href={ROUTES.report} variant="secondary" size="sm">
             자세한 결과 (PDF)
           </LinkButton>
