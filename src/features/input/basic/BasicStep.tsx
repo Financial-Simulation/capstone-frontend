@@ -4,6 +4,7 @@
  * 01-1 나와 소득/지출.
  * 다음 → 필수 칸 확인 → POST /inputs/validate (step=BASIC) → 지출이 소득 이상이면 경고 모달 (WARN_EXPENSE_OVER_INCOME)
  * v1.7 선택 칸: 소득 아래 '더 정확하게 넣기'(세전 연봉 · 무주택 세대주), 고정지출 아래 '그중 월세' (TaxInputs.tsx)
+ * '나'의 캐릭터 성별은 '인생은 마라톤' 캐릭터 모습에만 쓴다 (simRunner.v1, 입력 · 계산에 넣지 않음). 캐릭터 나이대는 나이 칸을 따른다.
  */
 import { Choice } from "@/components/ui/Choice";
 import { Field, describedBy } from "@/components/ui/Field";
@@ -16,6 +17,7 @@ import { fillBlankExpenseItems, patch } from "@/features/input/draft";
 import { MINUS, formatKoreanWon, formatManwonRange, formatRange, formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import { LIMITS, resolvedExpenseTotal } from "@/lib/rules";
+import { useRunnerPrefs } from "@/lib/hooks";
 import { formatYearMonth } from "@/lib/year-month";
 import { ExpenseEditor } from "./ExpenseEditor";
 import { MoreAccurateIncome, RentField } from "./TaxInputs";
@@ -30,9 +32,17 @@ const EMPLOYMENT_OPTIONS = [
   { value: "CONTRACT", label: "계약직" },
 ] as const;
 
+const GENDER_OPTIONS = [
+  { value: "M", label: "남성" },
+  { value: "F", label: "여성" },
+] as const;
+const GENDER_HINT = "입력 옆 러너 캐릭터의 모습에만 써요. 계산에는 쓰지 않아요.";
+
 export function BasicStep() {
   const form = useStepForm("BASIC", { prepare: fillBlankExpenseItems });
   const { input } = form;
+  const runner = useRunnerPrefs();
+  const genderId = fieldId("runner.gender");
 
   const ageId = fieldId("person.age");
   const careerId = fieldId("person.careerYears");
@@ -77,22 +87,35 @@ export function BasicStep() {
             />
           </Field>
         </div>
-        <Field
-          id={fieldId("person.employmentType")}
-          path="person.employmentType"
-          label="고용형태"
-          group
-          hint="계약직이면 실직 위험을 더 높게 계산해요."
-        >
-          <Choice
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field
             id={fieldId("person.employmentType")}
-            name="employmentType"
+            path="person.employmentType"
             label="고용형태"
-            value={input.person?.employmentType ?? "REGULAR"}
-            options={EMPLOYMENT_OPTIONS}
-            onChange={(employmentType) => form.update((prev) => patch(prev, "person", { employmentType }))}
-          />
-        </Field>
+            group
+            hint="계약직이면 실직 위험을 더 높게 계산해요."
+          >
+            <Choice
+              id={fieldId("person.employmentType")}
+              name="employmentType"
+              label="고용형태"
+              value={input.person?.employmentType ?? "REGULAR"}
+              options={EMPLOYMENT_OPTIONS}
+              onChange={(employmentType) => form.update((prev) => patch(prev, "person", { employmentType }))}
+            />
+          </Field>
+          <Field id={genderId} label="캐릭터 성별" group hint={GENDER_HINT}>
+            <Choice
+              id={genderId}
+              name="runnerGender"
+              label="캐릭터 성별"
+              value={runner.prefs.gender}
+              options={GENDER_OPTIONS}
+              describedBy={`${genderId}-hint`}
+              onChange={(gender) => runner.setPrefs({ ...runner.prefs, gender })}
+            />
+          </Field>
+        </div>
       </FormSection>
 
       <FormSection title="소득">
