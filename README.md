@@ -251,11 +251,12 @@ src/
       ReportScreen · ReportPaper · report.ts · use-report
                        버튼 줄 · 한 장짜리 리포트(인쇄용) · 보여 줄 값 고르기 · POST /reports
     runner/            '인생은 마라톤' 캐릭터 (입력 옆 큰 캐릭터 · 목표의 레이스 거리 카드 · 결과 그래프 옆 레이스)
-      Runner · RunnerParts · RunnerHead · RunnerItems · RunnerFire · runner.css
+      Runner · RunnerParts · RunnerHead · RunnerItems · RunnerFire · runner.css · high.css
                        직접 그린 SVG 러너: 말랑한 2등신 마스코트(큰 머리 · 점 눈 · 볼터치 · 갈색 테두리)가 통통 튀며 달린다
                        (발이 닿을 때 찌그러졌다 늘어나기 · 머리가 반 박자 늦게 끄덕 · 눈 깜빡임 · 머리카락 출렁임).
                        Runner가 몸 부품(관절 · 옷 색표 · 팔다리 · 몸통) · 머리(성별 · 나이대 머리와 표정 넷, 러너스 하이 때 불꽃 머리) · 걸치거나 드는 것(메달 · 웨딩 소품 · 가방 · 상자, 장비가 바뀐 칸의 효과 · 러너스 하이 기운)을 조립한다.
                        장비 7칸 × 기본 · 러너 · 프로, 자세: 몸 풀기 · 달리기 · 빠르게 · 무릎 짚고 쉬기 · 기뻐하기 · 걷기 · 상자 들기 · 가방 끌기 · 서기 · 운전
+                       움직임은 runner.css, 러너스 하이 효과(금빛 기운 · 불꽃 머리 · 별 눈)는 high.css
       palette.ts       그림 색 한곳 (캐릭터 윤곽 · 피부 · 얼굴, 배경 · 소품 테두리)
       RaceScene · SceneKit · Hud · GateArt · scene.css
                        레이스 장면 (풍경 세 겹 · 장애물 · 말풍선 · 메달) · 장면 공통 부품(캐릭터 자리 · 흐르는 줄 · 해와 구름 · 꽃가루)

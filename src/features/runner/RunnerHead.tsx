@@ -16,7 +16,7 @@ import { BLUSH, INK, IRIS, LW, MOUTH, MOUTH_LINE, OL, SKIN, SKIN_LINE, SKIN_SHAD
 import { FireHair } from "./RunnerFire";
 import type { RunnerIds } from "./RunnerParts";
 
-/** 머리카락: 바탕 · 눈썹 · 결 빛 (러너스 하이 때 눈썹은 runner.css가 진한 빨강으로 바꾼다) */
+/** 머리카락: 바탕 · 눈썹 · 결 빛 (러너스 하이 때 눈썹은 high.css가 진한 빨강으로 바꾼다) */
 const HAIR = { base: "#5c3b2f", shade: "#432a21", hi: "#8e5d47" };
 
 /** 선글라스 렌즈 칠하기에 쓰는 SVG id (Runner의 defs) */

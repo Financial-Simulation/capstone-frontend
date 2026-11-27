@@ -12,11 +12,12 @@
  *    머리카락 대신 머리 위 · 뒤에서 불꽃이 솟아 일렁이며(헤어밴드 · 선글라스는 벗는다) 눈에 별이 반짝인다.
  *  - medal: 결승선(목표 시점)을 지나며 건다. 그 전에 목표 금액을 모았으면 금메달, 아니면 완주 메달(은). shine이면 금빛으로 빛난다.
  *  - flash: 장비가 바뀐 칸 자리에서 반짝(좋아짐) · 연기(내려감)가 한 번 터진다. 일곱 칸이 모두 프로면 둘레가 늘 반짝인다.
- * 여기서는 부품을 겹쳐 조립한다: 몸 부품은 RunnerParts, 머리는 RunnerHead, 걸치거나 드는 것과 효과는 RunnerItems.
- * 움직임은 runner.css (rn- 클래스: 통통 튀는 몸 · 찌그러졌다 늘어나기 · 늦게 따라오는 머리 · 깜빡임).
+ * 여기서는 부품을 겹쳐 조립한다: 몸 부품은 RunnerParts, 머리는 RunnerHead(불꽃 머리는 RunnerFire), 걸치거나 드는 것과 효과는 RunnerItems.
+ * 움직임은 runner.css (rn- 클래스: 통통 튀는 몸 · 찌그러졌다 늘어나기 · 늦게 따라오는 머리 · 깜빡임), 러너스 하이 효과는 high.css.
  */
 import { useId } from "react";
 import "./runner.css";
+import "./high.css";
 import { gearSummary, type GearSet } from "./gear";
 import { DEFAULT_LOOK, type Look } from "./look";
 import { POSE_LABELS, type Medal, type Pose } from "./race";
@@ -178,12 +179,14 @@ export function Runner({
         <path d="M180 110l2.2 5.6 5.6 2.2-5.6 2.2-2.2 5.6-2.2-5.6-5.6-2.2 5.6-2.2z" />
       </g>
       {/* 러너스 하이: 머리 둘레에서 번갈아 반짝이는 별 */}
-      <g className="rn-headSparkle" fill="#fff3a0" stroke="#f0a500" strokeWidth="1" strokeLinejoin="round">
-        <path d="M14 62l3.6 8.8 8.8 3.6-8.8 3.6-3.6 8.8-3.6-8.8-8.8-3.6 8.8-3.6z" />
-        <path d="M188 54l3.2 7.8 7.8 3.2-7.8 3.2-3.2 7.8-3.2-7.8-7.8-3.2 7.8-3.2z" />
-        <path d="M146 -14l2.6 6.4 6.4 2.6-6.4 2.6-2.6 6.4-2.6-6.4-6.4-2.6 6.4-2.6z" />
-        <path d="M60 -6l2.2 5.4 5.4 2.2-5.4 2.2-2.2 5.4-2.2-5.4-5.4-2.2 5.4-2.2z" />
-      </g>
+      {high && (
+        <g className="rn-headSparkle" fill="#fff3a0" stroke="#f0a500" strokeWidth="1" strokeLinejoin="round">
+          <path d="M14 62l3.6 8.8 8.8 3.6-8.8 3.6-3.6 8.8-3.6-8.8-8.8-3.6 8.8-3.6z" />
+          <path d="M188 54l3.2 7.8 7.8 3.2-7.8 3.2-3.2 7.8-3.2-7.8-7.8-3.2 7.8-3.2z" />
+          <path d="M146 -14l2.6 6.4 6.4 2.6-6.4 2.6-2.6 6.4-2.6-6.4-6.4-2.6 6.4-2.6z" />
+          <path d="M60 -6l2.2 5.4 5.4 2.2-5.4 2.2-2.2 5.4-2.2-5.4-5.4-2.2 5.4-2.2z" />
+        </g>
+      )}
     </svg>
   );
 }

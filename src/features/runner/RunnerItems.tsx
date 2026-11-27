@@ -1,11 +1,11 @@
 /**
  * 러너가 걸치거나 드는 것과 효과 (Runner가 몸 부품 사이사이에 끼워 그린다). 좌표는 Runner와 같은 viewBox(200 × 250).
  *  - 메달(결승선에서 금 · 은): 목에서 툭 튀어나와 걸리고 달리면 흔들린다
- *  - 러너스 하이 기운(HighAura): 결승 전에 목표 금액을 모은 뒤 몸 뒤에서 금빛 기운이 크게 퍼진다 (불타는 머리는 RunnerFire)
+ *  - 러너스 하이 기운(HighAura): 결승 전에 목표 금액을 모은 뒤 몸 뒤에서 금빛 기운이 크게 퍼진다 (불꽃 머리는 RunnerFire)
  *  - 신부: 웨딩드레스 치마 · 면사포 · 부케
  *  - 소품: 배낭(등) · 끌고 가는 여행 가방(땅) · 이삿짐 상자(두 팔 사이) · 서류 가방(가까운 손)
  *  - 장비가 바뀐 칸의 효과(Burst): 좋아짐은 금빛 반짝이, 내려감은 회색 연기
- * 움직임은 runner.css · scene.css (rn- 클래스).
+ * 움직임은 runner.css · scene.css, 러너스 하이 기운은 high.css (rn- 클래스).
  */
 import type { CSSProperties } from "react";
 import type { GearSlot } from "./gear";
