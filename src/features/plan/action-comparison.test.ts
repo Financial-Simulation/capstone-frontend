@@ -50,7 +50,8 @@ describe("시나리오 비교", () => {
   it("이사 후 첫 12개월의 중간 경로에서 보증금이 아닌 현금만 비교한다", () => {
     const month = (month: YearMonth, cash: number): StoryMonth => ({
       month, afterMonths: 1, employed: true, unemploymentBenefit: false, events: [],
-      salary: 0, income: 0, living: 0, shock: 0, planned: 0, loan: 0, refund: 0, subsidy: 0, received: 0, taxPaid: 0,
+      salary: 0, income: 0, living: 0, shock: 0, shockType: null, shockLabel: null,
+      planned: 0, loan: 0, refund: 0, subsidy: 0, received: 0, taxPaid: 0,
       deposits: { policy: 0, housing: 0, pension: 0, general: 0, invest: 0 },
       balances: { cash, deposit: 5_000_000, overdraft: 0, policy: 0, housing: 0, pension: 0, general: 0, invest: 0 },
       total: 5_000_000, inflation: 0,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import storyData from "@/mocks/data/story.json";
-import type { StoryResult } from "@/lib/types";
+import type { StoryMonth, StoryResult } from "@/lib/types";
 import { accountRows, eventViews, plannedNames, variableRows } from "./story";
 
 const cases = (storyData as unknown as { cases: Record<string, StoryResult> }).cases;
@@ -26,6 +26,34 @@ describe("미래 다시 보기: 사건 문장", () => {
   it("목표 달성 달은 한 번만", () => {
     const views = story("S1", "MIDDLE").months.flatMap((m) => eventViews(m, cases.S1.targetAmount, new Map()));
     expect(views.filter((v) => v.title === "목표 달성")).toHaveLength(1);
+  });
+
+  it("급한 지출은 백엔드가 준 유형과 금액을 같은 줄 값으로 보여 준다", () => {
+    const base = story("S1", "WORST").months.find((m) => m.events.includes("SHOCK"))!;
+    const month: StoryMonth = {
+      ...base,
+      events: ["SHOCK"],
+      shock: 800_000,
+      shockType: "TRAFFIC_ACCIDENT",
+      shockLabel: "교통사고 자기부담금",
+    };
+
+    const view = eventViews(month, cases.S1.targetAmount, new Map())[0];
+    expect(view).toMatchObject({
+      title: "교통사고 자기부담금",
+      amount: "80만 원",
+      detail: "갑자기 80만 원이 나갔어요.",
+      major: true,
+    });
+  });
+
+  it("급한 지출 유형 이름이 없으면 기존 문구와 금액을 유지한다", () => {
+    const base = story("S1", "WORST").months.find((m) => m.events.includes("SHOCK"))!;
+    const view = eventViews({ ...base, shockType: null, shockLabel: null }, cases.S1.targetAmount, new Map())[0];
+
+    expect(view.title).toBe("급한 지출");
+    expect(view.amount).toBeTruthy();
+    expect(view.key.endsWith("shock")).toBe(true);
   });
 
   it("예정된 일 이름은 입력의 occurDate로", () => {

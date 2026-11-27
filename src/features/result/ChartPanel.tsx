@@ -268,7 +268,11 @@ function Replay({
           {past.map((e) => (
             <li key={e.key} className={`rounded-lg border px-3 py-1.5 text-sm ${TONE_BOX[e.tone]}`}>
               <span className="mr-2 text-ink-soft">{formatYearMonth(e.month)}</span>
-              <span className="font-semibold">{e.title}</span> <span className="text-ink-soft">{e.detail}</span>
+              <span className="font-semibold">
+                {e.title}
+                {e.amount && ` · ${e.amount}`}
+              </span>{" "}
+              <span className="text-ink-soft">{e.detail}</span>
             </li>
           ))}
         </ol>
@@ -280,7 +284,10 @@ function Replay({
 function Banner({ event }: { event: StoryEventView }) {
   return (
     <div className={`mb-2 rounded-lg border-2 px-4 py-2 shadow-sm ${TONE_BOX[event.tone]}`}>
-      <p className="font-bold">{event.title}</p>
+      <p className="font-bold">
+        {event.title}
+        {event.amount && ` · ${event.amount}`}
+      </p>
       <p className="text-sm text-ink-soft">{event.detail}</p>
     </div>
   );
