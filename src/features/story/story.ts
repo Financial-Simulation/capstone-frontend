@@ -21,6 +21,8 @@ export interface StoryEventView {
   tone: EventTone;
   title: string;
   detail: string;
+  /** 제목 뒤 같은 줄에 붙여 보여 줄 금액 */
+  amount?: string;
   /** 재생 중 잠깐 멈추고 크게 보여 줄 사건 */
   major: boolean;
 }
@@ -48,8 +50,8 @@ export function plannedNames(input: SimulationInputDraft | null | undefined): Ma
 /** 한 달에 일어난 일을 화면 사건으로. 같은 달에 여러 적금을 깼으면 한 줄로 묶는다 */
 export function eventViews(m: StoryMonth, goal: number, planned: Map<string, string>): StoryEventView[] {
   const views: StoryEventView[] = [];
-  const add = (key: string, tone: EventTone, title: string, detail: string, major: boolean) =>
-    views.push({ key: `${m.afterMonths}-${key}`, afterMonths: m.afterMonths, month: m.month, tone, title, detail, major });
+  const add = (key: string, tone: EventTone, title: string, detail: string, major: boolean, amount?: string) =>
+    views.push({ key: `${m.afterMonths}-${key}`, afterMonths: m.afterMonths, month: m.month, tone, title, detail, amount, major });
   const has = (e: StoryEvent) => m.events.includes(e);
 
   if (has("JOB_LOSS")) {
@@ -64,7 +66,9 @@ export function eventViews(m: StoryMonth, goal: number, planned: Map<string, str
     );
   }
   if (has("REHIRE")) add("rehire", "good", "다시 취업", `다시 일을 시작했어요. 월급 ${formatManwon(m.salary)}을 받아요.`, true);
-  if (has("SHOCK")) add("shock", "bad", "급한 지출", `갑자기 ${formatManwon(m.shock)}이 나갔어요.`, true);
+  if (has("SHOCK")) {
+    add("shock", "bad", m.shockLabel ?? "급한 지출", `갑자기 ${formatManwon(m.shock)}이 나갔어요.`, true, formatManwon(m.shock));
+  }
   if (has("PLANNED")) {
     add("planned", "info", "예정된 일", `${planned.get(m.month) ?? "예정된 일"}에 ${formatManwon(m.planned)}을 썼어요.`, true);
   }

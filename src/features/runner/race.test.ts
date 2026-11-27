@@ -17,6 +17,8 @@ function month(afterMonths: number, total: number, extra: Partial<StoryMonth> & 
     income: 2_500_000,
     living: 1_900_000,
     shock: 0,
+    shockType: null,
+    shockLabel: null,
     planned: 0,
     loan: 0,
     refund: 0,

@@ -493,6 +493,9 @@ export interface MetaResult {
 
 export type StoryKind = "BEST" | "MIDDLE" | "WORST";
 
+export type StoryShockType = "CEREMONY" | "MEDICAL" | "TRAFFIC_ACCIDENT";
+export type StoryShockLabel = "경조사비" | "병원비" | "교통사고 자기부담금";
+
 export type StoryEvent =
   | "JOB_LOSS"
   | "REHIRE"
@@ -523,6 +526,8 @@ export interface StoryMonth {
   income: number;
   living: number;
   shock: number;
+  shockType: StoryShockType | null;
+  shockLabel: StoryShockLabel | null;
   planned: number;
   loan: number;
   refund: number;
