@@ -4,6 +4,7 @@
  *    남성: 20대 초반 몽실한 앞머리와 바보털 · 20대 후반 옆으로 넘긴 머리 · 30대 짧게 친 머리와 구레나룻
  *    여성: 20대 초반 높게 묶은 포니테일(달리면 흔들림) · 20대 후반 귀를 덮는 단발 · 30대 낮게 묶은 머리와 귀걸이
  *  - 표정 네 가지(평소 · 빠르게 · 힘들 때 · 기쁠 때)는 runner.css가 자세마다 골라 보이고, 평소 눈은 가끔 깜빡인다.
+ *  - 러너스 하이(high)면 머리카락을 지우고 머리 위 · 뒤에서 불꽃이 바로 솟는다 (RunnerFire). 헤어밴드 · 선글라스 · 묶은 머리는 감추고 귀는 보인다.
  *  - 장비: 헤어밴드(러너 · 프로, 프로는 꼬리) · 선글라스(스포츠 · 미러 고글)는 눈을 가리지 않게 머리 위에 걸친다.
  *    결혼 장면의 신부는 꽃 화관 (면사포는 몸 뒤라 Runner가 그린다).
  * 좌표는 Runner와 같은 viewBox(200 × 250). 얼굴 가운데 (104, 76), 목(머리를 돌리는 중심)은 (104, 128).
@@ -12,13 +13,16 @@ import type { ReactNode } from "react";
 import type { GearSet } from "./gear";
 import type { Look } from "./look";
 import { BLUSH, INK, IRIS, LW, MOUTH, MOUTH_LINE, OL, SKIN, SKIN_LINE, SKIN_SHADE, TONGUE } from "./palette";
+import { FireHair } from "./RunnerFire";
 import type { RunnerIds } from "./RunnerParts";
 
-/** 머리카락: 바탕 · 눈썹 · 결 빛 */
+/** 머리카락: 바탕 · 눈썹 · 결 빛 (러너스 하이 때 눈썹은 runner.css가 진한 빨강으로 바꾼다) */
 const HAIR = { base: "#5c3b2f", shade: "#432a21", hi: "#8e5d47" };
 
 /** 선글라스 렌즈 칠하기에 쓰는 SVG id (Runner의 defs) */
 type ShadeIds = Pick<RunnerIds, "lens" | "mirror">;
+/** 머리에 쓰는 SVG id: 선글라스 렌즈 · 불꽃 머리 색 (Runner가 정한다) */
+type HeadIds = ShadeIds & Pick<RunnerIds, "fire">;
 
 /** 얼굴: 큰 타원 (x 44~164, y 21~131) */
 const FACE = { cx: 104, cy: 76, rx: 60, ry: 55 };
@@ -116,17 +120,20 @@ export function Head({
   gear,
   ids,
   bride = false,
+  high = false,
 }: {
   look: Look;
   gear: GearSet;
-  ids: ShadeIds;
+  ids: HeadIds;
   /** 결혼 장면의 신부: 꽃 화관 (헤어밴드 · 선글라스는 쓰지 않는다) */
   bride?: boolean;
+  /** 러너스 하이: 머리 자체가 불꽃이 된다 (헤어밴드 · 선글라스 · 묶은 머리는 감춘다) */
+  high?: boolean;
 }) {
   const hair = hairStyle(look);
   const female = look.gender === "F";
-  const band = bride ? 0 : gear.headband;
-  const shades = bride ? 0 : gear.sunglasses;
+  const band = bride || high ? 0 : gear.headband;
+  const shades = bride || high ? 0 : gear.sunglasses;
   // 나이대: 어릴수록 눈이 크고, 30대는 눈썹이 조금 진하다
   const grow = look.band === "young" ? 0.8 : look.band === "adult" ? 0 : -0.6;
   const brow = look.band === "mature" ? 3.2 : 2.6;
@@ -134,27 +141,39 @@ export function Head({
   return (
     <g>
       {band === 2 && <Tails />}
-      {hair.back}
+      {!high && hair.back}
 
       {/* 윤곽: 얼굴 · 머리를 한 덩어리로 */}
       <g fill={OL} stroke={OL} strokeWidth={LW * 2} strokeLinejoin="round">
         <ellipse cx={FACE.cx} cy={FACE.cy} rx={FACE.rx} ry={FACE.ry} />
-        <path d={hair.cap} />
-        {hair.extra?.map((d) => <path key={d} d={d} />)}
+        {high ? (
+          <FireHair pass="outline" id={ids.fire} />
+        ) : (
+          <>
+            <path d={hair.cap} />
+            {hair.extra?.map((d) => <path key={d} d={d} />)}
+          </>
+        )}
       </g>
       <ellipse cx={FACE.cx} cy={FACE.cy} rx={FACE.rx} ry={FACE.ry} fill={SKIN} />
       {/* 턱 그늘 */}
       <path d="M58 104 C76 128 132 136 158 104 C150 124 128 134 104 134 C82 134 66 124 58 104 Z" fill={SKIN_SHADE} opacity="0.7" />
 
-      {/* 머리카락 */}
-      <path d={hair.cap} fill={HAIR.base} />
-      {hair.extra?.map((d) => <path key={d} d={d} fill={HAIR.base} />)}
-      {hair.shine.map((d, i) => (
-        <path key={d} d={d} stroke={HAIR.hi} strokeWidth={i === 0 ? 4 : 2.6} fill="none" strokeLinecap="round" opacity={i === 0 ? 1 : 0.8} />
-      ))}
+      {/* 머리카락 (러너스 하이 때는 머리 자체가 불꽃) */}
+      {high ? (
+        <FireHair pass="fill" id={ids.fire} />
+      ) : (
+        <>
+          <path d={hair.cap} fill={HAIR.base} />
+          {hair.extra?.map((d) => <path key={d} d={d} fill={HAIR.base} />)}
+          {hair.shine.map((d, i) => (
+            <path key={d} d={d} stroke={HAIR.hi} strokeWidth={i === 0 ? 4 : 2.6} fill="none" strokeLinecap="round" opacity={i === 0 ? 1 : 0.8} />
+          ))}
+        </>
+      )}
 
-      {/* 귀 */}
-      {hair.ear && (
+      {/* 귀 (단발이 덮던 귀도 러너스 하이 때는 보인다) */}
+      {(hair.ear || high) && (
         <>
           <ellipse cx="74" cy="96" rx="8.4" ry="10.4" fill={SKIN} stroke={OL} strokeWidth={LW} />
           <path d="M75 90 C71 92 70 98 73 102" stroke={SKIN_LINE} strokeWidth="2" fill="none" strokeLinecap="round" />
@@ -202,6 +221,13 @@ export function Head({
         <path d="M127.6 107.6 Q132.7 103.6 137.8 107.6 Q135.8 110.6 132.7 110.6 Q129.6 110.6 127.6 107.6 Z" fill={TONGUE} />
         <path d="M104 96 l3 -4 M108.6 97 l3 -4 M113.2 98 l3 -4" stroke="#ff7b93" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
       </g>
+      {/* 표정: 러너스 하이 (별이 반짝이는 눈, 이를 보이며 활짝) */}
+      <g className="rn-faceHigh">
+        <Brows d="M108.6 71.6 Q115 67.4 121.4 70.4 M139 69.4 Q144.4 66 149.6 68.4" width={brow} />
+        <StarEyes grow={grow} />
+        <path d="M124.4 98.4 H141 Q140.2 111.4 132.7 111.4 Q125.2 111.4 124.4 98.4 Z" fill={MOUTH} stroke={OL} strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M125.8 100 H139.6" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" />
+      </g>
 
       {/* 신부: 꽃 화관 */}
       {bride && <FlowerCrown />}
@@ -242,8 +268,29 @@ function Eyes({ grow = 0 }: { grow?: number }) {
   );
 }
 
+/** 네 갈래 반짝이 별 (가운데 cx, cy · 반지름 r) */
+function sparkle(cx: number, cy: number, r: number): string {
+  return `M${cx} ${cy - r} Q${cx} ${cy} ${cx + r} ${cy} Q${cx} ${cy} ${cx} ${cy + r} Q${cx} ${cy} ${cx - r} ${cy} Q${cx} ${cy} ${cx} ${cy - r} Z`;
+}
+
+/** 러너스 하이 눈: 평소 눈 모양에 노란 별이 반짝인다 */
+function StarEyes({ grow = 0 }: { grow?: number }) {
+  const near = 7.4 + grow;
+  const far = 6.8 + grow;
+  return (
+    <>
+      <ellipse cx="115.6" cy="88" rx="5.6" ry={near} fill={INK} />
+      <ellipse cx="143.6" cy="86.4" rx="5" ry={far} fill={INK} />
+      <path className="rn-starEye" d={sparkle(115.6, 87.6, near * 0.78)} fill="#ffe46b" />
+      <path className="rn-starEye" d={sparkle(143.6, 86, far * 0.78)} fill="#ffe46b" />
+      <circle cx="117.6" cy={88 - near * 0.5} r="1.5" fill="#ffffff" />
+      <circle cx="145.4" cy={86.4 - far * 0.5} r="1.3" fill="#ffffff" />
+    </>
+  );
+}
+
 function Brows({ d, width }: { d: string; width: number }) {
-  return <path d={d} stroke={HAIR.shade} strokeWidth={width} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
+  return <path className="rn-brow" d={d} stroke={HAIR.shade} strokeWidth={width} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
 }
 
 /** 헤어밴드: 이마 둘레를 감싸는 띠 (머리카락 위) */

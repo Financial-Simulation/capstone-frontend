@@ -5,12 +5,12 @@
  *  - RaceStart: [전체 범위]일 때 출발선에서 몸을 푸는 캐릭터와 '레이스 시작' (중간 미래를 재생)
  *  - RaceLive: 미래 다시 보기와 같은 달을 따라 달린다. 자세 · 장애물 · 말풍선 · 메달은 race.ts의 paceOf
  *    (실직 · 급한 지출 · 빌리기 · 적금 해지면 무릎 짚고 쉬기, 목표 페이스보다 앞서면 빠르게)
- * 결승선 = 목표 시점: 레이스는 시간으로 달려(raceClock) 목표 시점에 완주한다. 목표 금액은 결승선과 따로 '금메달'이라,
- * 결승 전에 모으면 그달 금빛 '목표 달성' 문을 지나며 꽃가루 속에 금메달을 걸고, 그 뒤로는 메달을 건 채 빛나며 결승선까지 달린다.
- * 못 모은 채 결승선에 닿으면 완주 메달(은), 결승 뒤에라도 모으면 금메달로 바꿔 단다.
+ * 결승선 = 목표 시점: 레이스는 시간으로 달려(raceClock) 목표 시점에 완주한다. 목표 금액은 결승선과 따로라,
+ * 결승 전에 모으면 그달 금빛 '목표 달성' 문을 지나며 꽃가루 속에 '러너스 하이'가 되어 금빛 기운을 내뿜으며 결승선까지 달린다.
+ * 메달은 결승선을 지날 때 건다: 먼저 모았으면 금메달, 못 모았으면 완주 메달(은), 결승 뒤에라도 모으면 금메달로 바꿔 단다.
  * 결혼 · 독립 · 전세 이사 · 이직 · 자동차가 있는 달은 레이스 대신 그 일의 장면(LifeScene)을 보여 준다.
  * 코스는 레이스 거리로 정해지고(course.ts routeFor), 지난 시간만큼 달린 자리의 구간 풍경을 보여 준다 (광화문 → 청계천 → … → 잠실).
- * 위쪽 칩: 구간 · 거리, 메달, '몇 km 지점 · 결승까지 몇 개월'. 아래는 구간 이름이 붙은 출발 → 결승 막대 (목표 달성 자리에 금별).
+ * 위쪽 칩: 구간 · 거리, 러너스 하이 · 메달, '몇 km 지점 · 결승까지 몇 개월'. 아래는 구간 이름이 붙은 출발 → 결승 막대 (목표 달성 자리에 금별).
  */
 import { useMemo } from "react";
 import { Button } from "@/components/ui";
@@ -38,7 +38,7 @@ export function RaceStart({ goalMonths, onStart }: { goalMonths: number; onStart
         pose="ready"
         startLine
         bib={bibOf(race)}
-        say={`${route.event} 코스 출발선! 결승선 전에 목표 금액을 모으면 금메달이에요`}
+        say={`${route.event} 코스 출발선! 결승 전에 목표 금액을 모으면 러너스 하이예요`}
         hud={
           <>
             <HudChip icon="pin">
@@ -107,7 +107,14 @@ export function RaceLive({
   if (moment) {
     return (
       <div className="mt-3">
-        <LifeScene key={`${moment.kind}-${moment.month}`} moment={moment} look={runner.look} gear={runner.worn} frozen={!running} goal={index === goalIndex} />
+        <LifeScene
+          key={`${moment.kind}-${moment.month}`}
+          moment={moment}
+          look={runner.look}
+          gear={runner.worn}
+          frozen={!running}
+          goal={index === goalIndex ? (pace.high ? "high" : "gold") : null}
+        />
         {track}
       </div>
     );
@@ -128,15 +135,21 @@ export function RaceLive({
         frozen={!running}
         medal={pace.medal}
         shine={pace.medal === "gold"}
+        high={pace.high}
         confetti={pace.confetti ? m.afterMonths : null}
         gate={pace.gate}
         hud={
           <>
-            {/* 좁은 화면은 한 줄에 맞게 메달 · 진행 칩만 (구간 이름은 아래 막대에도 있다) */}
+            {/* 좁은 화면은 한 줄에 맞게 러너스 하이 · 메달 · 진행 칩만 (구간 이름은 아래 막대에도 있다) */}
             <HudChip icon="pin" className="hidden sm:inline-flex">
               {scene.name} · {raceText(race)}
             </HudChip>
             <span className="ml-auto inline-flex flex-wrap justify-end gap-1.5">
+              {pace.high && (
+                <HudChip gold icon="spark">
+                  러너스 하이
+                </HudChip>
+              )}
               {pace.medal === "gold" && (
                 <HudChip gold icon="medal">
                   금메달

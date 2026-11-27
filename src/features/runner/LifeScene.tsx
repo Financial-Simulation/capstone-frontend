@@ -45,6 +45,12 @@ const CLOUDS: readonly CloudLane[] = [{ top: "top-3", size: "h-5 opacity-90", du
 /** '나' 캐릭터에 장면마다 다르게 넘기는 값 */
 type MeProps = Pick<ComponentProps<typeof Runner>, "pose" | "outfit" | "items" | "happy">;
 
+/** 같은 달에 목표 금액도 넘었을 때 칩 · 장면 글: 결승 전이면 러너스 하이, 결승선에서 · 결승 뒤면 금메달 */
+const GOAL_REWARD = {
+  high: { icon: "spark", text: "러너스 하이" },
+  gold: { icon: "medal", text: "금메달" },
+} as const;
+
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -54,15 +60,15 @@ export function LifeScene({
   look,
   gear,
   frozen = false,
-  goal = false,
+  goal = null,
 }: {
   moment: LifeMoment;
   look: Look;
   gear: GearSet;
   /** 재생을 멈췄을 때 장면도 멈춘다 */
   frozen?: boolean;
-  /** 같은 달에 목표 금액도 넘었으면 꽃가루와 금메달 칩 */
-  goal?: boolean;
+  /** 같은 달에 목표 금액도 넘었으면 꽃가루와 칩 (결승 전 러너스 하이 · 결승 뒤 금메달) */
+  goal?: keyof typeof GOAL_REWARD | null;
 }) {
   const { kind } = moment;
   // 꽃 아치 · 새 회사가 앞에서 다가와 멈추는 장면 (도착하면 서서 웃는다)
@@ -73,7 +79,8 @@ export function LifeScene({
   };
   const backdrop = BACKDROP[kind];
   const sky = backdrop === "drive" ? SCENES.hangang.sky : BACKDROP_SKY[backdrop];
-  const label = `${moment.title} 장면: ${LIFE_LINES[kind]}.${moment.detail ? ` ${moment.detail}.` : ""}${goal ? " 이달 목표 금액도 달성해 금메달." : ""}`;
+  const reward = goal ? GOAL_REWARD[goal] : null;
+  const label = `${moment.title} 장면: ${LIFE_LINES[kind]}.${moment.detail ? ` ${moment.detail}.` : ""}${reward ? ` 이달 목표 금액도 달성해 ${reward.text}.` : ""}`;
   // 나: 캐릭터 자리(--rx)에 선다 (자동차는 차 안에 앉아 따로 그린다)
   const me = (props: MeProps) => (
     <div className="absolute bottom-1 left-[var(--rx)]">
@@ -164,7 +171,7 @@ export function LifeScene({
         </div>
       )}
 
-      {goal && <Confetti />}
+      {reward && <Confetti />}
 
       {/* 장면 설명: 한 줄 + 그 일의 돈 (자동차는 캐릭터가 차 안 오른쪽에 앉아 말풍선을 더 오른쪽에 둔다) */}
       <div aria-hidden className={`absolute right-2.5 top-9 flex justify-end ${kind === "CAR" ? "pl-[calc(var(--rx)+9rem)]" : "pl-[calc(var(--rx)+6rem)]"}`}>
@@ -179,9 +186,9 @@ export function LifeScene({
           {moment.title}
           <span className="hidden sm:inline"> · {formatYearMonth(moment.month)}</span>
         </HudChip>
-        {goal && (
-          <HudChip gold icon="medal" className="ml-auto inline-flex">
-            목표 달성! 금메달
+        {reward && (
+          <HudChip gold icon={reward.icon} className="ml-auto inline-flex">
+            목표 달성! {reward.text}
           </HudChip>
         )}
       </HudRow>

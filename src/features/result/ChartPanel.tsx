@@ -9,8 +9,8 @@
  * 계획을 바꿨으면(adjustments) 바꾼 계획의 미래를 본다. 숫자는 모두 서버 값이고, 문장은 features/story/story.ts가 고른다.
  * '인생은 마라톤': 그래프 옆에서 입력 값으로 장비를 갖춘 캐릭터가 같은 달을 따라 달린다 (features/runner/RaceLane).
  *  [전체 범위]는 출발선에서 몸 풀기 + '레이스 시작'(중간 미래), 재생 중에는 형편에 따라 달리기 · 빠르게 · 무릎 짚고 쉬기.
- *  결승선은 목표 시점, 목표 금액은 금메달. 결혼 · 독립 · 이사 · 이직 · 자동차 달은 그 일의 장면을 보여 주느라 더 오래 머물고,
- *  목표 달성(금메달) · 결승(완주) 달도 조금 더 머문다.
+ *  결승선은 목표 시점이고, 그 전에 목표 금액을 모으면 러너스 하이, 결승선에서 메달. 결혼 · 독립 · 이사 · 이직 · 자동차 달은
+ *  그 일의 장면을 보여 주느라 더 오래 머물고, 목표 달성(러너스 하이) · 결승(메달) 달도 조금 더 머문다.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui";
@@ -29,8 +29,8 @@ import { eventMarks } from "./result";
 const SPEEDS = [4, 8, 16] as const;
 /** 큰 일이 있는 달에서 멈추는 시간 (ms) */
 const HOLD_MS = 1300;
-/** 목표 달성(금메달) · 결승(완주) 달: 꽃가루 · 메달이 보이게 (ms) */
-const MEDAL_HOLD_MS = 2000;
+/** 목표 달성(러너스 하이) · 결승(메달) 달: 꽃가루 · 변신 · 메달이 보이게 (ms) */
+const MILESTONE_HOLD_MS = 2000;
 /** 결혼 · 독립 · 이사 · 이직 · 자동차 달: 인생 장면을 끝까지 보게 (ms) */
 const LIFE_HOLD_MS = 2800;
 const KINDS: StoryKind[] = ["BEST", "MIDDLE", "WORST"];
@@ -42,10 +42,10 @@ const TONE_BOX = {
   info: "border-line bg-system-soft",
 } as const;
 
-/** 이 달에 더 머무는 시간: 인생 장면 → 금메달 · 완주 → 큰 일 순서로 하나만 */
-function holdMs({ life, medal, major }: { life: boolean; medal: boolean; major: boolean }): number {
+/** 이 달에 더 머무는 시간: 인생 장면 → 목표 달성 · 결승 → 큰 일 순서로 하나만 */
+function holdMs({ life, milestone, major }: { life: boolean; milestone: boolean; major: boolean }): number {
   if (life) return LIFE_HOLD_MS;
-  if (medal) return MEDAL_HOLD_MS;
+  if (milestone) return MILESTONE_HOLD_MS;
   return major ? HOLD_MS : 0;
 }
 
@@ -173,7 +173,7 @@ function Replay({
     return months.map((mm, i) =>
       holdMs({
         life: life.has(mm.month),
-        medal: i === goalIndex || mm.afterMonths === data.goalMonths,
+        milestone: i === goalIndex || mm.afterMonths === data.goalMonths,
         major: all.some((e) => e.afterMonths === mm.afterMonths && e.major),
       }),
     );

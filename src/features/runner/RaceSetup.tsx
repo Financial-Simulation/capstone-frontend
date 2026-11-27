@@ -4,7 +4,7 @@
  * 02 목표 설정의 '레이스 거리' 카드.
  *  - 카드(10km · 하프 · 풀코스)를 누르면 목표 시점을 기준 달 + 3 · 5 · 10년으로 정한다 (onPick). 계산에 들어가는 값은 목표 시점뿐이다.
  *  - 코스(배경)는 고르지 않고 거리로 정해진다 (course.ts ROUTES). 카드마다 그 코스의 결승 구간 그림과 본뜬 대회 · 경로를 보여 준다.
- *  - 아래 한 줄로 규칙을 알려 준다: 결승선은 목표 시점, 그 전에 목표 금액을 모으면 금메달 (결과 화면 레이스, race.ts).
+ *  - 아래 한 줄로 규칙을 알려 준다: 결승선은 목표 시점, 그 전에 목표 금액을 모으면 러너스 하이로 달리다 결승선에서 금메달 (결과 화면 레이스, race.ts).
  */
 import type { YearMonth } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
@@ -79,7 +79,7 @@ export function RaceCards({
         </svg>
         <span className="break-keep">
           결승선은 <span className="font-semibold text-ink">목표 시점</span>이에요. 그 전에 <span className="font-semibold text-ink">목표 금액</span>을 모으면 결과 화면
-          레이스에서 금메달을 받아요.
+          레이스에서 러너스 하이로 달리고, 결승선에서 금메달을 받아요.
         </span>
       </p>
       {current && !current.race && (

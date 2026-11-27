@@ -24,12 +24,13 @@ const ARM_W = 13;
 /** 몸통: 아래가 동그란 달걀 모양 (위는 머리 밑에 숨는다) */
 export const TORSO = "M85 124 C75 136 70 158 71 180 C72 200 87 211 104 211 C121 211 136 200 137 180 C138 158 133 136 123 124 Z";
 
-/** SVG 안 id (그림마다 달라야 한다): 선글라스 렌즈 · 미러 고글 · 결승 빛 · 몸통 자르기 */
+/** SVG 안 id (그림마다 달라야 한다): 선글라스 렌즈 · 미러 고글 · 결승 빛 · 몸통 자르기 · 러너스 하이 불꽃 머리 색 */
 export interface RunnerIds {
   lens: string;
   mirror: string;
   glow: string;
   torsoClip: string;
+  fire: string;
 }
 
 // ===== 달리기 옷: 단계마다 =====

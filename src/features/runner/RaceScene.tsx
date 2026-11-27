@@ -4,7 +4,8 @@
  *    쉬거나 서 있으면 멈춘다. 구름은 늘 천천히 흐른다. 구간이 바뀌면 새 풍경이 스르르 나타난다.
  *  - 이번 달 장애물 · 아이템(sprite)은 캐릭터 앞에 튀어나오고, 말풍선(say)으로 지금 상황을 알려 준다.
  *  - 결과 화면(md)의 문(gate): 금빛 '목표 달성' 문 · 결승 아치가 오른쪽에서 다가와 캐릭터 자리에서 테이프가 끊어지고 뒤로 멀어진다 (GateArt).
- *    목표 달성 · 금메달 완주 달에는 꽃가루(confetti)가 쏟아지고, 캐릭터는 메달(medal)을 걸고 금빛으로 빛난다(shine).
+ *    목표 달성 · 금메달 완주 달에는 꽃가루(confetti)가 쏟아진다. 결승 전에 목표 금액을 모으면 러너스 하이(high)로 금빛 기운을 내뿜고,
+ *    결승선에서 메달(medal)을 건 뒤로는 금빛으로 은은하게 빛난다(shine).
  *  - 크기: md(결과 화면) · stage(입력 옆 패널, 캐릭터를 크게) · card(좁은 화면 입력 카드)
  */
 import type { CSSProperties, ReactNode } from "react";
@@ -93,6 +94,7 @@ export function RaceScene({
   look = DEFAULT_LOOK,
   medal = null,
   shine = false,
+  high = false,
   confetti = null,
   gate = null,
   className = "",
@@ -119,6 +121,8 @@ export function RaceScene({
   look?: Look;
   medal?: Medal | null;
   shine?: boolean;
+  /** 러너스 하이 (금빛 기운) */
+  high?: boolean;
   /** 꽃가루를 쏟을 달의 열쇠 (바뀌면 다시 쏟는다). null이면 없음 */
   confetti?: string | number | null;
   /** 다가오는 · 지나는 문 (결과 화면 md 크기) */
@@ -169,7 +173,7 @@ export function RaceScene({
 
       {/* 캐릭터 */}
       <div className={`absolute ${z.runnerBox}`}>
-        <Runner gear={gear} pose={pose} className={z.runner} bib={bib} flash={flash} look={look} medal={medal} shine={shine} />
+        <Runner gear={gear} pose={pose} className={z.runner} bib={bib} flash={flash} look={look} medal={medal} shine={shine} high={high} />
       </div>
       {/* 캐릭터가 지나는 달: 테이프가 캐릭터 앞에서 끊어진다 */}
       {gate?.ahead === 0 && <GateTape key={`${gate.kind}-tape`} gold={gate.kind === "goal" || gate.gold} />}

@@ -8,7 +8,9 @@
  *  - 소품(items): 배낭 · 여행 가방(독립) · 이삿짐 상자(이사) · 서류 가방(이직).
  *  - 자세: 몸 풀기(ready) · 달리기(jog) · 빠르게(sprint) · 숨 고르기(rest) · 기뻐하기(celebrate)
  *    · 걷기(walk) · 상자 들고 걷기(carry) · 가방 끌기(pull) · 서 있기(stand) · 운전(drive).
- *  - medal: 목표 금액을 모으면 금메달, 못 모은 채 목표 시점(결승)에 닿으면 완주 메달(은). shine이면 금빛으로 빛난다.
+ *  - high(러너스 하이): 결승 전에 목표 금액을 모은 뒤 결승선까지, 몸 뒤에서 금빛 기운이 크게 퍼지고
+ *    머리카락 대신 머리 위 · 뒤에서 불꽃이 솟아 일렁이며(헤어밴드 · 선글라스는 벗는다) 눈에 별이 반짝인다.
+ *  - medal: 결승선(목표 시점)을 지나며 건다. 그 전에 목표 금액을 모았으면 금메달, 아니면 완주 메달(은). shine이면 금빛으로 빛난다.
  *  - flash: 장비가 바뀐 칸 자리에서 반짝(좋아짐) · 연기(내려감)가 한 번 터진다. 일곱 칸이 모두 프로면 둘레가 늘 반짝인다.
  * 여기서는 부품을 겹쳐 조립한다: 몸 부품은 RunnerParts, 머리는 RunnerHead, 걸치거나 드는 것과 효과는 RunnerItems.
  * 움직임은 runner.css (rn- 클래스: 통통 튀는 몸 · 찌그러졌다 늘어나기 · 늦게 따라오는 머리 · 깜빡임).
@@ -19,7 +21,7 @@ import { gearSummary, type GearSet } from "./gear";
 import { DEFAULT_LOOK, type Look } from "./look";
 import { POSE_LABELS, type Medal, type Pose } from "./race";
 import { Head } from "./RunnerHead";
-import { Backpack, BackpackStrap, Bouquet, Box, Burst, NeckMedal, Skirt, Suitcase, Veil, type GearFlash } from "./RunnerItems";
+import { Backpack, BackpackStrap, Bouquet, Box, Burst, HighAura, NeckMedal, Skirt, Suitcase, Veil, type GearFlash } from "./RunnerItems";
 import { Arm, FORMAL, HIP_FAR, HIP_NEAR, Leg, SH_FAR, SH_NEAR, TORSO, Torso, type FormalStyle, type RunnerIds, type ShoeKind } from "./RunnerParts";
 
 export type { GearFlash };
@@ -41,6 +43,7 @@ export function Runner({
   items = [],
   medal = null,
   shine = false,
+  high = false,
   happy = false,
 }: {
   gear: GearSet;
@@ -55,15 +58,17 @@ export function Runner({
   look?: Look;
   outfit?: Outfit;
   items?: readonly Item[];
-  /** 목표 달성(금) · 완주(은) 메달 */
+  /** 결승선에서 건 메달: 금(목표 금액을 모음) · 은(완주) */
   medal?: Medal | null;
-  /** 목표를 이룬 뒤 금빛으로 빛난다 */
+  /** 금메달을 건 뒤 금빛으로 은은하게 빛난다 */
   shine?: boolean;
+  /** 러너스 하이: 금빛 기운이 크게 퍼지고 눈에 별이 반짝인다 */
+  high?: boolean;
   /** 자세와 상관없이 웃는 얼굴 (결혼 등) */
   happy?: boolean;
 }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const ids: RunnerIds = { lens: `lens-${uid}`, mirror: `mirror-${uid}`, glow: `glow-${uid}`, torsoClip: `torso-${uid}` };
+  const ids: RunnerIds = { lens: `lens-${uid}`, mirror: `mirror-${uid}`, glow: `glow-${uid}`, torsoClip: `torso-${uid}`, fire: `fire-${uid}` };
   const formal = outfit !== "run";
   const bride = outfit === "wedding" && look.gender === "F";
   const style: FormalStyle | null = outfit === "wedding" ? (bride ? null : FORMAL.groom) : outfit === "suit" ? FORMAL[look.gender === "M" ? "suitM" : "suitF"] : null;
@@ -74,7 +79,16 @@ export function Runner({
     label ?? `러너 캐릭터: ${formal ? (outfit === "wedding" ? (bride ? "웨딩드레스" : "턱시도") : "정장") : gearSummary(gear)}. ${POSE_LABELS[pose]}`;
   // 일곱 칸을 모두 프로로 갖추면 늘 반짝인다
   const allPro = !formal && Object.values(gear).every((tier) => tier === 2);
-  const classes = ["rn-runner", `rn-${pose}`, allPro ? "rn-allpro" : "", shine ? "rn-shine" : "", happy ? "rn-mood-happy" : "", bride ? "rn-bride" : "", className || "h-32"];
+  const classes = [
+    "rn-runner",
+    `rn-${pose}`,
+    allPro ? "rn-allpro" : "",
+    shine ? "rn-shine" : "",
+    high ? "rn-high" : "",
+    happy ? "rn-mood-happy" : "",
+    bride ? "rn-bride" : "",
+    className || "h-32",
+  ];
 
   return (
     <svg viewBox="0 0 200 250" role="img" aria-label={alt} className={classes.filter(Boolean).join(" ")}>
@@ -116,6 +130,8 @@ export function Runner({
 
       {/* 결승선 빛 */}
       <circle className="rn-halo" cx="104" cy="112" r="100" fill={`url(#${ids.glow})`} />
+      {/* 러너스 하이: 몸 뒤에서 크게 퍼지는 금빛 기운 */}
+      {high && <HighAura id={`aura-${uid}`} />}
 
       {/* 끌고 가는 여행 가방 (땅 위, 뒤로 뻗은 가까운 손이 손잡이를 잡는다) */}
       {items.includes("suitcase") && <Suitcase />}
@@ -140,7 +156,7 @@ export function Runner({
             {bride && <Skirt />}
             {items.includes("backpack") && <BackpackStrap />}
             <g className="rn-head">
-              <Head look={look} gear={worn} ids={ids} bride={bride} />
+              <Head look={look} gear={worn} ids={ids} bride={bride} high={high} />
             </g>
             {items.includes("box") && <Box />}
             {bride && <Bouquet />}
@@ -160,6 +176,13 @@ export function Runner({
         <path d="M34 36l3.4 8.4 8.4 3.4-8.4 3.4-3.4 8.4-3.4-8.4-8.4-3.4 8.4-3.4z" />
         <path d="M172 26l2.8 6.8 6.8 2.8-6.8 2.8-2.8 6.8-2.8-6.8-6.8-2.8 6.8-2.8z" />
         <path d="M180 110l2.2 5.6 5.6 2.2-5.6 2.2-2.2 5.6-2.2-5.6-5.6-2.2 5.6-2.2z" />
+      </g>
+      {/* 러너스 하이: 머리 둘레에서 번갈아 반짝이는 별 */}
+      <g className="rn-headSparkle" fill="#fff3a0" stroke="#f0a500" strokeWidth="1" strokeLinejoin="round">
+        <path d="M14 62l3.6 8.8 8.8 3.6-8.8 3.6-3.6 8.8-3.6-8.8-8.8-3.6 8.8-3.6z" />
+        <path d="M188 54l3.2 7.8 7.8 3.2-7.8 3.2-3.2 7.8-3.2-7.8-7.8-3.2 7.8-3.2z" />
+        <path d="M146 -14l2.6 6.4 6.4 2.6-6.4 2.6-2.6 6.4-2.6-6.4-6.4-2.6 6.4-2.6z" />
+        <path d="M60 -6l2.2 5.4 5.4 2.2-5.4 2.2-2.2 5.4-2.2-5.4-5.4-2.2 5.4-2.2z" />
       </g>
     </svg>
   );

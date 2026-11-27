@@ -1,6 +1,7 @@
 /**
  * 러너가 걸치거나 드는 것과 효과 (Runner가 몸 부품 사이사이에 끼워 그린다). 좌표는 Runner와 같은 viewBox(200 × 250).
- *  - 메달(목표 달성 금 · 완주 은): 목에서 툭 튀어나와 걸리고 달리면 흔들린다
+ *  - 메달(결승선에서 금 · 은): 목에서 툭 튀어나와 걸리고 달리면 흔들린다
+ *  - 러너스 하이 기운(HighAura): 결승 전에 목표 금액을 모은 뒤 몸 뒤에서 금빛 기운이 크게 퍼진다 (불타는 머리는 RunnerFire)
  *  - 신부: 웨딩드레스 치마 · 면사포 · 부케
  *  - 소품: 배낭(등) · 끌고 가는 여행 가방(땅) · 이삿짐 상자(두 팔 사이) · 서류 가방(가까운 손)
  *  - 장비가 바뀐 칸의 효과(Burst): 좋아짐은 금빛 반짝이, 내려감은 회색 연기
@@ -29,7 +30,7 @@ const FLASH_AT: Record<GearSlot, [number, number]> = {
   shoes: [100, 240],
 };
 
-/** 목에 건 메달: 목표 달성 금 · 완주 은. 팔에 가리지 않게 맨 앞에 건다 */
+/** 목에 건 메달: 결승선에서 금(목표 금액을 모음) · 은(완주). 팔에 가리지 않게 맨 앞에 건다 */
 export function NeckMedal({ kind }: { kind: Medal }) {
   const face = kind === "gold" ? { base: "#ffc531", inner: "#ffdc6b", mark: "#d48700" } : { base: "#cfd6df", inner: "#f1f4f8", mark: "#8793a4" };
   return (
@@ -143,6 +144,88 @@ export function Briefcase({ x, y }: { x: number; y: number }) {
       <rect x={x - 15} y={y + 5} width="30" height="21" rx="3.4" fill="#8a5a36" stroke={OL} strokeWidth={LW} />
       <path d={`M${x - 15} ${y + 12} H${x + 15}`} stroke="#6b4226" strokeWidth="1.6" />
       <rect x={x - 2.4} y={y + 10} width="4.8" height="4.6" rx="1" fill="#f2c14e" stroke={OL} strokeWidth="1" />
+    </g>
+  );
+}
+
+/** 러너스 하이 기운의 가운데 (몸 가운데, 머리와 배 사이) */
+const AURA_X = 104;
+const AURA_Y = 140;
+/** 뒤에서 퍼지는 햇살 16줄: 긴 줄 · 짧은 줄을 번갈아, 가운데에서 바깥으로 넓어진다 */
+const AURA_RAYS = Array.from({ length: 16 }, (_, i) => {
+  const long = i % 2 === 0;
+  const reach = long ? 200 : 150;
+  const half = ((long ? 5 : 3.8) * Math.PI) / 180;
+  const angle = (i * 22.5 * Math.PI) / 180;
+  const at = (a: number) => `${(AURA_X + reach * Math.sin(a)).toFixed(1)} ${(AURA_Y - reach * Math.cos(a)).toFixed(1)}`;
+  return `M${AURA_X} ${AURA_Y} L${at(angle - half)} L${at(angle + half)} Z`;
+});
+/** 몸 둘레에서 피어오르는 빛 알갱이: 자리 · 크기 · 한 번 오르는 시간(초) · 시작 늦춤(초) · 옆으로 흐름(px). 얼굴은 비켜 간다 */
+const AURA_DOTS = [
+  { x: 44, y: 226, r: 5.2, t: 1.7, d: 0, dx: -6 },
+  { x: 60, y: 200, r: 4.0, t: 1.4, d: -0.5, dx: -4 },
+  { x: 34, y: 176, r: 4.6, t: 1.9, d: -1.1, dx: -8 },
+  { x: 70, y: 238, r: 3.6, t: 1.3, d: -0.8, dx: 2 },
+  { x: 50, y: 150, r: 3.8, t: 1.6, d: -1.4, dx: -5 },
+  { x: 164, y: 228, r: 5.0, t: 1.8, d: -0.3, dx: 6 },
+  { x: 152, y: 204, r: 4.0, t: 1.5, d: -1, dx: 4 },
+  { x: 178, y: 182, r: 4.4, t: 2, d: -1.6, dx: 8 },
+  { x: 140, y: 240, r: 3.6, t: 1.35, d: -0.6, dx: -2 },
+  { x: 166, y: 152, r: 3.8, t: 1.7, d: -1.25, dx: 5 },
+  { x: 104, y: 246, r: 4.2, t: 1.5, d: -0.2, dx: 0 },
+  { x: 122, y: 242, r: 3.4, t: 1.25, d: -0.95, dx: 3 },
+];
+
+/**
+ * 러너스 하이 기운 (몸 뒤): 숨 쉬듯 커졌다 작아지는 금빛 빛 · 천천히 도는 햇살 · 퍼져 나가는 고리 · 피어오르는 빛 알갱이.
+ * 나타날 때(변신하는 순간) 흰 빛이 한 번 크게 터지고, 기운이 작게 모였다가 확 퍼진다.
+ * id는 그라디언트 이름 (한 화면에 캐릭터가 여럿이어도 겹치지 않게)
+ */
+export function HighAura({ id }: { id: string }) {
+  return (
+    <g className="rn-aura" aria-hidden>
+      <defs>
+        <radialGradient id={`${id}-glow`}>
+          <stop offset="0" stopColor="#fffbe0" stopOpacity="1" />
+          <stop offset="0.25" stopColor="#ffe55c" stopOpacity="0.92" />
+          <stop offset="0.55" stopColor="#ffc61f" stopOpacity="0.6" />
+          <stop offset="0.8" stopColor="#ffad00" stopOpacity="0.25" />
+          <stop offset="1" stopColor="#ff9d00" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`${id}-ray`} gradientUnits="userSpaceOnUse" cx={AURA_X} cy={AURA_Y} r="200">
+          <stop offset="0" stopColor="#fff6c0" stopOpacity="1" />
+          <stop offset="0.45" stopColor="#ffd535" stopOpacity="0.85" />
+          <stop offset="0.8" stopColor="#ffb000" stopOpacity="0.35" />
+          <stop offset="1" stopColor="#ffa000" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <g className="rn-aura-body">
+        <g className="rn-aura-rays" fill={`url(#${id}-ray)`}>
+          {AURA_RAYS.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
+        <ellipse className="rn-aura-glow" cx={AURA_X} cy={AURA_Y} rx="140" ry="150" fill={`url(#${id}-glow)`} />
+        <g fill="none" stroke="#ffbf1a" strokeWidth="6">
+          {[0, 1, 2].map((i) => (
+            <ellipse key={i} className="rn-aura-ring" cx={AURA_X} cy={AURA_Y} rx="60" ry="70" />
+          ))}
+        </g>
+        <g fill="#fff6b8" stroke="#ffb800" strokeWidth="1.2">
+          {AURA_DOTS.map((dot) => (
+            <circle
+              key={`${dot.x}-${dot.y}`}
+              className="rn-aura-dot"
+              cx={dot.x}
+              cy={dot.y}
+              r={dot.r}
+              style={{ "--t": `${dot.t}s`, "--d": `${dot.d}s`, "--dx": `${dot.dx}px` } as CSSProperties}
+            />
+          ))}
+        </g>
+      </g>
+      {/* 변신하는 순간 한 번 크게 터지는 빛 (기운 위, 몸 뒤) */}
+      <circle className="rn-aura-flash" cx={AURA_X} cy={AURA_Y - 20} r="90" fill="#fffbe6" />
     </g>
   );
 }

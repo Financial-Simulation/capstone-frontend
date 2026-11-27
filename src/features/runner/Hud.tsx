@@ -1,6 +1,6 @@
 /**
  * 장면 위쪽 숫자 줄 (레이스 · 인생 장면 · 입력 옆 캐릭터): 줄(HudRow)과 칩(HudChip). 칩은 반투명 흰 바탕 · 어두운 바탕 · 금메달 바탕이고
- * 앞에 작은 아이콘(위치 핀 · 깃발 · 번개 · 메달 · 하트)을 단다. 하트 · 메달 모양은 다른 그림(인생 장면 하트 · 거리 카드 안내)도 같이 쓴다.
+ * 앞에 작은 아이콘(위치 핀 · 깃발 · 번개 · 메달 · 하트 · 반짝이)을 단다. 하트 · 메달 모양은 다른 그림(인생 장면 하트 · 거리 카드 안내)도 같이 쓴다.
  */
 import type { ReactNode } from "react";
 
@@ -58,7 +58,7 @@ export function HudChip({
   );
 }
 
-type HudIconKind = "pin" | "flag" | "bolt" | "medal" | "heart";
+type HudIconKind = "pin" | "flag" | "bolt" | "medal" | "heart" | "spark";
 
 /** 칩 아이콘 (칩 글자색으로 채운다) */
 function HudIcon({ kind }: { kind: HudIconKind }) {
@@ -80,6 +80,12 @@ function HudIcon({ kind }: { kind: HudIconKind }) {
         </>
       )}
       {kind === "bolt" && <path d="M13.5 2 4.5 13.6h6.3L9.6 22l9.4-12.1h-6.4z" />}
+      {kind === "spark" && (
+        <>
+          <path d="M10 2.5c.7 4.6 2.4 6.4 7 7.1-4.6.7-6.3 2.5-7 7.1-.7-4.6-2.4-6.4-7-7.1 4.6-.7 6.3-2.5 7-7.1z" />
+          <path d="M18.5 13.5c.4 2.4 1.2 3.2 3.5 3.6-2.3.4-3.1 1.2-3.5 3.6-.4-2.4-1.2-3.2-3.5-3.6 2.3-.4 3.1-1.2 3.5-3.6z" />
+        </>
+      )}
     </svg>
   );
 }

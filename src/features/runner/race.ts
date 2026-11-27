@@ -3,9 +3,9 @@
  * 여기서는 '코스 위 장애물 · 아이템'과 '캐릭터 자세 · 말풍선 · 메달'을 고르기만 한다 (새로 계산하지 않음).
  *
  *  - 레이스는 시간으로 달린다: 결승선 = 목표 시점. 지난 달 ÷ 목표 개월만큼 코스를 지나고(raceClock), 목표 시점에 '완주'한다.
- *  - 목표 금액은 결승선과 따로 '금메달': 서버가 목표 달성(GOAL_REACHED)을 알린 달에 금빛 '목표 달성' 문을 지나며 금메달을 받고,
- *    그 뒤로는 메달을 건 채 빛나며 결승선까지 달린다. 목표 금액을 못 모은 채 결승선에 닿으면 완주 메달(은).
- *    결승선을 지난 뒤에 목표 금액을 넘으면 '늦었지만 목표 달성'으로 금메달로 바꿔 단다.
+ *  - 목표 금액은 결승선과 따로: 서버가 목표 달성(GOAL_REACHED)을 알린 달에 금빛 '목표 달성' 문을 지나며 '러너스 하이'가 되어,
+ *    금빛 기운을 크게 내뿜으며 결승선까지 달린다. 메달은 결승선(목표 시점)을 지날 때 건다: 그 전에 목표 금액을 모았으면 금메달,
+ *    못 모았으면 완주 메달(은). 결승선을 지난 뒤에 목표 금액을 넘으면 '늦었지만 목표 달성'으로 금메달로 바꿔 단다.
  *  - 예정된 일(입력 events[]) → 코스 위 표시: 한 번에 드는 돈은 허들, 매달 지출이 늘면 오르막, 줄면 급수대,
  *    이직 공백은 물웅덩이, 연봉이 오르면 에너지 젤. (결혼 · 독립 · 이사 · 이직 · 자동차는 그달 인생 장면, life.ts)
  *  - 미래 다시 보기의 한 달 → 캐릭터 자세: 실직 · 급한 지출 · 빌리기 · 적금 해지 · 빌린 돈이 남아 있음 · 석 달 전보다 줄어듦이면
@@ -109,14 +109,14 @@ export const POSE_LABELS: Record<Pose, string> = {
   drive: "차를 모는 중",
 };
 
-/** 목표 금액을 모으면 금, 못 모은 채 결승선(목표 시점)에 닿으면 완주 메달(은) */
+/** 결승선(목표 시점)을 지나며 거는 메달: 그 전에 목표 금액을 모았으면 금, 못 모았으면 완주 메달(은) */
 export type Medal = "gold" | "silver";
 
 /** 코스 위 문: 목표 달성(금빛 문) · 결승 아치. ahead는 캐릭터보다 몇 달 앞인지 (0 = 지금 지나는 중, −1 = 막 지나 뒤로 멀어짐) */
 export interface RaceGate {
   kind: "goal" | "finish";
   ahead: number;
-  /** 결승 아치를 금빛으로 (금메달을 걸고 들어옴) */
+  /** 결승 아치를 금빛으로 (목표 금액을 모으고 들어옴) */
   gold: boolean;
 }
 
@@ -124,11 +124,13 @@ export interface PaceView {
   pose: Pose;
   /** 이번 달 캐릭터 앞에 나타나는 장애물 · 아이템 */
   sprite: SpriteKind | null;
-  /** 말풍선 */
+  /** 말풍선 (빈 글이면 말풍선을 띄우지 않는다) */
   say: string;
   tone: "good" | "bad" | "info";
-  /** 지금 건 메달 */
+  /** 지금 건 메달 (결승선을 지난 뒤에만) */
   medal: Medal | null;
+  /** 러너스 하이: 결승 전에 목표 금액을 모은 달부터 결승선까지 금빛 기운을 내뿜는다 */
+  high: boolean;
   /** 이번 달 꽃가루 (목표 달성 · 금메달 완주) */
   confetti: boolean;
   gate: RaceGate | null;
@@ -157,38 +159,40 @@ export function goalIndexOf(months: readonly StoryMonth[]): number | null {
   return index >= 0 ? index : null;
 }
 
-type Base = Pick<PaceView, "medal" | "confetti" | "gate">;
+type Base = Pick<PaceView, "medal" | "high" | "confetti" | "gate">;
 
-/** months[index] 달의 자세 · 말풍선 · 메달 */
+/** months[index] 달의 자세 · 말풍선 · 메달 · 러너스 하이 */
 export function paceOf(months: readonly StoryMonth[], index: number, plan: RacePlan): PaceView {
   const m = months[index];
   const has = (e: StoryEvent) => m.events.includes(e);
   const planned = plan.planned?.find((p) => p.month === m.month) ?? null;
   const goalIndex = goalIndexOf(months);
   const reached = goalIndex !== null && index >= goalIndex;
+  const finished = m.afterMonths >= plan.goalMonths;
   const base: Base = {
-    medal: reached ? "gold" : m.afterMonths >= plan.goalMonths ? "silver" : null,
+    medal: finished ? (reached ? "gold" : "silver") : null,
+    high: reached && !finished,
     confetti: false,
     gate: gateOf(months, index, plan, goalIndex),
   };
   const target = formatManwon(plan.targetAmount);
 
-  // 목표 금액을 처음 넘은 달: 금메달 (결승 전 · 결승선에서 · 결승 뒤)
+  // 목표 금액을 처음 넘은 달: 결승 전이면 러너스 하이, 결승선에서 · 결승 뒤면 금메달
   if (index === goalIndex) {
     const early = plan.goalMonths - m.afterMonths;
     const say =
       early > 0
-        ? `목표 ${target} 달성! 결승 ${early}개월 전에 금메달`
+        ? `목표 ${target} 달성! 결승 ${early}개월 전 러너스 하이 발동`
         : early === 0
           ? `결승선에서 목표 ${target} 달성! 금메달 완주`
           : `목표 시점보다 ${-early}개월 늦었지만 목표 달성! 금메달`;
     return { ...base, pose: "celebrate", sprite: null, say, tone: "good", confetti: true };
   }
-  // 결승선(목표 시점): 완주. 목표 금액을 먼저 모았으면 금메달, 아니면 완주 메달(은)
+  // 결승선(목표 시점): 완주하며 메달을 건다. 목표 금액을 먼저 모았으면 금메달, 아니면 완주 메달(은)
   if (m.afterMonths === plan.goalMonths) {
     if (reached && goalIndex !== null) {
       const lead = plan.goalMonths - months[goalIndex].afterMonths;
-      return { ...base, pose: "celebrate", sprite: null, say: `완주! 목표 금액은 ${lead}개월 먼저 모았어요`, tone: "good", confetti: true };
+      return { ...base, pose: "celebrate", sprite: null, say: `완주! 목표 금액을 ${lead}개월 먼저 모아 금메달이에요`, tone: "good", confetti: true };
     }
     return { ...base, pose: "rest", sprite: null, say: `완주! 목표까지 ${formatManwon(plan.targetAmount - m.total)} 남아 완주 메달이에요`, tone: "info" };
   }
@@ -226,7 +230,8 @@ function stateOf(months: readonly StoryMonth[], index: number, plan: RacePlan, r
       ? { pose: "jog", sprite: null, say: "완주 후 금메달을 걸고 쿨다운 중", tone: "good" }
       : { pose: "jog", sprite: null, say: "완주했어요. 목표 금액까지 계속 달려요", tone: "info" };
   }
-  if (reached) return { pose: "jog", sprite: null, say: `금메달을 걸고 달려요. 결승까지 ${toFinish}개월`, tone: "good" };
+  // 러너스 하이로 달리는 달은 말풍선 없이 불꽃 머리 · 금빛 기운만 (남은 달은 위쪽 칩이 알려 준다)
+  if (reached) return { pose: "sprint", sprite: null, say: "", tone: "good" };
   const ahead = (i: number) => months[i].total >= paceLine(plan, months[i].afterMonths);
   if (ahead(index) && index > 0 && ahead(index - 1)) return { pose: "sprint", sprite: null, say: "목표 페이스보다 앞서 달려요", tone: "good" };
   return { pose: "jog", sprite: null, say: "꾸준히 달리는 중", tone: "info" };
@@ -249,7 +254,7 @@ function gateOf(months: readonly StoryMonth[], index: number, plan: RacePlan, go
 
 /**
  * 시간으로 잰 레이스 자리: 지난 달 ÷ 목표 개월 (0~1)과 그만큼의 거리, 결승(목표 시점)까지 남은 달.
- * 결승선이 곧 목표 시점이라 돈을 빨리 모아도 결승선은 당겨지지 않는다 (목표 금액은 금메달로 따로 보여 준다).
+ * 결승선이 곧 목표 시점이라 돈을 빨리 모아도 결승선은 당겨지지 않는다 (목표 금액은 러너스 하이 · 금메달로 따로 보여 준다).
  */
 export function raceClock(afterMonths: number, goalMonths: number, raceKm: number): { ratio: number; km: number; toFinish: number } {
   const ratio = goalMonths > 0 ? Math.min(Math.max(afterMonths / goalMonths, 0), 1) : 1;

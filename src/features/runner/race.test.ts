@@ -130,28 +130,42 @@ describe("캐릭터 자세", () => {
   });
 });
 
-describe("결승선 = 목표 시점, 목표 금액 = 금메달", () => {
+describe("결승선 = 목표 시점, 목표 금액 = 러너스 하이 · 금메달", () => {
   /** 1개월째부터 n개월째까지 조금씩 느는 미래. goalAt개월째에 서버가 목표 달성(GOAL_REACHED)을 알린다 */
   const run = (n: number, goalAt: number | null) =>
     Array.from({ length: n }, (_, i) => month(i + 1, 5_000_000 + (i + 1) * 10_000, { events: goalAt === i + 1 ? ["GOAL_REACHED"] : [] }));
 
-  it("결승 전에 목표 금액을 넘은 달: 금빛 문을 지나며 꽃가루 속 금메달, 그 뒤로는 메달을 걸고 결승까지", () => {
+  it("결승 전에 목표 금액을 넘은 달: 금빛 문을 지나며 꽃가루 속 러너스 하이, 그 뒤로는 메달 · 말풍선 없이 러너스 하이로 결승까지", () => {
     const months = run(70, 40);
     expect(goalIndexOf(months)).toBe(39);
-    expect(paceOf(months, 38, PLAN)).toMatchObject({ medal: null, confetti: false, gate: { kind: "goal", ahead: 1 } });
+    expect(paceOf(months, 38, PLAN)).toMatchObject({ medal: null, high: false, confetti: false, gate: { kind: "goal", ahead: 1 } });
     expect(paceOf(months, 39, PLAN)).toMatchObject({
       pose: "celebrate",
       sprite: null,
-      medal: "gold",
+      medal: null,
+      high: true,
       confetti: true,
       tone: "good",
       gate: { kind: "goal", ahead: 0, gold: true },
-      say: "목표 3,000만 원 달성! 결승 20개월 전에 금메달",
+      say: "목표 3,000만 원 달성! 결승 20개월 전 러너스 하이 발동",
     });
-    expect(paceOf(months, 44, PLAN)).toMatchObject({ medal: "gold", confetti: false, gate: null, say: "금메달을 걸고 달려요. 결승까지 15개월" });
+    expect(paceOf(months, 44, PLAN)).toMatchObject({
+      pose: "sprint",
+      medal: null,
+      high: true,
+      confetti: false,
+      gate: null,
+      say: "",
+    });
   });
 
-  it("결승 아치는 두 달 전부터 다가와 결승 달에 지나고 다음 달 뒤로 멀어진다 (금메달을 걸었으면 금빛)", () => {
+  it("러너스 하이 중에도 힘든 달은 쉬지만 기운은 이어진다", () => {
+    const months = run(70, 40);
+    months[44] = { ...months[44], events: ["SHOCK"], shock: 500_000 };
+    expect(paceOf(months, 44, PLAN)).toMatchObject({ pose: "rest", sprite: "rock", medal: null, high: true });
+  });
+
+  it("결승 아치는 두 달 전부터 다가와 결승 달에 지나고 다음 달 뒤로 멀어진다. 결승선에서 러너스 하이가 끝나고 금메달을 건다", () => {
     const months = run(70, 40);
     expect([57, 58, 59, 60, 61].map((i) => paceOf(months, i, PLAN).gate)).toEqual([
       { kind: "finish", ahead: 2, gold: true },
@@ -160,16 +174,24 @@ describe("결승선 = 목표 시점, 목표 금액 = 금메달", () => {
       { kind: "finish", ahead: -1, gold: true },
       null,
     ]);
-    expect(paceOf(months, 59, PLAN)).toMatchObject({ pose: "celebrate", medal: "gold", confetti: true, say: "완주! 목표 금액은 20개월 먼저 모았어요" });
-    expect(paceOf(months, 65, PLAN)).toMatchObject({ pose: "jog", medal: "gold", say: "완주 후 금메달을 걸고 쿨다운 중" });
+    expect(paceOf(months, 58, PLAN)).toMatchObject({ medal: null, high: true });
+    expect(paceOf(months, 59, PLAN)).toMatchObject({
+      pose: "celebrate",
+      medal: "gold",
+      high: false,
+      confetti: true,
+      say: "완주! 목표 금액을 20개월 먼저 모아 금메달이에요",
+    });
+    expect(paceOf(months, 65, PLAN)).toMatchObject({ pose: "jog", medal: "gold", high: false, say: "완주 후 금메달을 걸고 쿨다운 중" });
   });
 
-  it("목표 금액을 못 모은 채 결승선이면 완주 메달(은), 결승 뒤에라도 모으면 금메달로 바꾼다", () => {
+  it("목표 금액을 못 모은 채 결승선이면 완주 메달(은), 결승 뒤에라도 모으면 금메달로 바꾼다 (러너스 하이 없음)", () => {
     const short = run(70, null);
-    expect(paceOf(short, 58, PLAN).medal).toBeNull();
+    expect(paceOf(short, 58, PLAN)).toMatchObject({ medal: null, high: false });
     expect(paceOf(short, 59, PLAN)).toMatchObject({
       pose: "rest",
       medal: "silver",
+      high: false,
       confetti: false,
       tone: "info",
       gate: { kind: "finish", ahead: 0, gold: false },
@@ -179,15 +201,22 @@ describe("결승선 = 목표 시점, 목표 금액 = 금메달", () => {
 
     const late = run(80, 70);
     expect(paceOf(late, 65, PLAN).medal).toBe("silver");
-    expect(paceOf(late, 69, PLAN)).toMatchObject({ pose: "celebrate", medal: "gold", confetti: true, say: "목표 시점보다 10개월 늦었지만 목표 달성! 금메달" });
+    expect(paceOf(late, 69, PLAN)).toMatchObject({
+      pose: "celebrate",
+      medal: "gold",
+      high: false,
+      confetti: true,
+      say: "목표 시점보다 10개월 늦었지만 목표 달성! 금메달",
+    });
   });
 
-  it("목표 시점에 딱 맞춰 모으면 금빛 결승 아치 하나로", () => {
+  it("목표 시점에 딱 맞춰 모으면 금빛 결승 아치 하나로 바로 금메달", () => {
     const months = run(70, 60);
     expect(paceOf(months, 58, PLAN).gate).toEqual({ kind: "finish", ahead: 1, gold: false });
     expect(paceOf(months, 59, PLAN)).toMatchObject({
       pose: "celebrate",
       medal: "gold",
+      high: false,
       gate: { kind: "finish", ahead: 0, gold: true },
       say: "결승선에서 목표 3,000만 원 달성! 금메달 완주",
     });

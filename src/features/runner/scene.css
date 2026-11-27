@@ -225,11 +225,15 @@
 .rn-frozen * {
   animation-play-state: paused !important;
 }
-/* 다만 멈춘 채 달을 옮길 때 새로 나타나는 말풍선 · 장애물 · 메달 · 바뀐 구간 풍경은 끝 모습까지 (반쯤 투명하거나 작게 멈추지 않게) */
+/* 다만 멈춘 채 달을 옮길 때 새로 나타나는 말풍선 · 장애물 · 메달 · 러너스 하이 기운 · 바뀐 구간 풍경은 끝 모습까지
+   (반쯤 투명하거나 작게 멈추지 않게) */
 .rn-frozen .rn-say,
 .rn-frozen .rn-swap,
 .rn-frozen .rn-pop,
-.rn-frozen .rn-medal-on {
+.rn-frozen .rn-medal-on,
+.rn-frozen .rn-aura,
+.rn-frozen .rn-aura-flash,
+.rn-frozen .rn-fireHair {
   animation-play-state: running !important;
 }
 
