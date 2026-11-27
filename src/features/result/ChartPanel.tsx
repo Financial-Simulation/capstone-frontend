@@ -7,6 +7,10 @@
  *    큰 일(실직 · 급한 지출 · 적금 해지 · 빌리기 · 목표 달성)은 그래프 위에 크게 띄우고 잠깐 멈춘다.
  *    그래프 아래에 이번 달 변수(일 · 월급 · 들어온 돈 · 생활비 · 물가 · 저축)와 계좌별 잔액, 지금까지 일어난 일.
  * 계획을 바꿨으면(adjustments) 바꾼 계획의 미래를 본다. 숫자는 모두 서버 값이고, 문장은 features/story/story.ts가 고른다.
+ * '인생은 마라톤': 그래프 옆에서 입력 값으로 장비를 갖춘 캐릭터가 같은 달을 따라 달린다 (features/runner/RaceLane).
+ *  [전체 범위]는 출발선에서 몸 풀기 + '레이스 시작'(중간 미래), 재생 중에는 형편에 따라 달리기 · 빠르게 · 무릎 짚고 쉬기.
+ *  결승선은 목표 시점, 목표 금액은 금메달. 결혼 · 독립 · 이사 · 이직 · 자동차 달은 그 일의 장면을 보여 주느라 더 오래 머물고,
+ *  목표 달성(금메달) · 결승(완주) 달도 조금 더 머문다.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui";
@@ -15,6 +19,9 @@ import { api, errorMessage, isAbortError } from "@/lib/api";
 import { formatManwon } from "@/lib/format";
 import type { Adjustments, SimulateRequest, SimulateResult, SimulationInput, SimulationInputDraft, Story, StoryKind, StoryResult } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
+import { lifeMoments } from "@/features/runner/life";
+import { goalIndexOf } from "@/features/runner/race";
+import { RaceLive, RaceStart } from "@/features/runner/RaceLane";
 import { BandChart, BandLegend, EventLegend, type StoryOverlay } from "./BandChart";
 import { eventMarks } from "./result";
 
@@ -22,7 +29,18 @@ import { eventMarks } from "./result";
 const SPEEDS = [4, 8, 16] as const;
 /** 큰 일이 있는 달에서 멈추는 시간 (ms) */
 const HOLD_MS = 1300;
+/** 목표 달성(금메달) · 결승(완주) 달: 꽃가루 · 메달이 보이게 (ms) */
+const MEDAL_HOLD_MS = 2000;
+/** 결혼 · 독립 · 이사 · 이직 · 자동차 달: 인생 장면을 끝까지 보게 (ms) */
+const LIFE_HOLD_MS = 2800;
 const KINDS: StoryKind[] = ["BEST", "MIDDLE", "WORST"];
+
+/** 이 달에 더 머무는 시간: 인생 장면 → 금메달 · 완주 → 큰 일 순서로 하나만 */
+function holdMs({ life, medal, major }: { life: boolean; medal: boolean; major: boolean }): number {
+  if (life) return LIFE_HOLD_MS;
+  if (medal) return MEDAL_HOLD_MS;
+  return major ? HOLD_MS : 0;
+}
 const KIND_TONE: Record<StoryKind, StoryOverlay["tone"]> = { BEST: "good", MIDDLE: "primary", WORST: "danger" };
 
 const TONE_BOX = {
@@ -92,6 +110,7 @@ export function ChartPanel({
           <div className="mt-3">
             <BandChart result={result} events={events} ghost={base?.bands} />
           </div>
+          <RaceStart goalMonths={result.goal.goalMonths} onStart={() => setKind("MIDDLE")} />
         </>
       ) : story.error ? (
         <p role="alert" className="mt-4 text-sm text-danger">
@@ -147,17 +166,24 @@ function Replay({
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(8);
   const planned = useMemo(() => plannedNames(input), [input]);
   const all = useMemo(() => months.flatMap((m) => eventViews(m, data.targetAmount, planned)), [months, data.targetAmount, planned]);
+  const life = useMemo(() => lifeMoments(input, input.startMonth ?? null), [input]);
+  const goalIndex = useMemo(() => goalIndexOf(months), [months]);
 
   const running = playing && index < last;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!running) return;
-    const major = all.some((e) => e.afterMonths === months[index].afterMonths && e.major);
-    timer.current = setTimeout(() => setIndex((i) => Math.min(i + 1, last)), 1000 / speed + (major ? HOLD_MS : 0));
+    const now = months[index];
+    const hold = holdMs({
+      life: life.has(now.month),
+      medal: index === goalIndex || now.afterMonths === data.goalMonths,
+      major: all.some((e) => e.afterMonths === now.afterMonths && e.major),
+    });
+    timer.current = setTimeout(() => setIndex((i) => Math.min(i + 1, last)), 1000 / speed + hold);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [running, index, last, speed, all, months]);
+  }, [running, index, last, speed, all, months, life, goalIndex, data.goalMonths]);
 
   const m = months[index];
   const prev = index > 0 ? months[index - 1] : null;
@@ -232,6 +258,15 @@ function Replay({
         ))}
       </div>
 
+      <RaceLive
+        months={months}
+        index={index}
+        startTotal={start}
+        targetAmount={data.targetAmount}
+        goalMonths={data.goalMonths}
+        input={input}
+        running={running}
+      />
       <EventLegend events={events} />
       <BandChart result={result} events={events} story={overlay} />
       <input
