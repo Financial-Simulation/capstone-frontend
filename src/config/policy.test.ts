@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import metaData from "@/mocks/data/meta.json";
 import { formatKoreanWon } from "@/lib/format";
-import { HOUSING_SUBSCRIPTION, INPUT_DEFAULTS, PENSION_SAVING, SIMULATION_PATHS, YOUTH_FUTURE_SAVING } from "./policy";
+import { HOUSING_SUBSCRIPTION, INPUT_DEFAULTS, LOAN_DEFAULTS, PENSION_SAVING, SIMULATION_PATHS, YOUTH_FUTURE_SAVING } from "./policy";
 
 /** 서버 /meta(params.json)의 근거 문장. 백엔드 숫자가 바뀌면 이 시험이 먼저 깨져서 config를 같이 고치게 한다 */
 const evidence = (key: string) => metaData.parameters.find((p) => p.key === key)!.value;
@@ -19,6 +19,14 @@ describe("config/policy.ts가 서버 근거(/meta)와 같은지", () => {
 
   it("일반 적금 금리 기본값", () => {
     expect(evidence("rates")).toContain(`${INPUT_DEFAULTS.generalSavingRate}%`);
+  });
+
+  it("비운 금리 칸 기본값 (ECOS 키가 없을 때의 /meta defaultRates)", () => {
+    expect(metaData.defaultRates.generalSavingRate).toBe(INPUT_DEFAULTS.generalSavingRate);
+    for (const [type, { annualRate }] of Object.entries(LOAN_DEFAULTS)) {
+      expect(metaData.defaultRates.loanRates[type as keyof typeof LOAN_DEFAULTS]).toBe(annualRate);
+    }
+    expect(metaData.defaultRates.asOf).toBeNull();
   });
 
   it("청약 추징 기간 · 연금저축 세액공제 한도 · 중도 인출 (세금 · 배분 안내 문장)", () => {

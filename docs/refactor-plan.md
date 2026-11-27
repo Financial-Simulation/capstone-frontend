@@ -43,6 +43,7 @@
   - 읽는 곳은 `src/config/env.ts` 하나, 항목과 기본값은 `.env.example`, 바꿀 때만 `.env.local`. 기본이 전부 real이 되면서 2단계의 'real로 전환'도 같이 됐다.
 - [x] 제도 숫자 · 기본값: 서버가 주는 값(입력 검사 요약 · 청년미래 대상 판정 · meta · 프리셋 · 대출 기본값)을 쓰고, 서버가 안 주는 값은 `src/config/` 한 파일에 출처와 함께
   - 서버 값: `/inputs/validate`의 합계 · 청년미래 판정과 이유 · 지원금 없음 안내(v1.7 `INFO_POLICY_NO_MATCH`, 01-2와 결과의 지원금 카드), `/simulate`의 `paths`. 서버가 안 주는 값은 `src/config/policy.ts`(빈 칸 기본값 · 대출 기본값 · 청년미래 기준 · 결과 전 안내의 경로 수), `policy.test.ts`가 `/meta` 사본과 대조. 대출 기본값은 주는 API가 없어서 config로 옮겼다. 목업도 같은 config를 쓴다.
+  - 그 뒤 (2026-11-27): 백엔드가 `/meta`에 `defaultRates`(비운 금리 칸 기본값, ECOS 키가 있으면 한국은행 최신 금리)를 주게 되어 금리는 서버 값을 먼저 쓴다 (`src/lib/rate-defaults.ts` · `use-rate-defaults.ts`). config의 금리는 받기 전 · 못 받았을 때 · 목업용.
 - [x] 폴더를 기능 단위로: `features/input · result · tax · plan · report` + 공용 `components/ui`, `lib/api`
   - 지금 있는 화면은 `features/input`(00 시작 · 입력 4단계) · `features/result`(04 · 04-E)로 옮겼다. `tax · plan · report`는 그 기능을 만드는 3~5단계에 만든다. `app/`에는 주소(page.tsx)만 남겼다.
   - `tax · plan`은 4단계 블록을 `features/result`에 먼저 만들고 '4단계 뒤 정리'에서 옮겼다. `report`는 5단계에 만들었다.

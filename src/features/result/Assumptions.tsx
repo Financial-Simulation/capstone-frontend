@@ -2,7 +2,8 @@
 
 /**
  * '내 입력값과 적용 가정' (결과 맨 아래, 접어 둠). 내 입력을 한 줄씩 보여 주고,
- * 펼치면 GET /meta로 적용 가정과 근거 등급을 불러온다. 비운 칸은 서버 기본값(config/policy.ts)으로 적는다.
+ * 펼치면 GET /meta로 적용 가정과 근거 등급을 불러온다. 비운 칸은 서버 기본값으로 적는다
+ * (금리는 /meta의 defaultRates · useRateDefaults, 나머지는 config/policy.ts).
  */
 import { useState } from "react";
 import { INPUT_DEFAULTS, LOAN_DEFAULTS } from "@/config/policy";
@@ -10,10 +11,12 @@ import { api } from "@/lib/api";
 import { formatManwon, formatWon } from "@/lib/format";
 import { resolvedExpenseTotal } from "@/lib/rules";
 import type { MetaResult, SimulateResult, SimulationInputDraft } from "@/lib/types";
+import { useRateDefaults } from "@/lib/use-rate-defaults";
 import { formatYearMonth } from "@/lib/year-month";
 
 export function Assumptions({ result, input }: { result: SimulateResult; input: SimulationInputDraft }) {
   const [meta, setMeta] = useState<MetaResult | null | "loading" | "error">(null);
+  const { rates } = useRateDefaults();
   const fixed = resolvedExpenseTotal(input.expenses?.fixed);
   const variable = resolvedExpenseTotal(input.expenses?.variable);
   const rent = input.expenses?.monthlyRent;
@@ -42,12 +45,12 @@ export function Assumptions({ result, input }: { result: SimulateResult; input: 
       loans.length === 0
         ? "없음"
         : loans
-            .map((l) => `${l.loanType ? LOAN_DEFAULTS[l.loanType].label : "대출"} ${formatManwon(l.principal ?? 0)} (${l.annualRate ?? (l.loanType ? LOAN_DEFAULTS[l.loanType].annualRate : "—")}%, ${l.remainingMonths}개월)`)
+            .map((l) => `${l.loanType ? LOAN_DEFAULTS[l.loanType].label : "대출"} ${formatManwon(l.principal ?? 0)} (${l.annualRate ?? (l.loanType ? rates.loanRates[l.loanType] : "—")}%, ${l.remainingMonths}개월)`)
             .join(" · "),
     ],
     [
       "저축",
-      `월 ${formatWon(input.savingPlan?.monthlySaving) || "—"} · 일반 적금 연 ${input.savingPlan?.generalSavingRate ?? INPUT_DEFAULTS.generalSavingRate}% · 버틸 금액 ${formatWon(input.emergency?.breakThreshold ?? INPUT_DEFAULTS.breakThreshold)}`,
+      `월 ${formatWon(input.savingPlan?.monthlySaving) || "—"} · 일반 적금 연 ${input.savingPlan?.generalSavingRate ?? rates.generalSavingRate}% · 버틸 금액 ${formatWon(input.emergency?.breakThreshold ?? INPUT_DEFAULTS.breakThreshold)}`,
     ],
     [
       "목표",

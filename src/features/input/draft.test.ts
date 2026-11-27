@@ -5,8 +5,10 @@ import {
   addExpenseItem,
   addLoan,
   fillBlankExpenseItems,
+  fillLoanRate,
   patch,
   patchExpense,
+  patchLoan,
   patchExpenseItem,
   removeExpenseItem,
   removeLoan,
@@ -92,6 +94,23 @@ describe("대출", () => {
       repaymentType: "INTEREST_ONLY",
     });
     expect(setLoanType(input, 0, "STUDENT").loans?.items?.[0]).toMatchObject({ annualRate: 1.7, repaymentType: "EQUAL_PAYMENT" });
+  });
+
+  it("서버 기본 금리(한국은행 최신 값)를 넘기면 그 금리로 채운다", () => {
+    const input = setLoanType(addLoan({}), 0, "JEONSE", 4.63);
+    expect(input.loans?.items?.[0]).toMatchObject({ annualRate: 4.63, repaymentType: "INTEREST_ONLY" });
+  });
+
+  it("서버 금리를 받는 중이면 금리 칸을 비워 두었다가, 받으면 그 칸이 아직 비었고 종류가 그대로일 때만 채운다", () => {
+    const waiting = setLoanType(addLoan({}), 0, "JEONSE", null);
+    expect(waiting.loans?.items?.[0]).toMatchObject({ loanType: "JEONSE", annualRate: null, repaymentType: "INTEREST_ONLY" });
+    expect(fillLoanRate(waiting, 0, "JEONSE", 4.63).loans?.items?.[0]?.annualRate).toBe(4.63);
+    // 그새 직접 넣었거나 종류를 바꿨으면 그대로
+    const typed = patchLoan(waiting, 0, { annualRate: 3.9 });
+    expect(fillLoanRate(typed, 0, "JEONSE", 4.63)).toBe(typed);
+    const changed = setLoanType(waiting, 0, "CREDIT", 6.43);
+    expect(fillLoanRate(changed, 0, "JEONSE", 4.63)).toBe(changed);
+    expect(fillLoanRate(waiting, 3, "JEONSE", 4.63)).toBe(waiting);
   });
 
   it("있음 / 없음 (LOAN4001이 나지 않게)", () => {

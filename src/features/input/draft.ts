@@ -95,15 +95,31 @@ export function patchLoan(input: SimulationInputDraft, index: number, values: Dr
   return { ...input, loans: { ...(input.loans ?? {}), items } };
 }
 
-/** 종류를 고르면 평균 금리와 흔한 갚는 방식을 채운다 (예: 전세자금 4.3% · 이자만) */
-export function setLoanType(input: SimulationInputDraft, index: number, loanType: LoanType): SimulationInputDraft {
+/**
+ * 종류를 고르면 평균 금리와 흔한 갚는 방식을 채운다 (예: 전세자금 4.3% · 이자만).
+ * 금리는 서버 기본 금리(useRateDefaults, 한국은행 최신 값일 수 있음)를 넘겨받고, 없으면 코드 기본값.
+ * null이면 금리 칸을 비워 둔다 (서버 금리를 받는 중, 받으면 fillLoanRate로 채움)
+ */
+export function setLoanType(
+  input: SimulationInputDraft,
+  index: number,
+  loanType: LoanType,
+  annualRate: number | null = LOAN_DEFAULTS[loanType].annualRate,
+): SimulationInputDraft {
   const defaults = LOAN_DEFAULTS[loanType];
   return patchLoan(input, index, {
     loanType,
     name: defaults.label,
-    annualRate: defaults.annualRate,
+    annualRate,
     repaymentType: defaults.repaymentType,
   });
+}
+
+/** 서버 기본 금리를 받은 뒤 비워 둔 금리 칸 채우기: 종류가 그대로이고 칸이 아직 비어 있을 때만 (그새 직접 넣은 값은 둔다) */
+export function fillLoanRate(input: SimulationInputDraft, index: number, loanType: LoanType, annualRate: number): SimulationInputDraft {
+  const loan = input.loans?.items?.[index];
+  if (!loan || loan.loanType !== loanType || loan.annualRate != null) return input;
+  return patchLoan(input, index, { annualRate });
 }
 
 export function addLoan(input: SimulationInputDraft): SimulationInputDraft {
