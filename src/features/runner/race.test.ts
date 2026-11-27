@@ -88,6 +88,13 @@ describe("캐릭터 자세", () => {
     }
   });
 
+  it("급한 지출 말풍선은 서버가 준 유형 이름을 쓰고, 이름이 없으면 '급한 지출'", () => {
+    const say = (extra: Partial<StoryMonth>) =>
+      paceOf([month(1, 2_500_000), month(2, 1_700_000, { events: ["SHOCK"], shock: 800_000, ...extra })], 1, PLAN).say;
+    expect(say({ shockType: "TRAFFIC_ACCIDENT", shockLabel: "교통사고 자기부담금" })).toBe("교통사고 자기부담금 80만 원에 발이 걸렸어요");
+    expect(say({})).toBe("급한 지출 80만 원에 발이 걸렸어요");
+  });
+
   it("만기 · 빚 다 갚음 · 재취업은 빠르게 달린다", () => {
     for (const event of ["MATURE_POLICY", "DEBT_CLEARED", "REHIRE"] as const) {
       expect(paceOf([month(1, 1), month(2, 2, { events: [event] })], 1, PLAN).pose).toBe("sprint");

@@ -193,7 +193,10 @@ export function paceOf(months: readonly StoryMonth[], index: number, plan: RaceP
     return { ...base, pose: "rest", sprite: null, say: `완주! 목표까지 ${formatManwon(plan.targetAmount - m.total)} 남아 완주 메달이에요`, tone: "info" };
   }
   if (has("JOB_LOSS")) return { ...base, pose: "rest", sprite: "puddle", say: "일을 잃어 잠깐 멈췄어요", tone: "bad" };
-  if (has("SHOCK")) return { ...base, pose: "rest", sprite: "rock", say: `급한 지출 ${formatManwon(m.shock)}에 발이 걸렸어요`, tone: "bad" };
+  if (has("SHOCK")) {
+    // 서버가 준 유형 이름(경조사비 · 병원비 · 교통사고 자기부담금)을 그래프 위 배너와 같이 쓴다. 이름이 없으면 '급한 지출'
+    return { ...base, pose: "rest", sprite: "rock", say: `${m.shockLabel ?? "급한 지출"} ${formatManwon(m.shock)}에 발이 걸렸어요`, tone: "bad" };
+  }
   if (has("OVERDRAFT")) return { ...base, pose: "rest", sprite: "mud", say: "현금이 바닥나 마이너스 통장을 썼어요", tone: "bad" };
   if (BREAKS.some(has)) return { ...base, pose: "rest", sprite: "pack", say: "적금을 깨서 버티는 중이에요", tone: "bad" };
   if (has("MATURE_POLICY")) return { ...base, pose: "sprint", sprite: "water", say: "청년미래적금 만기! 보급을 받았어요", tone: "good" };
