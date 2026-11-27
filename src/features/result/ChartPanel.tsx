@@ -19,7 +19,8 @@ import { api, errorMessage, isAbortError } from "@/lib/api";
 import { formatManwon } from "@/lib/format";
 import type { Adjustments, SimulateRequest, SimulateResult, SimulationInput, SimulationInputDraft, Story, StoryKind, StoryResult } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
-import { lifeMoments } from "@/features/runner/life";
+import { runnerInputOf } from "@/features/runner/gear";
+import { lifeMoments, lifeSceneAt } from "@/features/runner/life";
 import { goalIndexOf } from "@/features/runner/race";
 import { RaceLive, RaceStart } from "@/features/runner/RaceLane";
 import { BandChart, BandLegend, EventLegend, type StoryOverlay } from "./BandChart";
@@ -65,6 +66,8 @@ export function ChartPanel({
   scenarioApplied?: boolean;
 }) {
   const events = eventMarks(input);
+  // 레이스 캐릭터(코인 · 장비 · 모습)는 저장한 입력이 아니라 지금 보여 주는 결과의 입력 + 바꾼 값으로
+  const runnerInput = useMemo(() => runnerInputOf(input, adjustments), [input, adjustments]);
   const [kind, setKind] = useState<StoryKind | null>(null);
   const story = useStoryData(kind !== null ? input : null, adjustments, result.seed);
   const current = story.data?.stories.find((s) => s.kind === kind) ?? null;
@@ -110,7 +113,7 @@ export function ChartPanel({
           <div className="mt-3">
             <BandChart result={result} events={events} ghost={base?.bands} />
           </div>
-          <RaceStart goalMonths={result.goal.goalMonths} onStart={() => setKind("MIDDLE")} />
+          <RaceStart goalMonths={result.goal.goalMonths} runnerInput={runnerInput} onStart={() => setKind("MIDDLE")} />
         </>
       ) : story.error ? (
         <p role="alert" className="mt-4 text-sm text-danger">
@@ -119,7 +122,7 @@ export function ChartPanel({
       ) : !current || !story.data ? (
         <p className="mt-4 text-sm text-muted">미래를 불러오는 중…</p>
       ) : (
-        <Replay key={`${kind}:${story.key}`} result={result} data={story.data} story={current} input={input} events={events} />
+        <Replay key={`${kind}:${story.key}`} result={result} data={story.data} story={current} input={input} runnerInput={runnerInput} events={events} />
       )}
     </section>
   );
@@ -151,12 +154,14 @@ function Replay({
   data,
   story,
   input,
+  runnerInput,
   events,
 }: {
   result: SimulateResult;
   data: StoryResult;
   story: Story;
   input: SimulationInputDraft;
+  runnerInput: SimulationInputDraft;
   events: ReturnType<typeof eventMarks>;
 }) {
   const months = story.months;
@@ -172,7 +177,7 @@ function Replay({
     const goalIndex = goalIndexOf(months);
     return months.map((mm, i) =>
       holdMs({
-        life: life.has(mm.month),
+        life: lifeSceneAt(life, mm, data.goalMonths) !== null,
         milestone: i === goalIndex || mm.afterMonths === data.goalMonths,
         major: all.some((e) => e.afterMonths === mm.afterMonths && e.major),
       }),
@@ -269,6 +274,7 @@ function Replay({
         targetAmount={data.targetAmount}
         goalMonths={data.goalMonths}
         input={input}
+        runnerInput={runnerInput}
         running={running}
       />
       <EventLegend events={events} />

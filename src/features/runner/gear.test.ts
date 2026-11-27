@@ -10,6 +10,7 @@ import {
   isEmptySlot,
   itemOf,
   runnerCoins,
+  runnerInputOf,
   sameSet,
   spentCoins,
   type GearSet,
@@ -65,6 +66,34 @@ describe("러닝 코인", () => {
 
   it("저축을 비우면 남는 돈 점수만", () => {
     expect(runnerCoins({ ...S1, savingPlan: null })?.total).toBe(14);
+  });
+});
+
+describe("결과 화면 레이스의 입력 (보여 주는 결과 + 계획 바꿔 보기)", () => {
+  it("바꾼 값이 없거나 캐릭터와 상관없는 값만 바꿨으면 받은 입력 그대로", () => {
+    expect(runnerInputOf(S1, {})).toBe(S1);
+    expect(runnerInputOf(S1, { breakThreshold: 1_000_000 })).toBe(S1);
+  });
+
+  it("바꾼 지출 · 저축으로 코인을 다시 센다 (상세 입력도 합계로 덮어쓰고, 받은 입력은 그대로)", () => {
+    const detail: SimulationInputDraft = {
+      ...S1,
+      expenses: { fixed: { inputMode: "DETAIL", items: [{ amount: 950_000 }] }, variable: { inputMode: "TOTAL", total: 950_000 } },
+    };
+    // 변동 95만 → 45만, 저축 50만 → 100만: 남는 돈 110만(44%) → 26코인, 저축 40% → 16코인
+    const adjusted = runnerInputOf(detail, { monthlyVariableExpense: 450_000, monthlySaving: 1_000_000 });
+    expect(runnerCoins(adjusted)?.total).toBe(42);
+    expect(runnerCoins(detail)?.total).toBe(22);
+    expect(detail.savingPlan?.monthlySaving).toBe(500_000);
+  });
+
+  it("실수령 · 고정지출 · 목표 시점도 덮어쓴다", () => {
+    const withGoal: SimulationInputDraft = { ...S1, goal: { targetAmount: 30_000_000, targetDate: "2031-11" } };
+    const adjusted = runnerInputOf(withGoal, { monthlyNetIncome: 3_000_000, monthlyFixedExpense: 800_000, goalTargetDate: "2029-11" });
+    expect(adjusted.income?.monthlyNetIncome).toBe(3_000_000);
+    expect(adjusted.expenses?.fixed).toEqual({ inputMode: "TOTAL", total: 800_000 });
+    expect(adjusted.expenses?.variable).toEqual(S1.expenses?.variable);
+    expect(adjusted.goal).toEqual({ targetAmount: 30_000_000, targetDate: "2029-11" });
   });
 });
 

@@ -9,7 +9,7 @@
  * 돈 숫자는 입력 값 그대로 (race.ts plannedMarkers의 설명을 잇는다). 여기서는 고르기만 한다.
  */
 import { plannedEventName } from "@/features/input/events";
-import type { PresetKey, SimulationInputDraft, YearMonth } from "@/lib/types";
+import type { PresetKey, SimulationInputDraft, StoryMonth, YearMonth } from "@/lib/types";
 import { isYearMonth, monthsBetween } from "@/lib/year-month";
 import { plannedMarkers } from "./race";
 
@@ -58,4 +58,17 @@ export function lifeMoments(input: SimulationInputDraft | null | undefined, star
     moments.set(month, { kind, month, title: plannedEventName(event), detail });
   }
   return moments;
+}
+
+/**
+ * 이 달에 레이스 대신 보여 줄 인생 장면. 결승 달(목표 시점)은 완주 · 메달 장면이 먼저라 없음
+ * (결승 달에 일이 있어도 미래 다시 보기가 완주 · 메달 없이 끝나지 않게)
+ */
+export function lifeSceneAt(
+  moments: ReadonlyMap<YearMonth, LifeMoment>,
+  month: Pick<StoryMonth, "month" | "afterMonths">,
+  goalMonths: number,
+): LifeMoment | null {
+  if (month.afterMonths === goalMonths) return null;
+  return moments.get(month.month) ?? null;
 }

@@ -6,6 +6,7 @@
  *  - 코스(배경)는 고르지 않고 거리로 정해진다 (course.ts ROUTES). 카드마다 그 코스의 결승 구간 그림과 본뜬 대회 · 경로를 보여 준다.
  *  - 아래 한 줄로 규칙을 알려 준다: 결승선은 목표 시점, 그 전에 목표 금액을 모으면 러너스 하이로 달리다 결승선에서 금메달 (결과 화면 레이스, race.ts).
  */
+import { useId } from "react";
 import type { YearMonth } from "@/lib/types";
 import { formatYearMonth } from "@/lib/year-month";
 import { RACES, ROUTES, finishScene, formatKm, raceOfGoal, routeFor, targetDateFor, type SceneDef } from "./course";
@@ -27,6 +28,8 @@ export function RaceCards({
   describedBy?: string;
 }) {
   const current = raceOfGoal(start, target);
+  // 진짜 라디오 버튼(Choice.tsx와 같은 방식): 화살표 키로 옮겨 고르고, 탭은 묶음에 한 번만 멈춘다
+  const name = useId();
   return (
     <div>
       <div role="radiogroup" aria-label="레이스 거리" aria-describedby={describedBy} className="grid grid-cols-3 gap-2">
@@ -35,19 +38,23 @@ export function RaceCards({
           const route = ROUTES[race.key];
           const on = current?.race?.key === race.key;
           return (
-            <button
+            <label
               key={race.key}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              aria-label={`${race.label} ${formatKm(race.km)}, ${race.months / 12}년 (${formatYearMonth(date)}까지), ${route.event} 코스 ${route.title}`}
-              onClick={() => onPick(date)}
-              className={`group relative flex flex-col overflow-hidden rounded-xl border text-left transition ${
+              className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border text-left transition has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary ${
                 on
                   ? "border-primary bg-primary-soft shadow-[0_0_0_3px_rgba(21,89,184,0.14)]"
                   : "border-line-strong bg-surface hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
               }`}
             >
+              <input
+                type="radio"
+                name={name}
+                value={race.key}
+                checked={on}
+                onChange={() => onPick(date)}
+                aria-label={`${race.label} ${formatKm(race.km)}, ${race.months / 12}년 (${formatYearMonth(date)}까지), ${route.event} 코스 ${route.title}`}
+                className="sr-only"
+              />
               <ScenePreview scene={finishScene(route)} />
               {on && <CheckBadge className="absolute right-2 top-2" />}
               <span className="flex flex-1 flex-col px-2.5 pb-2.5 pt-2 sm:px-3">
@@ -67,7 +74,7 @@ export function RaceCards({
                 <span className="break-keep text-xs leading-snug text-ink-soft">{route.title}</span>
                 <span className="mt-1 text-xs text-muted">{formatYearMonth(date)}까지</span>
               </span>
-            </button>
+            </label>
           );
         })}
       </div>

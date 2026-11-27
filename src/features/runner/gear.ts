@@ -9,7 +9,7 @@
  * 장비 7칸은 칸마다 3단계(기본 0코인 · 러너 · 프로).
  */
 import { resolvedExpenseTotal } from "@/lib/rules";
-import type { SimulationInputDraft } from "@/lib/types";
+import type { Adjustments, SimulationInputDraft } from "@/lib/types";
 
 export const GEAR_SLOTS = ["headband", "sunglasses", "watch", "top", "bottoms", "socks", "shoes"] as const;
 export type GearSlot = (typeof GEAR_SLOTS)[number];
@@ -128,6 +128,27 @@ export function runnerCoins(input: SimulationInputDraft | null | undefined): Coi
   const spare = Math.round(spareRate * COIN_WEIGHTS.spare);
   const saving = Math.round(savingRate * COIN_WEIGHTS.saving);
   return { total: spare + saving, spare, saving, spareRate, savingRate, overspent: left < 0 };
+}
+
+/**
+ * 결과 화면 레이스의 캐릭터가 쓰는 입력: 보여 주는 결과의 입력(예시 결과면 예시 입력)에
+ * '계획 바꿔 보기'로 바꾼 실수령 · 지출 · 저축 · 목표 시점을 덮어쓴다. 저장한 입력(simInput.v1)은 건드리지 않는다.
+ * 바꾼 값이 없으면 받은 입력 그대로.
+ */
+export function runnerInputOf(input: SimulationInputDraft, adjustments: Adjustments): SimulationInputDraft {
+  const { monthlyNetIncome, monthlyFixedExpense, monthlyVariableExpense, monthlySaving, goalTargetDate } = adjustments;
+  if ([monthlyNetIncome, monthlyFixedExpense, monthlyVariableExpense, monthlySaving, goalTargetDate].every((v) => v == null)) return input;
+  return {
+    ...input,
+    income: monthlyNetIncome == null ? input.income : { ...input.income, monthlyNetIncome },
+    expenses: {
+      ...input.expenses,
+      ...(monthlyFixedExpense != null && { fixed: { inputMode: "TOTAL" as const, total: monthlyFixedExpense } }),
+      ...(monthlyVariableExpense != null && { variable: { inputMode: "TOTAL" as const, total: monthlyVariableExpense } }),
+    },
+    savingPlan: monthlySaving == null ? input.savingPlan : { ...input.savingPlan, monthlySaving },
+    goal: goalTargetDate == null ? input.goal : { ...input.goal, targetDate: goalTargetDate },
+  };
 }
 
 export function itemOf(slot: GearSlot, tier: GearTier): GearItem {

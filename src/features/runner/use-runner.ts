@@ -5,16 +5,20 @@
  * 장비도 코스도 사용자가 고르지 않는다. 저축 · 지출을 고치는 대로 코인이 바뀌어 그 안의 가장 좋은 장비(bestSet)를 바로 입고,
  * 목표 시점(레이스 거리)이 바뀌면 코스(routeFor)가 바뀐다.
  * 모습(look)은 입력한 나이(person.age)의 나이대와 01-1에서 고른 캐릭터 성별(simRunner.v1, 계산에는 쓰지 않음)로 정한다.
+ * 입력은 저장한 입력(simInput.v1)이 기본이다. 결과 화면 레이스는 보여 주는 결과의 입력(예시 결과 · 계획 바꿔 보기를 덮어쓴 값)을 넘긴다.
  */
 import { useCallback, useMemo } from "react";
 import { useRunnerPrefs, useSimInput } from "@/lib/hooks";
 import type { RunnerGender } from "@/lib/storage";
+import type { SimulationInputDraft } from "@/lib/types";
 import { raceOfGoal, routeFor } from "./course";
 import { bestSet, runnerCoins } from "./gear";
 import { lookOf } from "./look";
 
-export function useRunner() {
-  const { input } = useSimInput();
+/** @param displayed 저장한 입력 대신 쓸 입력 (결과 화면 레이스: gear.ts runnerInputOf). 없으면 저장한 입력 */
+export function useRunner(displayed?: SimulationInputDraft) {
+  const { input: saved } = useSimInput();
+  const input = displayed ?? saved;
   const { prefs, setPrefs } = useRunnerPrefs();
 
   const coins = runnerCoins(input);

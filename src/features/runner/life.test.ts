@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SimulationInputDraft } from "@/lib/types";
-import { lifeMoments } from "./life";
+import { lifeMoments, lifeSceneAt } from "./life";
 
 describe("인생 장면", () => {
   const input: SimulationInputDraft = {
@@ -28,5 +28,13 @@ describe("인생 장면", () => {
     expect(lifeMoments(input, null).size).toBe(0);
     expect(lifeMoments({ events: [input.events![5]] }, "2026-11").size).toBe(0);
     expect(lifeMoments({ events: [input.events![6]] }, "2026-11").size).toBe(0);
+  });
+
+  it("결승 달(목표 시점)에는 인생 장면 대신 결승 장면 (완주 · 메달이 가려지지 않게)", () => {
+    const moments = lifeMoments(input, "2026-11");
+    // 결혼 2028-05 = 기준 달부터 18개월째
+    expect(lifeSceneAt(moments, { month: "2028-05", afterMonths: 18 }, 36)?.kind).toBe("WEDDING");
+    expect(lifeSceneAt(moments, { month: "2028-05", afterMonths: 18 }, 18)).toBeNull();
+    expect(lifeSceneAt(moments, { month: "2028-06", afterMonths: 19 }, 36)).toBeNull();
   });
 });

@@ -8,7 +8,8 @@
  * 결승선 = 목표 시점: 레이스는 시간으로 달려(raceClock) 목표 시점에 완주한다. 목표 금액은 결승선과 따로라,
  * 결승 전에 모으면 그달 금빛 '목표 달성' 문을 지나며 꽃가루 속에 '러너스 하이'가 되어 금빛 기운을 내뿜으며 결승선까지 달린다.
  * 메달은 결승선을 지날 때 건다: 먼저 모았으면 금메달, 못 모았으면 완주 메달(은), 결승 뒤에라도 모으면 금메달로 바꿔 단다.
- * 결혼 · 독립 · 전세 이사 · 이직 · 자동차가 있는 달은 레이스 대신 그 일의 장면(LifeScene)을 보여 준다.
+ * 결혼 · 독립 · 전세 이사 · 이직 · 자동차가 있는 달은 레이스 대신 그 일의 장면(LifeScene)을 보여 준다. 결승 달은 결승 장면이 먼저 (life.ts lifeSceneAt).
+ * 캐릭터(코인 · 장비 · 모습)는 보여 주는 결과의 입력 + '계획 바꿔 보기'로 바꾼 값으로 정한다 (gear.ts runnerInputOf, 저장한 입력이 아니라).
  * 코스는 레이스 거리로 정해지고(course.ts routeFor), 지난 시간만큼 달린 자리의 구간 풍경을 보여 준다 (광화문 → 청계천 → … → 잠실).
  * 위쪽 칩: 구간 · 거리, 러너스 하이 · 메달, '몇 km 지점 · 결승까지 몇 개월'. 아래는 구간 이름이 붙은 출발 → 결승 막대 (목표 달성 자리에 금별).
  */
@@ -17,15 +18,24 @@ import { Button } from "@/components/ui";
 import { SIMULATION_PATHS } from "@/config/policy";
 import type { SimulationInputDraft, StoryMonth } from "@/lib/types";
 import { SCENES, bibOf, formatKm, raceForMonths, raceText, routeFor, sceneAt, startScene, type RouteDef } from "./course";
-import { lifeMoments } from "./life";
+import { lifeMoments, lifeSceneAt } from "./life";
 import { LifeScene } from "./LifeScene";
 import { goalIndexOf, paceOf, plannedMarkers, raceClock } from "./race";
 import { HudChip } from "./Hud";
 import { RaceScene } from "./RaceScene";
 import { useRunner } from "./use-runner";
 
-export function RaceStart({ goalMonths, onStart }: { goalMonths: number; onStart: () => void }) {
-  const runner = useRunner();
+export function RaceStart({
+  goalMonths,
+  runnerInput,
+  onStart,
+}: {
+  goalMonths: number;
+  /** 캐릭터를 정할 입력 (보여 주는 결과의 입력 + 바꾼 값, gear.ts runnerInputOf) */
+  runnerInput: SimulationInputDraft;
+  onStart: () => void;
+}) {
+  const runner = useRunner(runnerInput);
   const race = raceForMonths(goalMonths);
   const route = routeFor(race);
   const scene = startScene(route);
@@ -78,6 +88,7 @@ export function RaceLive({
   targetAmount,
   goalMonths,
   input,
+  runnerInput,
   running,
 }: {
   months: readonly StoryMonth[];
@@ -87,9 +98,11 @@ export function RaceLive({
   targetAmount: number;
   goalMonths: number;
   input: SimulationInputDraft;
+  /** 캐릭터를 정할 입력 (보여 주는 결과의 입력 + 바꾼 값, gear.ts runnerInputOf) */
+  runnerInput: SimulationInputDraft;
   running: boolean;
 }) {
-  const runner = useRunner();
+  const runner = useRunner(runnerInput);
   const race = raceForMonths(goalMonths);
   const route = routeFor(race);
   const planned = useMemo(() => plannedMarkers(input, input.startMonth ?? null), [input]);
@@ -99,7 +112,7 @@ export function RaceLive({
   const pace = paceOf(months, index, { startTotal, targetAmount, goalMonths, planned });
   const clock = raceClock(m.afterMonths, goalMonths, race.km);
   const scene = sceneAt(route, clock.ratio);
-  const moment = life.get(m.month) ?? null;
+  const moment = lifeSceneAt(life, m, goalMonths);
   // 목표 금액을 모은 자리 (막대 위 금별): 결승 뒤에 모았으면 결승 자리
   const goalAt = goalIndex !== null && index >= goalIndex ? Math.min(months[goalIndex].afterMonths / goalMonths, 1) : null;
   const track = <ProgressTrack ratio={clock.ratio} goal={goalAt} totalKm={race.km} route={route} />;
