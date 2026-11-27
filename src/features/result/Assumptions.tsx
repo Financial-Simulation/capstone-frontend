@@ -16,7 +16,7 @@ import { formatYearMonth } from "@/lib/year-month";
 
 export function Assumptions({ result, input }: { result: SimulateResult; input: SimulationInputDraft }) {
   const [meta, setMeta] = useState<MetaResult | null | "loading" | "error">(null);
-  const rates = useRateDefaults();
+  const { rates } = useRateDefaults();
   const fixed = resolvedExpenseTotal(input.expenses?.fixed);
   const variable = resolvedExpenseTotal(input.expenses?.variable);
   const rent = input.expenses?.monthlyRent;

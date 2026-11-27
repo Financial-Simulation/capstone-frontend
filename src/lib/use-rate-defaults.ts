@@ -1,36 +1,27 @@
 "use client";
 
 /**
- * 비운 금리 칸 기본값을 서버(GET /meta)에서 한 번 받아 여러 화면이 나눠 쓴다. 탭을 새로 열면 다시 받는다.
- * 받기 전에는 코드 기본값으로 그리고, 받으면 서버 값으로 다시 그린다. 못 받으면 코드 기본값 그대로 (lib/rate-defaults.ts).
+ * 비운 금리 칸 기본값(서버 GET /meta의 defaultRates)을 여러 화면이 나눠 쓴다. 탭을 새로 열면 다시 받는다.
+ *  - 받기 전 · 못 받으면 코드 기본값(BUILT_IN_RATES). ready는 받았거나 못 받아서 더 기다리지 않을 때 true
+ *  - 받는 대로 이 훅을 쓰는 화면이 모두 함께 바뀐다. 못 받았으면 다음에 이 훅을 쓰는 화면이 열릴 때 다시 받는다
+ *  - API 모드(목업 스위치)마다 따로 받는다 (lib/rate-defaults.ts createRateDefaultsStore)
  */
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { api } from "@/lib/api";
-import { BUILT_IN_RATES, rateDefaultsFrom, type RateDefaults } from "@/lib/rate-defaults";
+import { useApiModes } from "@/lib/hooks";
+import { PENDING_RATES, createRateDefaultsStore, type RateDefaultsState } from "@/lib/rate-defaults";
 
-let loading: Promise<RateDefaults> | null = null;
+const store = createRateDefaultsStore(async () => (await api.meta()).data);
 
-function loadRateDefaults(): Promise<RateDefaults> {
-  loading ??= api.meta().then(
-    ({ data }) => rateDefaultsFrom(data),
-    () => {
-      loading = null; // 다음 화면에서 다시 받아 본다
-      return BUILT_IN_RATES;
-    },
+export function useRateDefaults(): RateDefaultsState {
+  const mode = useApiModes().modes.meta;
+  const state = useSyncExternalStore(
+    store.subscribe,
+    () => store.snapshot(mode),
+    () => PENDING_RATES,
   );
-  return loading;
-}
-
-export function useRateDefaults(): RateDefaults {
-  const [rates, setRates] = useState<RateDefaults>(BUILT_IN_RATES);
   useEffect(() => {
-    let alive = true;
-    loadRateDefaults().then((loaded) => {
-      if (alive) setRates(loaded);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return rates;
+    store.load(mode);
+  }, [mode]);
+  return state;
 }

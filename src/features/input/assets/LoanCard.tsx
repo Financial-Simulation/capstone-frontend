@@ -4,12 +4,13 @@
  * 01-2 대출 한 건. 종류를 고르면 평균 금리(서버 기본 금리, GET /meta) · 흔한 갚는 방식을 채우고,
  * 종류 · 남은 원금 · 남은 기간이 차면 입력이 멈추고 0.3초 뒤 첫 달 상환액을 보여 준다 (POST /loans/repayment-preview).
  */
+import { useEffect, useRef } from "react";
 import { Field, describedBy } from "@/components/ui/Field";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { NumberInput } from "@/components/ui/NumberInput";
 import { useDebouncedApi, type DebouncedState, type StepForm } from "@/features/input/step-form";
 import { api, isApiError } from "@/lib/api";
-import { patchLoan, removeLoan, setLoanType } from "@/features/input/draft";
+import { fillLoanRate, patchLoan, removeLoan, setLoanType } from "@/features/input/draft";
 import { formatRange, formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import { LIMITS } from "@/lib/rules";
@@ -64,7 +65,15 @@ export function LoanCard({ form, index, count }: { form: StepForm; index: number
     months: form.error(path("remainingMonths")),
   };
   const cardError = form.error(base, { prefix: true });
-  const rates = useRateDefaults();
+  const { rates, ready } = useRateDefaults();
+  // 서버 금리를 받기 전에 종류를 고르면 금리 칸을 비워 두었다가, 받으면 채운다 (코드 기본값이 입력에 남아 서버 값을 덮지 않게)
+  const waitingRate = useRef<LoanType | null>(null);
+  useEffect(() => {
+    const type = waitingRate.current;
+    if (!ready || !type) return;
+    waitingRate.current = null;
+    form.update((prev) => fillLoanRate(prev, index, type, rates.loanRates[type]));
+  }, [ready, rates, form, index]);
   // 고른 종류의 기본값. 평균 금리만 서버 값 (금리 칸을 비우면 서버도 이 금리로 계산)
   const defaults = loan?.loanType ? { ...LOAN_DEFAULTS[loan.loanType], annualRate: rates.loanRates[loan.loanType] } : null;
   const rateRange = formatRange(LIMITS.loanAnnualRate, "%");
@@ -103,7 +112,9 @@ export function LoanCard({ form, index, count }: { form: StepForm; index: number
             onBlur={form.touch(path("loanType"))}
             onChange={(event) => {
               const type = event.target.value as LoanType;
-              if (type) form.update((prev) => setLoanType(prev, index, type, rates.loanRates[type]));
+              if (!type) return;
+              waitingRate.current = ready ? null : type;
+              form.update((prev) => setLoanType(prev, index, type, ready ? rates.loanRates[type] : null));
             }}
           >
             <option value="" disabled>

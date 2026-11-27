@@ -64,7 +64,7 @@ export function AssetsStep() {
 
   const rateId = fieldId("savingPlan.generalSavingRate");
   const rateError = form.error("savingPlan.generalSavingRate");
-  const rates = useRateDefaults();
+  const { rates } = useRateDefaults();
   const rateHint = `가입한 상품이 있으면 그 금리로 고쳐요 (${formatRange(LIMITS.generalSavingRate, "%")}). 비워 두면 연 ${rates.generalSavingRate}% (${generalSavingBasis(rates)})`;
   const optionalFilled =
     input.assets?.investments != null ||
