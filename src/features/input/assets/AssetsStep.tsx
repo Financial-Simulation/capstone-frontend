@@ -18,7 +18,9 @@ import { addLoan, patch, setHasLoan } from "@/features/input/draft";
 import { MINUS, formatKoreanWon, formatManwon, formatManwonRange, formatRange, formatWon } from "@/lib/format";
 import { fieldId, scopeInput } from "@/lib/form";
 import { LIMITS } from "@/lib/rules";
-import { GENERAL_SAVING_RATE_BASIS, INPUT_DEFAULTS, YOUTH_FUTURE_SAVING } from "@/config/policy";
+import { INPUT_DEFAULTS, YOUTH_FUTURE_SAVING } from "@/config/policy";
+import { generalSavingBasis } from "@/lib/rate-defaults";
+import { useRateDefaults } from "@/lib/use-rate-defaults";
 import type { Draft, LoanItem, ValidateRequest, ValidateResult } from "@/lib/types";
 import { LoanCard } from "./LoanCard";
 
@@ -62,7 +64,8 @@ export function AssetsStep() {
 
   const rateId = fieldId("savingPlan.generalSavingRate");
   const rateError = form.error("savingPlan.generalSavingRate");
-  const rateHint = `가입한 상품이 있으면 그 금리로 고쳐요 (${formatRange(LIMITS.generalSavingRate, "%")}). 비워 두면 연 ${INPUT_DEFAULTS.generalSavingRate}% (${GENERAL_SAVING_RATE_BASIS})`;
+  const rates = useRateDefaults();
+  const rateHint = `가입한 상품이 있으면 그 금리로 고쳐요 (${formatRange(LIMITS.generalSavingRate, "%")}). 비워 두면 연 ${rates.generalSavingRate}% (${generalSavingBasis(rates)})`;
   const optionalFilled =
     input.assets?.investments != null ||
     input.savingPlan?.monthlyInvestment != null ||
@@ -178,7 +181,7 @@ export function AssetsStep() {
                 decimals={2}
                 maxIntegerDigits={2}
                 unit="%"
-                placeholder={String(INPUT_DEFAULTS.generalSavingRate)}
+                placeholder={String(rates.generalSavingRate)}
                 invalid={Boolean(rateError)}
                 aria-describedby={describedBy(rateId, rateError, rateHint)}
                 onBlur={form.touch("savingPlan.generalSavingRate")}

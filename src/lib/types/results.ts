@@ -8,7 +8,7 @@
  * 단위: 금액은 원, 확률·비율은 % (소수 1자리), 연월은 "YYYY-MM". "모은 돈"은 대출 잔액을 빼지 않는다.
  */
 import type { ApiWarning, ValidateSummary } from "./api";
-import type { EmergencyFirstAmount, PlannedEvent, SimulationInput, YearMonth } from "./input";
+import type { EmergencyFirstAmount, LoanType, PlannedEvent, SimulationInput, YearMonth } from "./input";
 
 /** 그 달 모은 돈의 5%·10%·50%·90% 분위 (p5 = 최악의 경우) */
 export interface Quantiles {
@@ -487,6 +487,19 @@ export interface MetaResult {
   gradeLegend?: Record<string, string>;
   parameters: MetaParameter[];
   validation?: Record<string, string>;
+  /** 비운 금리 칸에 서버가 넣는 값. 백엔드 금리 자동 갱신(market-rates) 전 버전에는 없다 */
+  defaultRates?: DefaultRates;
+}
+
+/**
+ * 비운 금리 칸에 서버가 넣는 값 (연 %): 일반 적금, 대출 종류별.
+ * 백엔드에 ECOS 키가 있으면 한국은행 최신 금리이고 asOf가 그 기준 달, 코드 기본값이면 asOf는 null
+ */
+export interface DefaultRates {
+  generalSavingRate: number;
+  loanRates: Record<LoanType, number>;
+  asOf: YearMonth | null;
+  source: string;
 }
 
 // ===== POST /api/simulate/story (데모 '미래 다시 보기') =====

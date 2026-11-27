@@ -17,7 +17,7 @@ export type EmploymentType = "REGULAR" | "CONTRACT";
 /** 지출 입력 방식. DETAIL이면 items 합계, TOTAL이면 total을 쓴다 */
 export type InputMode = "DETAIL" | "TOTAL";
 
-/** 대출 종류. 금리·상환 방식을 비워 두면 종류별 기본값 (src/config/policy.ts의 LOAN_DEFAULTS) */
+/** 대출 종류. 금리를 비워 두면 서버 기본 금리(/meta의 defaultRates), 상환 방식을 비워 두면 종류별 기본값 (src/config/policy.ts의 LOAN_DEFAULTS) */
 export type LoanType = "STUDENT" | "JEONSE" | "CREDIT" | "MORTGAGE" | "OTHER";
 
 /** 원리금균등 · 원금균등 · 만기일시 · 이자만(전세자금) */

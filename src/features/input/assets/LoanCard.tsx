@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 01-2 대출 한 건. 종류를 고르면 평균 금리 · 흔한 갚는 방식을 채우고,
+ * 01-2 대출 한 건. 종류를 고르면 평균 금리(서버 기본 금리, GET /meta) · 흔한 갚는 방식을 채우고,
  * 종류 · 남은 원금 · 남은 기간이 차면 입력이 멈추고 0.3초 뒤 첫 달 상환액을 보여 준다 (POST /loans/repayment-preview).
  */
 import { Field, describedBy } from "@/components/ui/Field";
@@ -13,6 +13,7 @@ import { patchLoan, removeLoan, setLoanType } from "@/features/input/draft";
 import { formatRange, formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import { LIMITS } from "@/lib/rules";
+import { useRateDefaults } from "@/lib/use-rate-defaults";
 import { LOAN_DEFAULTS, REPAYMENT_LABELS } from "@/config/policy";
 import type {
   Draft,
@@ -63,7 +64,9 @@ export function LoanCard({ form, index, count }: { form: StepForm; index: number
     months: form.error(path("remainingMonths")),
   };
   const cardError = form.error(base, { prefix: true });
-  const defaults = loan?.loanType ? LOAN_DEFAULTS[loan.loanType] : null;
+  const rates = useRateDefaults();
+  // 고른 종류의 기본값. 평균 금리만 서버 값 (금리 칸을 비우면 서버도 이 금리로 계산)
+  const defaults = loan?.loanType ? { ...LOAN_DEFAULTS[loan.loanType], annualRate: rates.loanRates[loan.loanType] } : null;
   const rateRange = formatRange(LIMITS.loanAnnualRate, "%");
   const rateHint = defaults ? `${defaults.label} 평균 ${defaults.annualRate}% (${rateRange})` : `종류를 고르면 평균 금리를 채워요 (${rateRange})`;
   const monthsHint = formatRange(LIMITS.loanRemainingMonths, "개월");
@@ -100,7 +103,7 @@ export function LoanCard({ form, index, count }: { form: StepForm; index: number
             onBlur={form.touch(path("loanType"))}
             onChange={(event) => {
               const type = event.target.value as LoanType;
-              if (type) form.update((prev) => setLoanType(prev, index, type));
+              if (type) form.update((prev) => setLoanType(prev, index, type, rates.loanRates[type]));
             }}
           >
             <option value="" disabled>

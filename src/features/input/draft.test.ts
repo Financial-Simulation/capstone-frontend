@@ -94,6 +94,11 @@ describe("대출", () => {
     expect(setLoanType(input, 0, "STUDENT").loans?.items?.[0]).toMatchObject({ annualRate: 1.7, repaymentType: "EQUAL_PAYMENT" });
   });
 
+  it("서버 기본 금리(한국은행 최신 값)를 넘기면 그 금리로 채운다", () => {
+    const input = setLoanType(addLoan({}), 0, "JEONSE", 4.63);
+    expect(input.loans?.items?.[0]).toMatchObject({ annualRate: 4.63, repaymentType: "INTEREST_ONLY" });
+  });
+
   it("있음 / 없음 (LOAN4001이 나지 않게)", () => {
     const yes = setHasLoan({}, true);
     expect(yes.input.loans).toEqual({ hasNoLoan: false, items: [{}] });

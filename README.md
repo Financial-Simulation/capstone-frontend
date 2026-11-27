@@ -89,8 +89,8 @@ seed가 같아서 실제 API의 숫자도 정답 파일과 똑같아야 해요. 
 
 ## 제도 숫자 (금리 · 한도 · 소득 기준)
 
-- 서버가 주는 값은 응답 그대로 써요: 합계(`/inputs/validate`의 `summary`), 청년미래적금 대상 판정과 이유 · 지원금 없음 안내(`policySaving` · `warnings`), 근거와 가정(`/meta`), 예정된 일 기본 금액(`/events/presets`), 결과의 경로 수(`/simulate`의 `paths`).
-- 서버가 주지 않는 값(빈 칸 기본값 · 대출 종류별 기본 금리 · 청년미래적금 기준 · 월세 세액공제 안내 · 결과 전 안내의 경로 수)은 `src/config/policy.ts` 한 곳에 출처와 함께 있어요. 화면 문장에 숫자를 직접 쓰지 않아요.
+- 서버가 주는 값은 응답 그대로 써요: 합계(`/inputs/validate`의 `summary`), 청년미래적금 대상 판정과 이유 · 지원금 없음 안내(`policySaving` · `warnings`), 근거와 가정(`/meta`), 비운 금리 칸 기본값(`/meta`의 `defaultRates`, 백엔드에 ECOS 키가 있으면 한국은행 최신 금리), 예정된 일 기본 금액(`/events/presets`), 결과의 경로 수(`/simulate`의 `paths`).
+- 서버가 주지 않는 값(빈 칸 기본값 · 청년미래적금 기준 · 월세 세액공제 안내 · 결과 전 안내의 경로 수)은 `src/config/policy.ts` 한 곳에 출처와 함께 있어요. 금리 기본값도 여기 있지만 `/meta`를 받기 전 · 못 받았을 때와 목업에만 써요 (`src/lib/rate-defaults.ts`). 화면 문장에 숫자를 직접 쓰지 않아요.
 - `src/config/policy.test.ts`가 이 값을 서버 근거(`/meta` 사본)와 대조해요. 백엔드 숫자가 바뀌면 이 시험이 먼저 깨져요.
 - 입력 칸 범위(나이 19~39 등)는 `src/lib/rules.ts`가 서버 `SimulationInput.java`를 옮겨 둔 거예요 ('다음'을 누르기 전에 바로 알려 주려고). 기준은 서버예요.
   범위 숫자는 `LIMITS` 한 곳에 있고, 검사와 칸 아래 안내('19~39세' · '1만~3,000만 원' · '1~480개월')가 같이 써요. 이직의 '기본 +10%'처럼 기본값 안내는 프리셋(`/events/presets`) 값이에요.

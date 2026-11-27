@@ -10,7 +10,7 @@
 - 백엔드는 GitHub `capstone-backend` main(v1.7)이 기준이에요. 브라우저는 같은 출처 `/api/*`만 부르고 Next 서버가 넘겨요 (`next.config.ts` rewrites). 넘기기 전에 `src/proxy.ts`가 `Origin`을 빼요 (백엔드 CORS 허용 목록에 없으면 POST가 403).
 - 담은 계획을 서버에 보낼 때는 `planRequests`(features/plan/plan.ts)로 보내요: 서버는 계획 이름을 20자까지만 받아요(PlanSpec). 결과에는 `planLabels`로 담은 계획 이름을 붙여요 (보낸 이름 그대로 돌아온 줄만. 목업이 정답 파일의 예시 계획을 돌려주면 그 이름 그대로).
 - 환경 값(`process.env`)은 `src/config/env.ts`에서만 읽어요. 새 설정은 거기와 `.env.example`에 같이 적어요. `/dev`는 개발 서버에서만 열려요 (배포 빌드는 `NEXT_PUBLIC_DEV_TOOLS=1`일 때만, `devToolsEnabled()`).
-- 제도 숫자(금리 · 한도 · 소득 기준 · 기본값)를 화면 문장에 직접 쓰지 않아요. 서버 응답 값을 쓰고, 서버가 안 주는 값은 `src/config/policy.ts`(출처와 함께)에서 가져와요.
+- 제도 숫자(금리 · 한도 · 소득 기준 · 기본값)를 화면 문장에 직접 쓰지 않아요. 서버 응답 값을 쓰고, 서버가 안 주는 값은 `src/config/policy.ts`(출처와 함께)에서 가져와요. 비운 금리 칸의 기본값(일반 적금 · 대출 종류별)은 `useRateDefaults()`(lib/use-rate-defaults.ts, 서버 `/meta`의 `defaultRates`)로 읽어요 (`INPUT_DEFAULTS.generalSavingRate` · `LOAN_DEFAULTS[…].annualRate`를 화면에 바로 쓰지 않아요).
 - 입력은 `useSimInput()`(simInput.v1)으로만 읽고 써요. `startMonth`는 첫 값을 넣을 때 자동으로 정해져요. `localStorage`를 직접 쓰지 않아요.
 - 칸 규칙과 오류 문장은 `src/lib/rules.ts`예요. 백엔드 `SimulationInput.java` · `ErrorStatus.java`와 같게 맞춰요. 칸 범위 숫자는 `LIMITS` 한 곳에 두고, 검사와 칸 아래 안내('19~39세' · '1만~3,000만 원')가 같이 써요 (`formatRange` · `formatManwonRange`, lib/format.ts).
 - 금액 칸은 `<MoneyInput>`, 숫자 칸은 `<NumberInput>`, 연월은 `<YearMonthPicker>`, 입력 단계 화면은 `<StepScreen>`을 써요.

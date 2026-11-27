@@ -193,5 +193,17 @@
     "tax": "연말정산 결정세액이 홈택스 모의계산 24개 사례와 원 단위 일치 (2026-10-31)",
     "backtest": "청년희망적금 3개 시점 실제 해지율과 차이 0.6~0.9%p",
     "robustness": "가정 60가지 변경에도 비교 결론 60번 유지"
+  },
+  "defaultRates": {
+    "generalSavingRate": 3.03,
+    "loanRates": {
+      "STUDENT": 1.7,
+      "JEONSE": 4.3,
+      "CREDIT": 6.3,
+      "MORTGAGE": 4.7,
+      "OTHER": 5.0
+    },
+    "asOf": null,
+    "source": "코드 기본값 (일반 적금은 2025년 은행 정기적금 평균, 대출은 명세서 '대출 종류별 기본값' 표)"
   }
 }
