@@ -97,7 +97,7 @@ export const GEAR: Record<GearSlot, SlotDef> = {
 export const BASIC_SET: GearSet = { headband: 0, sunglasses: 0, watch: 0, top: 0, bottoms: 0, socks: 0, shoes: 0 };
 
 /** 코인 점수 비중: 남는 돈 60 + 저축 40 = 최대 100코인 */
-export const COIN_WEIGHTS = { spare: 60, saving: 40 } as const;
+const COIN_WEIGHTS = { spare: 60, saving: 40 } as const;
 export const MAX_COINS = COIN_WEIGHTS.spare + COIN_WEIGHTS.saving;
 
 export interface Coins {
@@ -139,7 +139,7 @@ export function spentCoins(set: GearSet): number {
 }
 
 /** 코인으로 사는 순서: 달리기에 중요한 것부터 */
-export const PRIORITY: readonly GearSlot[] = ["shoes", "top", "bottoms", "watch", "socks", "sunglasses", "headband"];
+const PRIORITY: readonly GearSlot[] = ["shoes", "top", "bottoms", "watch", "socks", "sunglasses", "headband"];
 
 /** 코인 안에서 입는 장비: 우선순위대로 러너 단계를 먼저 사고, 남으면 같은 순서로 프로로 올린다 */
 export function bestSet(coins: number): GearSet {

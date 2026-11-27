@@ -7,7 +7,7 @@ import "./scene.css";
 import { Cloud } from "./CourseArt";
 
 /** 캐릭터 자리 변수: 왼쪽 끝 --rx (좁은 화면 8%, 넓은 화면 12%). 문 · 말풍선 · 인생 장면 소품이 이 자리에 맞춘다 */
-export const RUNNER_X = "[--rx:8%] sm:[--rx:12%]";
+const RUNNER_X = "[--rx:8%] sm:[--rx:12%]";
 
 /** 장면 틀: 둥근 모서리 · 옅은 테두리 · 캐릭터 자리 변수 (높이와 상태 클래스는 장면이 붙인다) */
 export const SCENE_FRAME = `rn-scene relative isolate overflow-hidden rounded-2xl ring-1 ring-black/5 ${RUNNER_X}`;
