@@ -1,0 +1,220 @@
+/*
+ * 인생 장면 (LifeScene) 움직임. 레이스 장면과 같은 줄(rn-strip)을 걷는 빠르기로 흘리고(rn-life),
+ * 자동차는 빠르게(rn-drive-fast). 소품 움직임: 다가와 멈춤(rn-arrive) · 뒤로 멀어짐(rn-leave) · 덜컹(rn-bounce · rn-car) · 바퀴(rn-wheel)
+ * · 꽃잎(rn-petal) · 하트(rn-heart) · 손 흔들기(rn-wavehand) · 하객 손뼉(rn-clap) · 굴뚝 연기(rn-smoke) · 배기 연기(rn-exhaust) · 바람선(rn-wind).
+ * 멈춤(rn-frozen)과 움직임 줄이기는 scene.css가 장면(.rn-scene) 전체에 건다.
+ */
+
+/* 흐르는 빠르기: 레이스 장면 값(scene.css .rn-scene)을 걷는 빠르기로 바꾼다 */
+.rn-scene.rn-life {
+  --far-dur: 90s;
+  --near-dur: 7s;
+  --road-dur: 3.4s;
+}
+.rn-scene.rn-life.rn-drive-fast {
+  --far-dur: 14s;
+  --near-dur: 1.1s;
+  --road-dur: 0.5s;
+}
+
+/* 꽃 아치 · 새 회사: --from만큼 오른쪽에서 걷는 빠르기로 다가와 멈춘다 (끝나면 LifeScene이 '도착'으로 바꾼다) */
+.rn-arrive {
+  animation: rn-arrive 2.3s linear both;
+}
+@keyframes rn-arrive {
+  from {
+    transform: translateX(var(--from, 10rem));
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* 부모님 집: 캐릭터가 나서면 뒤로 멀어진다 */
+.rn-leave {
+  animation: rn-leave 6s linear forwards;
+}
+@keyframes rn-leave {
+  to {
+    transform: translateX(-19rem);
+  }
+}
+
+/* 트럭 · 자동차: 덜컹, 바퀴는 돈다 */
+.rn-bounce {
+  animation: rn-bounce 0.34s ease-in-out infinite alternate;
+}
+.rn-car {
+  animation: rn-bounce 0.24s ease-in-out infinite alternate;
+}
+@keyframes rn-bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-1.6px);
+  }
+}
+.rn-wheel {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rn-spin 0.7s linear infinite;
+}
+.rn-car .rn-wheel {
+  animation-duration: 0.2s;
+}
+
+.rn-exhaust circle {
+  animation: rn-exhaust 1.2s ease-out infinite;
+}
+.rn-exhaust circle:nth-child(2) {
+  animation-delay: -0.4s;
+}
+.rn-exhaust circle:nth-child(3) {
+  animation-delay: -0.8s;
+}
+@keyframes rn-exhaust {
+  from {
+    transform: translate(6px, 2px) scale(0.5);
+    opacity: 0.9;
+  }
+  to {
+    transform: translate(-10px, -6px) scale(1.3);
+    opacity: 0;
+  }
+}
+
+/* 굴뚝 연기 · 창에서 떠오르는 하트 */
+.rn-smoke circle {
+  animation: rn-smoke 2.4s ease-out infinite;
+}
+.rn-smoke circle:nth-child(2) {
+  animation-delay: -0.8s;
+}
+.rn-smoke circle:nth-child(3) {
+  animation-delay: -1.6s;
+}
+@keyframes rn-smoke {
+  from {
+    transform: translateY(8px) scale(0.5);
+    opacity: 0.9;
+  }
+  to {
+    transform: translate(4px, -10px) scale(1.2);
+    opacity: 0;
+  }
+}
+.rn-float {
+  animation: rn-float 1.8s ease-out infinite;
+}
+@keyframes rn-float {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    translate: 3px -16px;
+  }
+}
+
+/* 2층 창에서 흔드는 손 */
+.rn-wavehand {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: rn-wavehand 0.45s ease-in-out infinite alternate;
+}
+@keyframes rn-wavehand {
+  from {
+    transform: rotate(-16deg);
+  }
+  to {
+    transform: rotate(18deg);
+  }
+}
+
+/* 하객석의 꼬마 하객: 손뼉 (칸마다 조금씩 엇갈리게 animation-delay) */
+.rn-clap {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: rn-clap 0.42s ease-in-out infinite alternate;
+}
+@keyframes rn-clap {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(8deg);
+  }
+}
+
+/* 버진로드 꽃잎: 흔들리며 떨어진다 */
+.rn-petal {
+  position: absolute;
+  top: -12px;
+  border-radius: 80% 0 80% 0;
+  animation: rn-petal 4s linear infinite;
+}
+@keyframes rn-petal {
+  0% {
+    transform: translate(0, 0) rotate(0);
+  }
+  25% {
+    transform: translate(10px, 55px) rotate(90deg);
+  }
+  50% {
+    transform: translate(-6px, 110px) rotate(180deg);
+  }
+  75% {
+    transform: translate(9px, 165px) rotate(270deg);
+  }
+  100% {
+    transform: translate(-3px, 215px) rotate(360deg);
+  }
+}
+
+/* 꽃 아치 앞에 서면 피어오르는 하트 */
+.rn-heart {
+  width: 16px;
+  height: 16px;
+  animation: rn-heart 1.9s ease-out infinite both;
+}
+@keyframes rn-heart {
+  0% {
+    transform: translateY(14px) scale(0.4);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* 멈춘 장면의 하트는 떠 있는 그대로 보여 준다 */
+.rn-frozen .rn-heart {
+  animation: none !important;
+}
+
+/* 새 차 뒤 바람선 */
+.rn-wind span {
+  position: absolute;
+  left: 0;
+  height: 3px;
+  width: 30px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.85);
+  animation: rn-wind 0.5s linear infinite;
+}
+.rn-wind span:nth-child(2) {
+  animation-delay: -0.17s;
+  width: 38px;
+}
+.rn-wind span:nth-child(3) {
+  animation-delay: -0.34s;
+}

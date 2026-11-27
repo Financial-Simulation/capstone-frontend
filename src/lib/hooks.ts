@@ -16,6 +16,7 @@ import {
   INPUT_KEY,
   PLANS_KEY,
   PROGRESS_KEY,
+  RUNNER_KEY,
   browserStorage,
   clearAll,
   parseEligibility,
@@ -23,12 +24,15 @@ import {
   parseJson,
   parsePlans,
   parseProgress,
+  parseRunnerPrefs,
   readRaw,
   saveEligibility,
   saveInput,
   savePlans,
   saveProgress,
+  saveRunnerPrefs,
   type Progress,
+  type RunnerPrefs,
   type SavedPlan,
 } from "./storage";
 import type { StepKey } from "./steps";
@@ -46,7 +50,7 @@ function notify() {
 function subscribe(listener: Listener) {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    const watched = [INPUT_KEY, PLANS_KEY, PROGRESS_KEY, ELIGIBILITY_KEY, MODE_OVERRIDE_KEY];
+    const watched = [INPUT_KEY, PLANS_KEY, PROGRESS_KEY, ELIGIBILITY_KEY, RUNNER_KEY, MODE_OVERRIDE_KEY];
     if (event.key === null || watched.includes(event.key)) listener();
   };
   window.addEventListener("storage", onStorage);
@@ -81,6 +85,8 @@ const readEligibility = cachedReader(() => readRaw(ELIGIBILITY_KEY), parseEligib
 const EMPTY_PLANS: SavedPlan[] = [];
 const EMPTY_PROGRESS: Progress = { visited: [] };
 const EMPTY_ELIGIBILITY: Eligibility = {};
+const readRunner = cachedReader(() => readRaw(RUNNER_KEY), parseRunnerPrefs);
+const EMPTY_RUNNER: RunnerPrefs = { gender: null };
 
 export type InputUpdater = SimulationInputDraft | ((prev: SimulationInputDraft) => SimulationInputDraft);
 
@@ -129,6 +135,17 @@ export function useEligibility() {
     return saved;
   }, []);
   return { eligibility, setEligibility };
+}
+
+/** '인생은 마라톤' 캐릭터 설정 (simRunner.v1: 성별). 뜻은 features/runner/use-runner.ts가 붙인다 */
+export function useRunnerPrefs() {
+  const prefs = useSyncExternalStore(subscribe, readRunner, () => EMPTY_RUNNER);
+  const setPrefs = useCallback((next: RunnerPrefs) => {
+    const saved = saveRunnerPrefs(next);
+    notify();
+    return saved;
+  }, []);
+  return { prefs, setPrefs };
 }
 
 /** 거쳐 간 입력 단계 */

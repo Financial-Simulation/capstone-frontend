@@ -5,6 +5,7 @@
  *  - simPlans.v1   : 04-2에서 저장한 비교 계획, 최대 3개
  *  - simProgress.v1: 화면에서만 쓰는 진행 상태 (거쳐 간 단계). 서버로 보내지 않는다
  *  - simEligibility.v1: 결과 화면 '혜택을 더 정확히' 질문 답 (Eligibility). /benefits에만 보낸다
+ *  - simRunner.v1  : '인생은 마라톤' 캐릭터 설정 (성별). 캐릭터 모습에만 쓰고 서버로 보내지 않는다
  *
  * localStorage는 사생활 보호 모드·저장 공간 초과 등에서 예외를 던질 수 있어 모두 try/catch로 감싼다.
  * 스키마가 바뀌면 키를 v2로 올리고 v1 값을 옮기거나 버린다.
@@ -16,6 +17,7 @@ export const INPUT_KEY = "simInput.v1";
 export const PLANS_KEY = "simPlans.v1";
 export const PROGRESS_KEY = "simProgress.v1";
 export const ELIGIBILITY_KEY = "simEligibility.v1";
+export const RUNNER_KEY = "simRunner.v1";
 export const MAX_SAVED_PLANS = 3;
 
 /** 테스트에서 가짜 저장소를 넣을 수 있게 Storage의 필요한 부분만 */
@@ -111,12 +113,13 @@ export function saveInput(
   return { saved: writeJson(INPUT_KEY, input, storage), input };
 }
 
-/** '새로 시작': 입력·비교 계획·진행 상태를 모두 지운다 */
+/** '새로 시작': 입력·비교 계획·진행 상태 · 캐릭터 설정을 모두 지운다 */
 export function clearAll(storage: StorageLike | null = browserStorage()): void {
   remove(INPUT_KEY, storage);
   remove(PLANS_KEY, storage);
   remove(PROGRESS_KEY, storage);
   remove(ELIGIBILITY_KEY, storage);
+  remove(RUNNER_KEY, storage);
 }
 
 /**
@@ -200,4 +203,22 @@ export function parseEligibility(value: unknown): Eligibility {
 
 export function saveEligibility(eligibility: Eligibility, storage: StorageLike | null = browserStorage()): boolean {
   return writeJson(ELIGIBILITY_KEY, parseEligibility(eligibility), storage);
+}
+
+// ===== simRunner.v1 =====
+
+/** 캐릭터 성별 (M 남성 · F 여성). 나이는 입력(person.age)을 그대로 쓴다 */
+export type RunnerGender = "M" | "F";
+
+export interface RunnerPrefs {
+  gender: RunnerGender | null;
+}
+
+export function parseRunnerPrefs(value: unknown): RunnerPrefs {
+  const gender = isPlainObject(value) ? value.gender : null;
+  return { gender: gender === "M" || gender === "F" ? gender : null };
+}
+
+export function saveRunnerPrefs(prefs: RunnerPrefs, storage: StorageLike | null = browserStorage()): boolean {
+  return writeJson(RUNNER_KEY, parseRunnerPrefs(prefs), storage);
 }

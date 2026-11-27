@@ -17,6 +17,9 @@ import {
   saveProgress,
   type SavedPlan,
   type StorageLike,
+  RUNNER_KEY,
+  parseRunnerPrefs,
+  saveRunnerPrefs,
 } from "./storage";
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -147,6 +150,7 @@ describe("simPlans.v1 · simProgress.v1", () => {
       [INPUT_KEY]: "{}",
       [PLANS_KEY]: "[]",
       [PROGRESS_KEY]: "{}",
+      [RUNNER_KEY]: "{}",
       "apiMode.dev": "all-mock",
     });
     clearAll(storage);
@@ -164,3 +168,16 @@ describe("simEligibility.v1", () => {
   });
 });
 
+describe("simRunner.v1", () => {
+  it("성별은 M · F만 남기고, 나머지는 null", () => {
+    expect(parseRunnerPrefs(null)).toEqual({ gender: null });
+    expect(parseRunnerPrefs({ gender: "F" })).toEqual({ gender: "F" });
+    expect(parseRunnerPrefs({ gender: "X", course: "hangang" })).toEqual({ gender: null });
+  });
+
+  it("저장하고 다시 읽는다", () => {
+    const { storage, data } = memoryStorage({});
+    expect(saveRunnerPrefs({ gender: "M" }, storage)).toBe(true);
+    expect(JSON.parse(data.get(RUNNER_KEY)!)).toEqual({ gender: "M" });
+  });
+});

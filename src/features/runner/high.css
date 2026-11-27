@@ -1,0 +1,236 @@
+/*
+ * 러너스 하이 (결승 전에 목표 금액을 모은 뒤 결승선까지. Runner의 high → 그림에 rn-high). Runner가 runner.css 다음에 불러온다.
+ *  - 몸 뒤 금빛 기운 (HighAura, RunnerItems): 나타날 때 작게 모였다가 확 퍼지고(rn-aura) 흰 빛이 한 번 크게 터진다(rn-aura-flash).
+ *    빛은 숨 쉬듯 커졌다 작아지고, 햇살은 천천히 돌고, 고리는 몸에서 바깥으로 퍼지고, 빛 알갱이는 몸 둘레에서 위로 피어오른다.
+ *  - 불꽃 머리 (FireHair, RunnerFire): 머리카락 대신 머리 위 · 뒤에서 불꽃이 솟는다. 윤곽 · 불꽃 색을 두 번 그리는데 둘 다 같은 움직임이라
+ *    함께 일렁인다. 나타날 때 머리에서 확 피어오르고(rn-fireHair), 불꽃마다 다른 빠르기로 흔들리며(rn-flame),
+ *    속불은 더 빠르게 일렁이고(rn-flameCore), 불똥이 뒤로 튄다(rn-ember).
+ *  - 얼굴: 달릴 때는 별이 반짝이는 눈(rn-faceHigh), 눈썹은 진한 빨강. 몸 둘레 · 머리 둘레에 별이 반짝인다.
+ *  - 쉬는 달(rn-rest)에는 기운이 약해지고 불꽃이 작아진다. 재생을 멈춘 채 이 달로 옮겨도 나타나는 움직임은 끝까지 간다 (scene.css rn-frozen).
+ * 좌표는 Runner와 같은 viewBox(200 × 250): 기운의 가운데 (104, 140), 불꽃 머리의 가운데 (104, 60).
+ */
+
+/* ---- 얼굴: 달릴 때는 별이 반짝이는 눈 (쉬거나 기뻐할 때는 그 자세의 표정), 눈썹은 진한 빨강 ---- */
+.rn-faceHigh {
+  display: none;
+}
+.rn-high:is(.rn-jog, .rn-sprint) .rn-faceHigh {
+  display: inline;
+}
+.rn-high:is(.rn-jog, .rn-sprint) :is(.rn-faceNormal, .rn-faceSprint) {
+  display: none;
+}
+.rn-runner .rn-starEye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rn-star-eye 0.8s ease-in-out infinite alternate;
+}
+@keyframes rn-star-eye {
+  from {
+    transform: scale(0.8) rotate(-8deg);
+  }
+  to {
+    transform: scale(1.12) rotate(8deg);
+  }
+}
+.rn-brow {
+  transition: stroke 0.6s ease;
+}
+.rn-high .rn-brow {
+  stroke: #a4302a;
+}
+
+/* ---- 반짝이: 몸 둘레 별(rn-sparkle, runner.css)을 켜고, 머리 둘레 별(rn-headSparkle)이 번갈아 반짝인다 ---- */
+.rn-high .rn-sparkle {
+  display: inline;
+}
+.rn-runner .rn-headSparkle path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rn-twinkle 1.1s ease-in-out infinite;
+}
+.rn-headSparkle path:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.rn-headSparkle path:nth-child(3) {
+  animation-delay: -0.6s;
+}
+.rn-headSparkle path:nth-child(4) {
+  animation-delay: -0.85s;
+}
+
+/* ---- 몸 뒤 금빛 기운 ---- */
+.rn-aura {
+  transform-origin: 104px 140px;
+  animation: rn-aura-in 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes rn-aura-in {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.rn-aura-body {
+  transition: opacity 0.4s ease;
+}
+.rn-rest .rn-aura-body {
+  opacity: 0.5;
+}
+.rn-aura-glow {
+  transform-origin: 104px 140px;
+  animation: rn-aura-breathe 1.5s ease-in-out infinite;
+}
+@keyframes rn-aura-breathe {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+.rn-aura-rays {
+  transform-origin: 104px 140px;
+  animation: rn-aura-spin 14s linear infinite;
+}
+@keyframes rn-aura-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* 고리: 움직임이 없으면(움직임 줄이기) 은은한 고리 하나로 보인다 */
+.rn-aura-ring {
+  transform-origin: 104px 140px;
+  opacity: 0.5;
+  animation: rn-aura-ring 1.8s ease-out infinite;
+}
+.rn-aura-ring:nth-child(2) {
+  animation-delay: -0.6s;
+}
+.rn-aura-ring:nth-child(3) {
+  animation-delay: -1.2s;
+}
+@keyframes rn-aura-ring {
+  from {
+    transform: scale(0.55);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+/* 빛 알갱이: 알갱이마다 오르는 시간(--t) · 시작 늦춤(--d) · 옆으로 흐름(--dx)이 다르다 */
+.rn-runner .rn-aura-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rn-aura-rise var(--t, 1.6s) ease-out var(--d, 0s) infinite;
+}
+@keyframes rn-aura-rise {
+  from {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--dx, 0px), -170px) scale(1.2);
+    opacity: 0;
+  }
+}
+/* 변신하는 순간 한 번 크게 터지는 흰 빛 (움직임이 없으면 보이지 않는다) */
+.rn-aura-flash {
+  opacity: 0;
+  transform-origin: 104px 120px;
+  animation: rn-aura-flash 0.9s ease-out both;
+}
+@keyframes rn-aura-flash {
+  from {
+    transform: scale(0.3);
+    opacity: 0.95;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* ---- 불꽃 머리 ---- */
+.rn-fireHair {
+  transform-origin: 104px 60px;
+  animation: rn-fire-bloom 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes rn-fire-bloom {
+  from {
+    transform: scale(0.6, 0.2);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+/* 불꽃 무리: 쉬는 달에는 머리 쪽으로 작아진다 */
+.rn-flameSet {
+  transform-origin: 96px 40px;
+  transition: transform 0.4s ease;
+}
+.rn-rest .rn-flameSet {
+  transform: scale(0.8);
+}
+/* 불꽃 하나: 밑동(인라인 transform-origin)을 중심으로 불꽃마다 다른 빠르기(--t) · 늦춤(--d)으로 흔들린다 */
+.rn-flame {
+  animation: rn-flame-sway var(--t, 0.4s) ease-in-out var(--d, 0s) infinite alternate;
+}
+@keyframes rn-flame-sway {
+  from {
+    transform: rotate(-5deg) scale(0.94);
+  }
+  to {
+    transform: rotate(6deg) scale(1.06);
+  }
+}
+.rn-runner .rn-flameCore {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: rn-flame-core calc(var(--t, 0.4s) * 0.6) ease-in-out var(--d, 0s) infinite alternate;
+}
+@keyframes rn-flame-core {
+  from {
+    transform: scale(0.8);
+    opacity: 0.75;
+  }
+  to {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+/* 불똥: 시작 늦춤(--d) · 흐름(--dx, --dy) */
+.rn-runner .rn-ember {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rn-ember 0.9s ease-out var(--d, 0s) infinite;
+}
+@keyframes rn-ember {
+  from {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--dx, 0px), var(--dy, -30px)) scale(0.4);
+    opacity: 0;
+  }
+}

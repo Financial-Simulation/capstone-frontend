@@ -2,6 +2,8 @@
 
 /**
  * 02 목표 설정: 이름(선택) · 금액 · 연월 (기준 달부터 12~120개월만 고를 수 있게).
+ * '인생은 마라톤': 목표 시점은 레이스 거리 카드(10km 3년 · 하프 5년 · 풀코스 10년)로 고르고, 다른 기간은 연월로 직접 고른다.
+ * 코스(배경)는 거리로 정해진다 (카드에 미리 보기. 계산에는 쓰지 않음).
  * 다음 → 필수 칸 확인 → validate (step=GOAL) → 이미 목표 이상이면 안내 모달 (WARN_GOAL_ALREADY_MET)
  */
 import Link from "next/link";
@@ -12,6 +14,7 @@ import { YearMonthPicker } from "@/components/ui/YearMonthPicker";
 import { FormNoticeBox, StepWarningModal, useStepForm } from "@/features/input/step-form";
 import { FormSection, textInputClass } from "@/components/ui";
 import { patch } from "@/features/input/draft";
+import { RaceCards } from "@/features/runner/RaceSetup";
 import { formatManwonRange, formatRange, formatWon } from "@/lib/format";
 import { fieldId } from "@/lib/form";
 import { useCurrentMonth } from "@/lib/hooks";
@@ -26,12 +29,8 @@ const GOAL_YEARS = formatRange({ min: LIMITS.goalMonths.min / 12, max: LIMITS.go
 const GOAL_MONTHS = formatRange(LIMITS.goalMonths, "개월");
 const AMOUNT_HINT = formatManwonRange(LIMITS.goalTargetAmount);
 
-const QUICK_PICKS = [
-  { label: "1년 뒤", months: 12 },
-  { label: "3년 뒤", months: 36 },
-  { label: "5년 뒤", months: 60 },
-  { label: "10년 뒤", months: 120 },
-];
+/** 3 · 5 · 10년은 레이스 거리 카드로 고른다 (features/runner/course.ts의 RACES) */
+const QUICK_PICKS = [{ label: "1년 뒤", months: 12 }];
 
 export function GoalStep() {
   const form = useStepForm("GOAL");
@@ -91,13 +90,24 @@ export function GoalStep() {
         <Field
           id={dateId}
           path="goal.targetDate"
-          label="목표 시점"
+          label="목표 시점 · 레이스 거리"
           required
           group
           hint={dateHint}
           error={dateError}
           highlight={form.highlighted("goal.targetDate")}
         >
+          {start && (
+            <div className="mb-3">
+              <RaceCards
+                start={start}
+                target={target}
+                describedBy={describedBy(dateId, dateError, dateHint)}
+                onPick={(targetDate) => form.update((prev) => patch(prev, "goal", { targetDate }))}
+              />
+              <p className="mt-3 text-xs font-semibold text-ink-soft">또는 연월을 직접 골라요</p>
+            </div>
+          )}
           {start ? (
             <YearMonthPicker
               id={dateId}
