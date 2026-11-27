@@ -34,13 +34,6 @@ const MEDAL_HOLD_MS = 2000;
 /** 결혼 · 독립 · 이사 · 이직 · 자동차 달: 인생 장면을 끝까지 보게 (ms) */
 const LIFE_HOLD_MS = 2800;
 const KINDS: StoryKind[] = ["BEST", "MIDDLE", "WORST"];
-
-/** 이 달에 더 머무는 시간: 인생 장면 → 금메달 · 완주 → 큰 일 순서로 하나만 */
-function holdMs({ life, medal, major }: { life: boolean; medal: boolean; major: boolean }): number {
-  if (life) return LIFE_HOLD_MS;
-  if (medal) return MEDAL_HOLD_MS;
-  return major ? HOLD_MS : 0;
-}
 const KIND_TONE: Record<StoryKind, StoryOverlay["tone"]> = { BEST: "good", MIDDLE: "primary", WORST: "danger" };
 
 const TONE_BOX = {
@@ -48,6 +41,13 @@ const TONE_BOX = {
   bad: "border-danger-line bg-danger-soft/60",
   info: "border-line bg-system-soft",
 } as const;
+
+/** 이 달에 더 머무는 시간: 인생 장면 → 금메달 · 완주 → 큰 일 순서로 하나만 */
+function holdMs({ life, medal, major }: { life: boolean; medal: boolean; major: boolean }): number {
+  if (life) return LIFE_HOLD_MS;
+  if (medal) return MEDAL_HOLD_MS;
+  return major ? HOLD_MS : 0;
+}
 
 export function ChartPanel({
   result,
@@ -166,24 +166,28 @@ function Replay({
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(8);
   const planned = useMemo(() => plannedNames(input), [input]);
   const all = useMemo(() => months.flatMap((m) => eventViews(m, data.targetAmount, planned)), [months, data.targetAmount, planned]);
-  const life = useMemo(() => lifeMoments(input, input.startMonth ?? null), [input]);
-  const goalIndex = useMemo(() => goalIndexOf(months), [months]);
+  /** 달마다 더 머무는 시간 (ms) */
+  const holds = useMemo(() => {
+    const life = lifeMoments(input, input.startMonth ?? null);
+    const goalIndex = goalIndexOf(months);
+    return months.map((mm, i) =>
+      holdMs({
+        life: life.has(mm.month),
+        medal: i === goalIndex || mm.afterMonths === data.goalMonths,
+        major: all.some((e) => e.afterMonths === mm.afterMonths && e.major),
+      }),
+    );
+  }, [months, input, all, data.goalMonths]);
 
   const running = playing && index < last;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!running) return;
-    const now = months[index];
-    const hold = holdMs({
-      life: life.has(now.month),
-      medal: index === goalIndex || now.afterMonths === data.goalMonths,
-      major: all.some((e) => e.afterMonths === now.afterMonths && e.major),
-    });
-    timer.current = setTimeout(() => setIndex((i) => Math.min(i + 1, last)), 1000 / speed + hold);
+    timer.current = setTimeout(() => setIndex((i) => Math.min(i + 1, last)), 1000 / speed + holds[index]);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [running, index, last, speed, all, months, life, goalIndex, data.goalMonths]);
+  }, [running, index, last, speed, holds]);
 
   const m = months[index];
   const prev = index > 0 ? months[index - 1] : null;
